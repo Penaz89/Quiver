@@ -1,8 +1,10 @@
 [
   {
-    "brand": "Hyundai",
-    "model": "iX20",
-    "license_plate": "AAAAAAA",
-    "owner": "Zappi"
+    "brand": "Toyota",
+    "model": "Yaris",
+    "license_plate": "GD464RH",
+    "owner": "Fabiano",
+    "road_tax": "",
+    "ntc": ""
   }
 ]

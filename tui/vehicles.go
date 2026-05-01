@@ -141,7 +141,7 @@ func (m *model) updateVehicleSectionMenu(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.vehicleSectionCursor < len(vehicleSectionLabels(m.lang))-1 {
 			m.vehicleSectionCursor++
 		}
-	case "enter":
+	case "enter", "right":
 		switch m.vehicleSectionCursor {
 		case 0:
 			m.vehicleSection = vSectionMgmt
@@ -154,7 +154,7 @@ func (m *model) updateVehicleSectionMenu(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.vehicleView = vViewList
 		m.vehicleCursor = 0
-	case "esc":
+	case "esc", "left":
 		m.focusContent = false
 	}
 	return m, nil
@@ -188,7 +188,7 @@ func (m *model) updateVehicleList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if len(m.vehicles) > 0 {
 			m.vehicleView = vViewDelete
 		}
-	case "esc":
+	case "esc", "left":
 		m.vehicleSection = vSectionMenu
 	}
 	return m, nil
@@ -277,7 +277,7 @@ func (m *model) updateSingleFieldList(msg tea.KeyMsg, getField func(*storage.Veh
 			m.formFields = [fCount]string{val}
 			m.formCursor = 0
 		}
-	case "esc":
+	case "esc", "left":
 		m.vehicleSection = vSectionMenu
 	}
 	return m, nil
@@ -354,8 +354,8 @@ func (m *model) renderVehicleSectionMenu(s *styles) string {
 	// ── Statistics ───────────────────────────────────────────
 	stats := m.renderVehicleStats(s)
 
-	help := s.dim.Render(fmt.Sprintf("↑/↓: %s  Enter: %s  Esc: %s",
-		t(m.lang, "help.navigate"), t(m.lang, "help.select"), t(m.lang, "action.back")))
+	help := s.dim.Render(fmt.Sprintf("↑/↓: %s  →: %s  ←: %s",
+		t(m.lang, "help.navigate"), t(m.lang, "help.enter"), t(m.lang, "help.goBack")))
 
 	return title + "\n" + desc + "\n\n" + menu + "\n\n" + divider + "\n\n" + stats + "\n\n" + help
 }
@@ -494,7 +494,7 @@ func (m *model) renderVehicleList(s *styles) string {
 
 	if len(m.vehicles) == 0 {
 		empty := s.dim.Render(t(m.lang, "vehicles.noVehicles"))
-		help := s.dim.Render(fmt.Sprintf("\n\na: %s  Esc: %s", t(m.lang, "action.add"), t(m.lang, "action.back")))
+		help := s.dim.Render(fmt.Sprintf("\n\na: %s  ←: %s", t(m.lang, "action.add"), t(m.lang, "help.goBack")))
 		return title + "\n\n" + empty + help
 	}
 
@@ -521,8 +521,8 @@ func (m *model) renderVehicleList(s *styles) string {
 	}
 	table := strings.Join(rows, "\n")
 
-	help := s.dim.Render(fmt.Sprintf("a: %s  e: %s  d: %s  Esc: %s",
-		t(m.lang, "action.add"), t(m.lang, "action.edit"), t(m.lang, "action.delete"), t(m.lang, "action.back")))
+	help := s.dim.Render(fmt.Sprintf("a: %s  e: %s  d: %s  ←: %s",
+		t(m.lang, "action.add"), t(m.lang, "action.edit"), t(m.lang, "action.delete"), t(m.lang, "help.goBack")))
 
 	return title + "\n" + header + "\n" + divider + "\n" + table + "\n\n" + help
 }
@@ -592,7 +592,7 @@ func (m *model) renderSingleFieldSection(s *styles, sectionName string, getField
 
 	if len(m.vehicles) == 0 {
 		empty := s.dim.Render(t(m.lang, "vehicles.addFirst"))
-		help := s.dim.Render("\n\nEsc: " + t(m.lang, "action.back"))
+		help := s.dim.Render("\n\n←: " + t(m.lang, "help.goBack"))
 		return title + "\n\n" + empty + help
 	}
 
@@ -622,7 +622,7 @@ func (m *model) renderSingleFieldSection(s *styles, sectionName string, getField
 	}
 	table := strings.Join(rows, "\n")
 
-	help := s.dim.Render(fmt.Sprintf("e/Enter: %s  Esc: %s", t(m.lang, "action.edit"), t(m.lang, "action.back")))
+	help := s.dim.Render(fmt.Sprintf("e/Enter: %s  ←: %s", t(m.lang, "action.edit"), t(m.lang, "help.goBack")))
 
 	return title + "\n" + header + "\n" + divider + "\n" + table + "\n\n" + help
 }

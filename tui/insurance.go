@@ -91,7 +91,7 @@ func (m *model) updateInsuranceList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if len(m.insurances) > 0 {
 			m.vehicleView = vViewDelete
 		}
-	case "esc":
+	case "esc", "left":
 		m.vehicleSection = vSectionMenu
 	}
 	return m, nil
@@ -219,7 +219,7 @@ func (m *model) renderInsuranceList(s *styles) string {
 		if len(m.vehicles) == 0 {
 			extra = "\n" + s.dim.Render(t(m.lang, "vehicles.addFirst"))
 		}
-		help := s.dim.Render(fmt.Sprintf("\n\na: %s  Esc: %s", t(m.lang, "action.add"), t(m.lang, "action.back")))
+		help := s.dim.Render(fmt.Sprintf("\n\na: %s  ←: %s", t(m.lang, "action.add"), t(m.lang, "help.goBack")))
 		return title + "\n\n" + empty + extra + help
 	}
 
@@ -245,8 +245,8 @@ func (m *model) renderInsuranceList(s *styles) string {
 	}
 	table := strings.Join(rows, "\n")
 
-	help := s.dim.Render(fmt.Sprintf("a: %s  e: %s  d: %s  Esc: %s",
-		t(m.lang, "action.add"), t(m.lang, "action.edit"), t(m.lang, "action.delete"), t(m.lang, "action.back")))
+	help := s.dim.Render(fmt.Sprintf("a: %s  e: %s  d: %s  ←: %s",
+		t(m.lang, "action.add"), t(m.lang, "action.edit"), t(m.lang, "action.delete"), t(m.lang, "help.goBack")))
 
 	return title + "\n" + header + "\n" + divider + "\n" + table + "\n\n" + help
 }

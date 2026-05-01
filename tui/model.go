@@ -291,14 +291,16 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Toggle focus between sidebar and content
 		switch msg.String() {
-		case "tab", "enter":
-			m.focusContent = !m.focusContent
-			return m, nil
+		case "tab", "enter", "right":
+			if !m.focusContent {
+				m.focusContent = true
+				return m, nil
+			}
 		case "q":
 			if !m.focusContent {
 				return m, tea.Quit
 			}
-		case "esc":
+		case "esc", "left":
 			m.focusContent = false
 			return m, nil
 		}
@@ -378,9 +380,9 @@ func (m *model) View() tea.View {
 	if sw == 0 {
 		helpText = fmt.Sprintf("  ↑/↓ %s • q %s", t(m.lang, "help.navigate"), t(m.lang, "help.quit"))
 	} else if m.focusContent {
-		helpText = fmt.Sprintf("  Esc: %s • %s", t(m.lang, "help.menu"), t(m.lang, "help.contentFocused"))
+		helpText = fmt.Sprintf("  ←: %s • %s", t(m.lang, "help.goBack"), t(m.lang, "help.contentFocused"))
 	} else {
-		helpText = fmt.Sprintf("  ↑/↓ %s • Tab/Enter: %s • q %s", t(m.lang, "help.navigate"), t(m.lang, "help.focusContent"), t(m.lang, "help.quit"))
+		helpText = fmt.Sprintf("  ↑/↓ %s • →: %s • q %s", t(m.lang, "help.navigate"), t(m.lang, "help.enter"), t(m.lang, "help.quit"))
 	}
 	help := s.helpBar.Render(helpText)
 

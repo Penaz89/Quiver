@@ -105,13 +105,15 @@ var translations = map[string]map[string]string{
 	"settings.saved":       {"en": "Settings saved!", "it": "Impostazioni salvate!"},
 
 	// ── Help bar ─────────────────────────────────────────────
-	"help.navigate":    {"en": "navigate", "it": "naviga"},
-	"help.focusContent": {"en": "focus content", "it": "focus contenuto"},
-	"help.quit":        {"en": "quit", "it": "esci"},
-	"help.menu":        {"en": "menu", "it": "menu"},
+	"help.navigate":       {"en": "navigate", "it": "naviga"},
+	"help.enter":          {"en": "enter", "it": "entra"},
+	"help.goBack":         {"en": "back", "it": "indietro"},
+	"help.focusContent":   {"en": "focus content", "it": "focus contenuto"},
+	"help.quit":           {"en": "quit", "it": "esci"},
+	"help.menu":           {"en": "menu", "it": "menu"},
 	"help.contentFocused": {"en": "content focused", "it": "contenuto attivo"},
-	"help.switchField": {"en": "switch field", "it": "cambia campo"},
-	"help.select":      {"en": "select", "it": "seleziona"},
+	"help.switchField":    {"en": "switch field", "it": "cambia campo"},
+	"help.select":         {"en": "select", "it": "seleziona"},
 }
 
 // t returns the translation for the given key and language.

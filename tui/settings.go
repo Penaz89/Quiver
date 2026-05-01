@@ -56,7 +56,7 @@ func (m *model) updateSettings(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			// Update dynamic menu items
 			m.updateMenuLabels()
 		}
-	case "esc":
+	case "esc", "left":
 		m.focusContent = false
 	}
 	return m, nil
@@ -98,10 +98,10 @@ func (m *model) renderSettingsView(s *styles) string {
 		optList += o + "\n"
 	}
 
-	help := s.dim.Render(fmt.Sprintf("↑/↓: %s  Enter: %s  Esc: %s",
+	help := s.dim.Render(fmt.Sprintf("↑/↓: %s  Enter: %s  ←: %s",
 		t(m.lang, "help.navigate"),
 		t(m.lang, "help.select"),
-		t(m.lang, "action.back"),
+		t(m.lang, "help.goBack"),
 	))
 
 	return title + "\n" + desc + "\n\n" +
