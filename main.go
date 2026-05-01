@@ -86,8 +86,8 @@ func main() {
 	)
 	fmt.Printf(`
   ╔═══════════════════════════════════════╗
-  ║           🏹  Q U I V E R            ║
-  ║       SSH TUI Application v%s       ║
+  ║           🏹  Q U I V E R             ║
+  ║       SSH TUI Application v%s         ║
   ╚═══════════════════════════════════════╝
   Listening on %s
   Data directory: %s

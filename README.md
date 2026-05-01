@@ -13,17 +13,17 @@ An SSH-accessible TUI application built with [Wish](https://github.com/charmbrac
 │          Alpine Linux Container          │
 │                                          │
 │  ┌────────────────────────────────────┐  │
-│  │         Quiver (Go binary)        │  │
+│  │         Quiver (Go binary)         │  │
 │  │                                    │  │
-│  │  Wish SSH Server (:2222)          │  │
-│  │    └─ Bubble Tea TUI middleware   │  │
+│  │  Wish SSH Server (:2222)           │  │
+│  │    └─ Bubble Tea TUI middleware    │  │
 │  └────────────────────────────────────┘  │
 │                   │                      │
 │                   ▼                      │
 │         ┌──────────────────┐             │
 │         │  /data (volume)  │◄── Persistent
-│         │  • host keys     │    storage
-│         │  • app data      │
+│         │  • host keys     │    storage  │
+│         │  • app data      │             │
 │         └──────────────────┘             │
 └──────────────────────────────────────────┘
 ```
