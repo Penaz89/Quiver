@@ -23,6 +23,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/ssh"
+	"github.com/penaz/quiver/storage"
 )
 
 // Re-export types so main doesn't need to import bubbletea directly.
@@ -49,11 +50,11 @@ const bannerLarge = "" +
 	" ╚██████╔╝╚██████╔╝██║ ╚████╔╝ ███████╗██║  ██║\n" +
 	"  ╚══▀▀═╝  ╚═════╝ ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝"
 
-// Small banner (~22 cols)
+// Small banner (~35 cols)
 const bannerSmall = "" +
-	" ╔═╗╦ ╦╦╦  ╦╔═╗╦═╗\n" +
-	" ║═╬╗║ ║║╚╗╔╝║╣ ╠╦╝\n" +
-	" ╚═╝╚╚═╝╩ ╚╝ ╚═╝╩╚═"
+	"  ╔═╗  ╦ ╦  ╦  ╦  ╦  ╔═╗  ╦═╗\n" +
+	"  ║ ║  ║ ║  ║  ╚╗╔╝  ╠╣   ╠╦╝\n" +
+	"  ╚═╩  ╚═╝  ╩   ╚╝   ╚═╝  ╩╚═"
 
 // ─── Layout breakpoints ─────────────────────────────────────────────
 
@@ -63,7 +64,7 @@ const (
 	// Terminal width below which we use narrow sidebar
 	breakpointNarrow = 80
 	// Content width below which we use the small ASCII banner
-	breakpointBannerSmall = 55
+	breakpointBannerSmall = 50
 )
 
 // ─── Model ───────────────────────────────────────────────────────────
@@ -79,28 +80,38 @@ type model struct {
 	profile string
 
 	// App state
-	menuCursor int
-	dataDir    string
-	version    string
+	menuCursor   int
+	focusContent bool
+	dataDir      string
+	version      string
+
+	// Vehicle state
+	vehicles      []storage.Vehicle
+	vehicleView   vehicleSubView
+	vehicleCursor int
+	formFields    [fCount]string
+	formCursor    int
+	editIndex     int
 }
 
 // ─── Styles ──────────────────────────────────────────────────────────
 
 type styles struct {
-	sidebar      lipgloss.Style
-	content      lipgloss.Style
-	logo         lipgloss.Style
-	version      lipgloss.Style
-	menuNormal   lipgloss.Style
-	menuSelected lipgloss.Style
-	title        lipgloss.Style
-	subtitle     lipgloss.Style
-	info         lipgloss.Style
-	highlight    lipgloss.Style
-	dim          lipgloss.Style
-	infoBox      lipgloss.Style
-	status       lipgloss.Style
-	helpBar      lipgloss.Style
+	sidebar        lipgloss.Style
+	content        lipgloss.Style
+	contentFocused lipgloss.Style
+	logo           lipgloss.Style
+	version        lipgloss.Style
+	menuNormal     lipgloss.Style
+	menuSelected   lipgloss.Style
+	title          lipgloss.Style
+	subtitle       lipgloss.Style
+	info           lipgloss.Style
+	highlight      lipgloss.Style
+	dim            lipgloss.Style
+	infoBox        lipgloss.Style
+	status         lipgloss.Style
+	helpBar        lipgloss.Style
 }
 
 // sidebarWidth returns the sidebar width for the given terminal width.
@@ -148,6 +159,12 @@ func newStyles(width, height int) *styles {
 			Height(contentHeight).
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("63")).
+			Padding(1, 2),
+		contentFocused: lipgloss.NewStyle().
+			Width(contentWidth).
+			Height(contentHeight).
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("205")).
 			Padding(1, 2),
 		logo: lipgloss.NewStyle().
 			Bold(true).
@@ -199,6 +216,9 @@ func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramO
 	pty, _, _ := s.Pty()
 	user := s.User()
 
+	// Load existing vehicles from persistent storage
+	vehicles, _ := storage.LoadVehicles(dataDir)
+
 	m := &model{
 		user:       user,
 		term:       pty.Term,
@@ -208,6 +228,7 @@ func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramO
 		menuCursor: 0,
 		dataDir:    dataDir,
 		version:    version,
+		vehicles:   vehicles,
 	}
 	return m, []tea.ProgramOption{}
 }
@@ -232,16 +253,48 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "q", "ctrl+c":
+		// Always allow ctrl+c
+		if msg.String() == "ctrl+c" {
 			return m, tea.Quit
-		case "up", "k":
-			if m.menuCursor > 0 {
-				m.menuCursor--
+		}
+
+		// Route input to vehicle sub-views (form/delete) when active
+		if m.menuCursor == 1 && m.focusContent {
+			switch m.vehicleView {
+			case vViewAdd, vViewEdit:
+				return m.updateVehicleForm(msg)
+			case vViewDelete:
+				return m.updateVehicleDelete(msg)
+			default:
+				return m.updateVehicleList(msg)
 			}
-		case "down", "j":
-			if m.menuCursor < len(menuItems)-1 {
-				m.menuCursor++
+		}
+
+		// Toggle focus between sidebar and content
+		switch msg.String() {
+		case "tab", "enter":
+			m.focusContent = !m.focusContent
+			return m, nil
+		case "q":
+			if !m.focusContent {
+				return m, tea.Quit
+			}
+		case "esc":
+			m.focusContent = false
+			return m, nil
+		}
+
+		// Sidebar navigation (only when sidebar has focus)
+		if !m.focusContent {
+			switch msg.String() {
+			case "up", "k":
+				if m.menuCursor > 0 {
+					m.menuCursor--
+				}
+			case "down", "j":
+				if m.menuCursor < len(menuItems)-1 {
+					m.menuCursor++
+				}
 			}
 		}
 	}
@@ -258,13 +311,17 @@ func (m *model) View() tea.View {
 	case 0:
 		contentStr = m.renderHome(s)
 	case 1:
-		contentStr = m.renderVehicles(s)
+		contentStr = m.renderVehiclesView(s)
 	case 2:
 		contentStr = m.renderWork(s)
 	case 3:
 		contentStr = m.renderSettings(s)
 	}
-	content := s.content.Render(contentStr)
+	contentStyle := s.content
+	if m.focusContent {
+		contentStyle = s.contentFocused
+	}
+	content := contentStyle.Render(contentStr)
 
 	var layout string
 
@@ -298,9 +355,13 @@ func (m *model) View() tea.View {
 	}
 
 	// ── Help bar ─────────────────────────────────────────────
-	helpText := "  ↑/↓ navigate • q quit"
+	var helpText string
 	if sw == 0 {
 		helpText = "  ↑/↓ switch view • q quit"
+	} else if m.focusContent {
+		helpText = "  Esc: menu • content focused"
+	} else {
+		helpText = "  ↑/↓ navigate • Tab/Enter: focus content • q quit"
 	}
 	help := s.helpBar.Render(helpText)
 
@@ -354,13 +415,7 @@ func (m *model) renderHome(s *styles) string {
 	return header + "\n" + versionLine + "\n\n" + welcome + "\n" + infoBox
 }
 
-func (m *model) renderVehicles(s *styles) string {
-	title := s.title.Render("Vehicles")
-	desc := s.subtitle.Render("Vehicle management")
-	placeholder := s.dim.Render("No vehicles registered yet.")
-
-	return title + "\n" + desc + "\n\n" + placeholder
-}
+// renderVehicles is now in vehicles.go as renderVehiclesView
 
 func (m *model) renderWork(s *styles) string {
 	title := s.title.Render("Work")
