@@ -18,6 +18,7 @@ package tui
 
 import (
 	"fmt"
+	"strings"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -28,12 +29,21 @@ import (
 type Model = tea.Model
 type ProgramOption = tea.ProgramOption
 
-// view is the application's view state.
-type view int
+// ─── Menu items ──────────────────────────────────────────────────────
 
-const (
-	viewHome view = iota
-)
+type menuItem struct {
+	label string
+	icon  string
+}
+
+var menuItems = []menuItem{
+	{label: "HOME", icon: "🏠"},
+	{label: "VEHICLES", icon: "🚗"},
+	{label: "WORK", icon: "🔧"},
+	{label: "SETTINGS", icon: "⚙️"},
+}
+
+// ─── Model ───────────────────────────────────────────────────────────
 
 // model holds the TUI application state.
 type model struct {
@@ -46,34 +56,94 @@ type model struct {
 	profile string
 
 	// App state
-	currentView view
-	dataDir     string
-	version     string
+	menuCursor int
+	dataDir    string
+	version    string
 
-	// Styles
+	// Styles (computed based on window size)
 	styles *styles
 }
 
-// styles holds all lipgloss styles used by the TUI.
+// ─── Styles ──────────────────────────────────────────────────────────
+
+const menuWidth = 24
+
 type styles struct {
-	title     lipgloss.Style
-	subtitle  lipgloss.Style
-	info      lipgloss.Style
-	highlight lipgloss.Style
-	dim       lipgloss.Style
-	border    lipgloss.Style
-	status    lipgloss.Style
+	// Layout
+	sidebar      lipgloss.Style
+	content      lipgloss.Style
+	headerBox    lipgloss.Style
+	// Text
+	logo         lipgloss.Style
+	version      lipgloss.Style
+	menuNormal   lipgloss.Style
+	menuSelected lipgloss.Style
+	menuIcon     lipgloss.Style
+	title        lipgloss.Style
+	subtitle     lipgloss.Style
+	info         lipgloss.Style
+	highlight    lipgloss.Style
+	dim          lipgloss.Style
+	infoBox      lipgloss.Style
+	status       lipgloss.Style
+	helpBar      lipgloss.Style
 }
 
-func newStyles() *styles {
+func newStyles(width, height int) *styles {
+	contentWidth := width - menuWidth - 4 // account for borders/padding
+	if contentWidth < 20 {
+		contentWidth = 20
+	}
+	contentHeight := height - 4
+	if contentHeight < 10 {
+		contentHeight = 10
+	}
+
 	return &styles{
+		sidebar: lipgloss.NewStyle().
+			Width(menuWidth).
+			Height(contentHeight).
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("63")).
+			Padding(1, 1),
+		content: lipgloss.NewStyle().
+			Width(contentWidth).
+			Height(contentHeight).
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("63")).
+			Padding(1, 2),
+		headerBox: lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("99")).
+			Padding(0, 2).
+			MarginBottom(1).
+			Align(lipgloss.Center).
+			Width(menuWidth - 2),
+		logo: lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("205")),
+		version: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("241")).
+			Italic(true),
+		menuNormal: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("252")).
+			PaddingLeft(1),
+		menuSelected: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("205")).
+			Bold(true).
+			Background(lipgloss.Color("236")).
+			PaddingLeft(1).
+			Width(menuWidth - 4),
+		menuIcon: lipgloss.NewStyle().
+			PaddingRight(1),
 		title: lipgloss.NewStyle().
 			Bold(true).
 			Foreground(lipgloss.Color("205")).
 			MarginBottom(1),
 		subtitle: lipgloss.NewStyle().
 			Foreground(lipgloss.Color("141")).
-			Italic(true),
+			Italic(true).
+			MarginBottom(1),
 		info: lipgloss.NewStyle().
 			Foreground(lipgloss.Color("252")),
 		highlight: lipgloss.NewStyle().
@@ -81,15 +151,20 @@ func newStyles() *styles {
 			Bold(true),
 		dim: lipgloss.NewStyle().
 			Foreground(lipgloss.Color("241")),
-		border: lipgloss.NewStyle().
+		infoBox: lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("63")).
 			Padding(1, 2).
 			MarginTop(1),
 		status: lipgloss.NewStyle().
 			Foreground(lipgloss.Color("42")),
+		helpBar: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("241")).
+			MarginTop(1),
 	}
 }
+
+// ─── Constructor ─────────────────────────────────────────────────────
 
 // NewModel creates a new TUI model for the given SSH session.
 func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramOption) {
@@ -97,18 +172,20 @@ func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramO
 	user := s.User()
 
 	m := &model{
-		user:        user,
-		term:        pty.Term,
-		width:       pty.Window.Width,
-		height:      pty.Window.Height,
-		bg:          "light",
-		currentView: viewHome,
-		dataDir:     dataDir,
-		version:     version,
-		styles:      newStyles(),
+		user:       user,
+		term:       pty.Term,
+		width:      pty.Window.Width,
+		height:     pty.Window.Height,
+		bg:         "light",
+		menuCursor: 0,
+		dataDir:    dataDir,
+		version:    version,
+		styles:     newStyles(pty.Window.Width, pty.Window.Height),
 	}
 	return m, []tea.ProgramOption{}
 }
+
+// ─── Bubble Tea interface ────────────────────────────────────────────
 
 func (m *model) Init() tea.Cmd {
 	return tea.Batch(
@@ -127,10 +204,19 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		m.styles = newStyles(msg.Width, msg.Height)
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
+		case "up", "k":
+			if m.menuCursor > 0 {
+				m.menuCursor--
+			}
+		case "down", "j":
+			if m.menuCursor < len(menuItems)-1 {
+				m.menuCursor++
+			}
 		}
 	}
 	return m, nil
@@ -139,16 +225,78 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *model) View() tea.View {
 	s := m.styles
 
-	// Header
-	header := s.title.Render("🏹 Q U I V E R")
-	subtitle := s.subtitle.Render(fmt.Sprintf("v%s", m.version))
+	// ── Sidebar ──────────────────────────────────────────────
+	logoText := s.logo.Render("🏹 QUIVER")
+	versionText := s.version.Render(fmt.Sprintf("v%s", m.version))
+	header := s.headerBox.Render(logoText + "\n" + versionText)
 
-	// Welcome message
-	welcome := s.info.Render(fmt.Sprintf("Welcome, %s!", s.highlight.Render(m.user)))
+	var menuLines []string
+	for i, item := range menuItems {
+		label := fmt.Sprintf("%s %s", item.icon, item.label)
+		if i == m.menuCursor {
+			label = s.menuSelected.Render("▸ " + label)
+		} else {
+			label = s.menuNormal.Render("  " + label)
+		}
+		menuLines = append(menuLines, label)
+	}
+	menu := strings.Join(menuLines, "\n")
 
-	// Session info box
+	userLine := s.dim.Render("──────────────────") + "\n" +
+		s.status.Render("● ") + s.info.Render(m.user)
+
+	sidebarContent := header + "\n\n" + menu + "\n\n" + userLine
+	sidebar := s.sidebar.Render(sidebarContent)
+
+	// ── Content area ─────────────────────────────────────────
+	var contentStr string
+	switch m.menuCursor {
+	case 0:
+		contentStr = m.viewHome()
+	case 1:
+		contentStr = m.viewVehicles()
+	case 2:
+		contentStr = m.viewWork()
+	case 3:
+		contentStr = m.viewSettings()
+	}
+	content := s.content.Render(contentStr)
+
+	// ── Compose layout ───────────────────────────────────────
+	layout := lipgloss.JoinHorizontal(lipgloss.Top, sidebar, content)
+
+	// ── Help bar ─────────────────────────────────────────────
+	help := s.helpBar.Render("  ↑/↓ navigate • q quit")
+
+	full := layout + "\n" + help
+
+	v := tea.NewView(full)
+	v.AltScreen = true
+	return v
+}
+
+// ─── Views ───────────────────────────────────────────────────────────
+
+func (m *model) viewHome() string {
+	s := m.styles
+
+	banner := s.highlight.Render(
+		"  ██████╗ ██╗   ██╗██╗██╗   ██╗███████╗██████╗ \n" +
+			" ██╔═══██╗██║   ██║██║██║   ██║██╔════╝██╔══██╗\n" +
+			" ██║   ██║██║   ██║██║██║   ██║█████╗  ██████╔╝\n" +
+			" ██║▄▄ ██║██║   ██║██║╚██╗ ██╔╝██╔══╝  ██╔══██╗\n" +
+			" ╚██████╔╝╚██████╔╝██║ ╚████╔╝ ███████╗██║  ██║\n" +
+			"  ╚══▀▀═╝  ╚═════╝ ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝")
+
+	versionLine := s.version.Render(fmt.Sprintf("  v%s", m.version))
+
+	welcome := s.info.Render(fmt.Sprintf(
+		"Welcome back, %s!",
+		s.highlight.Render(m.user),
+	))
+
 	sessionInfo := fmt.Sprintf(
-		"%s %s\n%s %dx%d\n%s %s\n%s %s\n%s %s",
+		"%s  %s\n%s  %dx%d\n%s  %s\n%s  %s\n%s  %s",
 		s.dim.Render("Terminal:"),
 		s.info.Render(m.term),
 		s.dim.Render("Window:"),
@@ -160,25 +308,37 @@ func (m *model) View() tea.View {
 		s.dim.Render("Data Directory:"),
 		s.info.Render(m.dataDir),
 	)
-	infoBox := s.border.Render(sessionInfo)
+	infoBox := s.infoBox.Render(sessionInfo)
 
-	// Status line
-	status := s.status.Render("● Connected")
+	return banner + "\n" + versionLine + "\n\n" + welcome + "\n" + infoBox
+}
 
-	// Help
-	help := s.dim.Render("Press 'q' to quit")
+func (m *model) viewVehicles() string {
+	s := m.styles
 
-	// Compose the full view
-	content := fmt.Sprintf(
-		"%s  %s\n\n%s\n%s\n\n%s\n\n%s",
-		header, subtitle,
-		welcome,
-		infoBox,
-		status,
-		help,
-	)
+	title := s.title.Render("🚗  Vehicles")
+	desc := s.subtitle.Render("Vehicle management")
+	placeholder := s.dim.Render("No vehicles registered yet.")
 
-	v := tea.NewView(content)
-	v.AltScreen = true
-	return v
+	return title + "\n" + desc + "\n\n" + placeholder
+}
+
+func (m *model) viewWork() string {
+	s := m.styles
+
+	title := s.title.Render("🔧  Work")
+	desc := s.subtitle.Render("Work log & tasks")
+	placeholder := s.dim.Render("No work entries yet.")
+
+	return title + "\n" + desc + "\n\n" + placeholder
+}
+
+func (m *model) viewSettings() string {
+	s := m.styles
+
+	title := s.title.Render("⚙️  Settings")
+	desc := s.subtitle.Render("Application configuration")
+	placeholder := s.dim.Render("No settings available yet.")
+
+	return title + "\n" + desc + "\n\n" + placeholder
 }
