@@ -86,12 +86,22 @@ type model struct {
 	version      string
 
 	// Vehicle state
-	vehicles      []storage.Vehicle
-	vehicleView   vehicleSubView
-	vehicleCursor int
-	formFields    [fCount]string
-	formCursor    int
-	editIndex     int
+	vehicles             []storage.Vehicle
+	vehicleSection       vehicleSection
+	vehicleSectionCursor int
+	vehicleView          vehicleSubView
+	vehicleCursor        int
+	formFields           [fCount]string
+	formCursor           int
+	editIndex            int
+
+	// Insurance state
+	insurances      []storage.Insurance
+	insuranceCursor int
+	insFormFields   [insFCount]string
+	insFormCursor   int
+	insPickerMode   bool
+	insPickerCursor int
 }
 
 // ─── Styles ──────────────────────────────────────────────────────────
@@ -216,8 +226,9 @@ func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramO
 	pty, _, _ := s.Pty()
 	user := s.User()
 
-	// Load existing vehicles from persistent storage
+	// Load existing data from persistent storage
 	vehicles, _ := storage.LoadVehicles(dataDir)
+	insurances, _ := storage.LoadInsurance(dataDir)
 
 	m := &model{
 		user:       user,
@@ -229,6 +240,7 @@ func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramO
 		dataDir:    dataDir,
 		version:    version,
 		vehicles:   vehicles,
+		insurances: insurances,
 	}
 	return m, []tea.ProgramOption{}
 }
@@ -258,16 +270,9 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 
-		// Route input to vehicle sub-views (form/delete) when active
+		// Route input to vehicle section when active
 		if m.menuCursor == 1 && m.focusContent {
-			switch m.vehicleView {
-			case vViewAdd, vViewEdit:
-				return m.updateVehicleForm(msg)
-			case vViewDelete:
-				return m.updateVehicleDelete(msg)
-			default:
-				return m.updateVehicleList(msg)
-			}
+			return m.updateVehicleSection(msg)
 		}
 
 		// Toggle focus between sidebar and content

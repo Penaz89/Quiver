@@ -22,43 +22,39 @@ import (
 	"path/filepath"
 )
 
-// Vehicle represents a registered vehicle.
-type Vehicle struct {
-	Brand        string `json:"brand"`
-	Model        string `json:"model"`
+// Insurance represents an insurance policy linked to a vehicle by license plate.
+type Insurance struct {
 	LicensePlate string `json:"license_plate"`
-	Owner        string `json:"owner"`
-	RoadTax      string `json:"road_tax"`
-	NTC          string `json:"ntc"`
+	TotalCost    string `json:"total_cost"`
+	ExpireDate   string `json:"expire_date"`
 }
 
-func vehiclePath(dataDir string) string {
-	return filepath.Join(dataDir, "vehicles.json")
+func insurancePath(dataDir string) string {
+	return filepath.Join(dataDir, "insurance.json")
 }
 
-// LoadVehicles reads the vehicle list from the data directory.
-// Returns an empty slice if the file does not exist yet.
-func LoadVehicles(dataDir string) ([]Vehicle, error) {
-	path := vehiclePath(dataDir)
+// LoadInsurance reads insurance records from the data directory.
+func LoadInsurance(dataDir string) ([]Insurance, error) {
+	path := insurancePath(dataDir)
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return []Vehicle{}, nil
+			return []Insurance{}, nil
 		}
 		return nil, err
 	}
-	var vehicles []Vehicle
-	if err := json.Unmarshal(data, &vehicles); err != nil {
+	var records []Insurance
+	if err := json.Unmarshal(data, &records); err != nil {
 		return nil, err
 	}
-	return vehicles, nil
+	return records, nil
 }
 
-// SaveVehicles writes the vehicle list to the data directory.
-func SaveVehicles(dataDir string, vehicles []Vehicle) error {
-	data, err := json.MarshalIndent(vehicles, "", "  ")
+// SaveInsurance writes insurance records to the data directory.
+func SaveInsurance(dataDir string, records []Insurance) error {
+	data, err := json.MarshalIndent(records, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(vehiclePath(dataDir), data, 0644)
+	return os.WriteFile(insurancePath(dataDir), data, 0644)
 }

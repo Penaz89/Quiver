@@ -26,7 +26,26 @@ import (
 	"github.com/penaz/quiver/storage"
 )
 
-// ─── Vehicle sub-view states ─────────────────────────────────────────
+// ─── Vehicle section sub-menu ────────────────────────────────────────
+
+type vehicleSection int
+
+const (
+	vSectionMenu    vehicleSection = iota // sub-menu view
+	vSectionMgmt                          // Vehicle Management
+	vSectionInsurance                     // Insurance
+	vSectionRoadTax                       // Road Tax
+	vSectionNTC                           // NTC
+)
+
+var vehicleSections = []string{
+	"Vehicle Management",
+	"Insurance",
+	"Road Tax",
+	"NTC",
+}
+
+// ─── Vehicle sub-view states (within each section) ───────────────────
 
 type vehicleSubView int
 
@@ -39,22 +58,103 @@ const (
 
 // ─── Form field indices ──────────────────────────────────────────────
 
+// Vehicle Management fields
 const (
 	fBrand = iota
 	fModel
 	fPlate
 	fOwner
-	fCount
+	fMgmtCount
 )
 
-var fieldLabels = [fCount]string{
+// Road Tax fields
+const (
+	fRoadTax      = 0
+	fRoadTaxCount = 1
+)
+
+// NTC fields
+const (
+	fNTC      = 0
+	fNTCCount = 1
+)
+
+var mgmtFieldLabels = [fMgmtCount]string{
 	"Brand",
 	"Model",
 	"License Plate",
 	"Owner",
 }
 
+// fCount is the max across all sections (used for formFields array size)
+const fCount = fMgmtCount
+
 // ─── Update handlers ─────────────────────────────────────────────────
+
+// updateVehicleSection routes input based on current vehicle section.
+func (m *model) updateVehicleSection(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch m.vehicleSection {
+	case vSectionMenu:
+		return m.updateVehicleSectionMenu(msg)
+	case vSectionMgmt:
+		switch m.vehicleView {
+		case vViewAdd, vViewEdit:
+			return m.updateVehicleForm(msg)
+		case vViewDelete:
+			return m.updateVehicleDelete(msg)
+		default:
+			return m.updateVehicleList(msg)
+		}
+	case vSectionInsurance:
+		return m.updateInsuranceSection(msg)
+	case vSectionRoadTax:
+		switch m.vehicleView {
+		case vViewAdd, vViewEdit:
+			return m.updateSingleFieldForm(msg, fRoadTaxCount)
+		default:
+			return m.updateSingleFieldList(msg, func(v *storage.Vehicle) *string { return &v.RoadTax })
+		}
+	case vSectionNTC:
+		switch m.vehicleView {
+		case vViewAdd, vViewEdit:
+			return m.updateSingleFieldForm(msg, fNTCCount)
+		default:
+			return m.updateSingleFieldList(msg, func(v *storage.Vehicle) *string { return &v.NTC })
+		}
+	}
+	return m, nil
+}
+
+// updateVehicleSectionMenu handles input in the vehicle sub-menu.
+func (m *model) updateVehicleSectionMenu(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	key := msg.String()
+	switch key {
+	case "up", "k":
+		if m.vehicleSectionCursor > 0 {
+			m.vehicleSectionCursor--
+		}
+	case "down", "j":
+		if m.vehicleSectionCursor < len(vehicleSections)-1 {
+			m.vehicleSectionCursor++
+		}
+	case "enter":
+		switch m.vehicleSectionCursor {
+		case 0:
+			m.vehicleSection = vSectionMgmt
+		case 1:
+			m.vehicleSection = vSectionInsurance
+		case 2:
+			m.vehicleSection = vSectionRoadTax
+		case 3:
+			m.vehicleSection = vSectionNTC
+		}
+		m.vehicleView = vViewList
+		m.vehicleCursor = 0
+	case "esc":
+		m.focusContent = false
+	}
+	return m, nil
+}
 
 // updateVehicleList handles input when the vehicle list has focus.
 func (m *model) updateVehicleList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -69,12 +169,10 @@ func (m *model) updateVehicleList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.vehicleCursor++
 		}
 	case "a":
-		// Add new vehicle
 		m.vehicleView = vViewAdd
 		m.formFields = [fCount]string{}
 		m.formCursor = 0
 	case "e", "enter":
-		// Edit selected vehicle
 		if len(m.vehicles) > 0 {
 			v := m.vehicles[m.vehicleCursor]
 			m.vehicleView = vViewEdit
@@ -83,26 +181,24 @@ func (m *model) updateVehicleList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.formCursor = 0
 		}
 	case "d", "x":
-		// Delete selected vehicle
 		if len(m.vehicles) > 0 {
 			m.vehicleView = vViewDelete
 		}
 	case "esc":
-		m.focusContent = false
+		m.vehicleSection = vSectionMenu
 	}
 	return m, nil
 }
 
-// updateVehicleForm handles input in the add/edit form.
+// updateVehicleForm handles input in the add/edit form (Vehicle Management).
 func (m *model) updateVehicleForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 	switch key {
 	case "tab", "down":
-		m.formCursor = (m.formCursor + 1) % fCount
+		m.formCursor = (m.formCursor + 1) % fMgmtCount
 	case "shift+tab", "up":
-		m.formCursor = (m.formCursor - 1 + fCount) % fCount
+		m.formCursor = (m.formCursor - 1 + fMgmtCount) % fMgmtCount
 	case "enter":
-		// Save the vehicle
 		v := storage.Vehicle{
 			Brand:        strings.TrimSpace(m.formFields[fBrand]),
 			Model:        strings.TrimSpace(m.formFields[fModel]),
@@ -110,13 +206,15 @@ func (m *model) updateVehicleForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			Owner:        strings.TrimSpace(m.formFields[fOwner]),
 		}
 		if v.Brand == "" && v.Model == "" && v.LicensePlate == "" && v.Owner == "" {
-			// Don't save empty vehicles
 			m.vehicleView = vViewList
 			return m, nil
 		}
 		if m.vehicleView == vViewAdd {
 			m.vehicles = append(m.vehicles, v)
 		} else if m.vehicleView == vViewEdit {
+			// Preserve existing RoadTax/NTC
+			v.RoadTax = m.vehicles[m.editIndex].RoadTax
+			v.NTC = m.vehicles[m.editIndex].NTC
 			m.vehicles[m.editIndex] = v
 		}
 		_ = storage.SaveVehicles(m.dataDir, m.vehicles)
@@ -130,7 +228,6 @@ func (m *model) updateVehicleForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			*field = string(runes[:len(runes)-1])
 		}
 	default:
-		// Append printable characters
 		runes := []rune(key)
 		if len(runes) == 1 && unicode.IsPrint(runes[0]) {
 			m.formFields[m.formCursor] += key
@@ -144,7 +241,6 @@ func (m *model) updateVehicleDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 	switch key {
 	case "y":
-		// Confirm delete
 		m.vehicles = append(m.vehicles[:m.vehicleCursor], m.vehicles[m.vehicleCursor+1:]...)
 		_ = storage.SaveVehicles(m.dataDir, m.vehicles)
 		if m.vehicleCursor >= len(m.vehicles) && m.vehicleCursor > 0 {
@@ -157,9 +253,224 @@ func (m *model) updateVehicleDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// updateSingleFieldList handles a list view for Insurance/RoadTax/NTC sections.
+func (m *model) updateSingleFieldList(msg tea.KeyMsg, getField func(*storage.Vehicle) *string) (tea.Model, tea.Cmd) {
+	key := msg.String()
+	switch key {
+	case "up", "k":
+		if m.vehicleCursor > 0 {
+			m.vehicleCursor--
+		}
+	case "down", "j":
+		if m.vehicleCursor < len(m.vehicles)-1 {
+			m.vehicleCursor++
+		}
+	case "e", "enter":
+		if len(m.vehicles) > 0 {
+			m.vehicleView = vViewEdit
+			m.editIndex = m.vehicleCursor
+			val := *getField(&m.vehicles[m.vehicleCursor])
+			m.formFields = [fCount]string{val}
+			m.formCursor = 0
+		}
+	case "esc":
+		m.vehicleSection = vSectionMenu
+	}
+	return m, nil
+}
+
+// updateSingleFieldForm handles editing a single field (Insurance/RoadTax/NTC).
+func (m *model) updateSingleFieldForm(msg tea.KeyMsg, _ int) (tea.Model, tea.Cmd) {
+	key := msg.String()
+	switch key {
+	case "enter":
+		if len(m.vehicles) > 0 && m.editIndex < len(m.vehicles) {
+			val := strings.TrimSpace(m.formFields[0])
+			switch m.vehicleSection {
+			case vSectionRoadTax:
+				m.vehicles[m.editIndex].RoadTax = val
+			case vSectionNTC:
+				m.vehicles[m.editIndex].NTC = val
+			}
+			_ = storage.SaveVehicles(m.dataDir, m.vehicles)
+		}
+		m.vehicleView = vViewList
+	case "esc":
+		m.vehicleView = vViewList
+	case "backspace":
+		field := &m.formFields[0]
+		if len(*field) > 0 {
+			runes := []rune(*field)
+			*field = string(runes[:len(runes)-1])
+		}
+	default:
+		runes := []rune(key)
+		if len(runes) == 1 && unicode.IsPrint(runes[0]) {
+			m.formFields[0] += key
+		}
+	}
+	return m, nil
+}
+
 // ─── Render ──────────────────────────────────────────────────────────
 
 func (m *model) renderVehiclesView(s *styles) string {
+	switch m.vehicleSection {
+	case vSectionMgmt:
+		return m.renderVehicleMgmt(s)
+	case vSectionInsurance:
+		return m.renderInsuranceView(s)
+	case vSectionRoadTax:
+		return m.renderSingleFieldSection(s, "Road Tax", func(v *storage.Vehicle) string { return v.RoadTax })
+	case vSectionNTC:
+		return m.renderSingleFieldSection(s, "NTC", func(v *storage.Vehicle) string { return v.NTC })
+	default:
+		return m.renderVehicleSectionMenu(s)
+	}
+}
+
+func (m *model) renderVehicleSectionMenu(s *styles) string {
+	title := s.title.Render("Vehicles")
+	desc := s.subtitle.Render("Select a section")
+
+	var lines []string
+	for i, section := range vehicleSections {
+		if i == m.vehicleSectionCursor {
+			lines = append(lines, s.menuSelected.Width(0).Render("  ▸ "+section))
+		} else {
+			lines = append(lines, s.menuNormal.Width(0).Render("    "+section))
+		}
+	}
+	menu := strings.Join(lines, "\n")
+
+	// ── Divider ──────────────────────────────────────────────
+	divider := s.dim.Render("  " + strings.Repeat("─", 40))
+
+	// ── Statistics ───────────────────────────────────────────
+	stats := m.renderVehicleStats(s)
+
+	help := s.dim.Render("↑/↓: navigate  Enter: select  Esc: back to menu")
+
+	return title + "\n" + desc + "\n\n" + menu + "\n\n" + divider + "\n\n" + stats + "\n\n" + help
+}
+
+func (m *model) renderVehicleStats(s *styles) string {
+	statsTitle := s.subtitle.Render("  Statistics")
+
+	total := len(m.vehicles)
+	if total == 0 {
+		return statsTitle + "\n" + s.dim.Render("  No vehicles registered.")
+	}
+
+	// Count populated fields
+	var taxed, inspected int
+	var nextRoadTax, nextNTC string
+	var nextRTVehicle, nextNTCVehicle string
+
+	// Insurance stats from separate insurance records
+	insuredPlates := make(map[string]bool)
+	var nextInsurance, nextInsVehicle string
+	for _, ins := range m.insurances {
+		insuredPlates[ins.LicensePlate] = true
+		if ins.ExpireDate != "" {
+			if nextInsurance == "" || ins.ExpireDate < nextInsurance {
+				nextInsurance = ins.ExpireDate
+				// Find vehicle name for this plate
+				for _, v := range m.vehicles {
+					if v.LicensePlate == ins.LicensePlate {
+						nextInsVehicle = v.Brand + " " + v.Model
+						break
+					}
+				}
+			}
+		}
+	}
+	insured := len(insuredPlates)
+
+	for _, v := range m.vehicles {
+		vName := v.Brand + " " + v.Model
+		if v.RoadTax != "" {
+			taxed++
+			if nextRoadTax == "" || v.RoadTax < nextRoadTax {
+				nextRoadTax = v.RoadTax
+				nextRTVehicle = vName
+			}
+		}
+		if v.NTC != "" {
+			inspected++
+			if nextNTC == "" || v.NTC < nextNTC {
+				nextNTC = v.NTC
+				nextNTCVehicle = vName
+			}
+		}
+	}
+
+	// Summary line
+	totalLine := fmt.Sprintf("  %s  %s",
+		s.dim.Render("Total Vehicles:"),
+		s.highlight.Render(fmt.Sprintf("%d", total)),
+	)
+
+	// Coverage bars
+	insLine := fmt.Sprintf("  %s  %s",
+		s.dim.Render("Insurance:"),
+		renderCoverage(s, insured, total),
+	)
+	taxLine := fmt.Sprintf("  %s  %s",
+		s.dim.Render("Road Tax:"),
+		renderCoverage(s, taxed, total),
+	)
+	ntcLine := fmt.Sprintf("  %s  %s",
+		s.dim.Render("NTC:"),
+		renderCoverage(s, inspected, total),
+	)
+
+	result := statsTitle + "\n\n" + totalLine + "\n\n" + insLine + "\n" + taxLine + "\n" + ntcLine
+
+	// Next expiry section
+	var expiries []string
+	if nextInsurance != "" {
+		expiries = append(expiries, fmt.Sprintf("  %s %s %s",
+			s.dim.Render("Insurance:"),
+			s.info.Render(nextInsurance),
+			s.dim.Render("("+nextInsVehicle+")"),
+		))
+	}
+	if nextRoadTax != "" {
+		expiries = append(expiries, fmt.Sprintf("  %s %s %s",
+			s.dim.Render("Road Tax:"),
+			s.info.Render(nextRoadTax),
+			s.dim.Render("("+nextRTVehicle+")"),
+		))
+	}
+	if nextNTC != "" {
+		expiries = append(expiries, fmt.Sprintf("  %s %s %s",
+			s.dim.Render("NTC:"),
+			s.info.Render(nextNTC),
+			s.dim.Render("("+nextNTCVehicle+")"),
+		))
+	}
+
+	if len(expiries) > 0 {
+		expiryTitle := "\n\n" + s.subtitle.Render("  Next Expiry")
+		result += expiryTitle + "\n\n" + strings.Join(expiries, "\n")
+	}
+
+	return result
+}
+
+// renderCoverage shows a fraction like "3/5" colored by coverage level.
+func renderCoverage(s *styles, count, total int) string {
+	label := fmt.Sprintf("%d/%d", count, total)
+	if count == total {
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Render(label) // green
+	} else if count == 0 {
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Render(label) // red
+	}
+	return lipgloss.NewStyle().Foreground(lipgloss.Color("214")).Render(label) // yellow/orange
+}
+
+func (m *model) renderVehicleMgmt(s *styles) string {
 	switch m.vehicleView {
 	case vViewAdd:
 		return m.renderVehicleForm(s, "Add Vehicle")
@@ -173,25 +484,18 @@ func (m *model) renderVehiclesView(s *styles) string {
 }
 
 func (m *model) renderVehicleList(s *styles) string {
-	title := s.title.Render("Vehicles")
+	title := s.title.Render("Vehicle Management")
 
 	if len(m.vehicles) == 0 {
 		empty := s.dim.Render("No vehicles registered yet.")
-		var help string
-		if m.focusContent {
-			help = s.dim.Render("\n\na: add vehicle  Esc: back to menu")
-		} else {
-			help = s.dim.Render("\n\nEnter/Tab: focus list")
-		}
+		help := s.dim.Render("\n\na: add vehicle  Esc: back")
 		return title + "\n\n" + empty + help
 	}
 
-	// Table header
 	hdr := fmt.Sprintf("  %-3s %-14s %-14s %-14s %-14s", "#", "BRAND", "MODEL", "PLATE", "OWNER")
 	header := s.subtitle.Render(hdr)
 	divider := s.dim.Render("  " + strings.Repeat("─", 60))
 
-	// Table rows
 	var rows []string
 	for i, v := range m.vehicles {
 		row := fmt.Sprintf("  %-3d %-14s %-14s %-14s %-14s",
@@ -201,7 +505,7 @@ func (m *model) renderVehicleList(s *styles) string {
 			truncate(v.LicensePlate, 13),
 			truncate(v.Owner, 13),
 		)
-		if m.focusContent && i == m.vehicleCursor {
+		if i == m.vehicleCursor {
 			row = s.menuSelected.Width(0).Render(row)
 		} else {
 			row = s.info.Render(row)
@@ -210,13 +514,7 @@ func (m *model) renderVehicleList(s *styles) string {
 	}
 	table := strings.Join(rows, "\n")
 
-	// Help line
-	var help string
-	if m.focusContent {
-		help = s.dim.Render("a: add  e: edit  d: delete  Esc: back")
-	} else {
-		help = s.dim.Render("Enter/Tab: focus list")
-	}
+	help := s.dim.Render("a: add  e: edit  d: delete  Esc: back")
 
 	return title + "\n" + header + "\n" + divider + "\n" + table + "\n\n" + help
 }
@@ -225,13 +523,12 @@ func (m *model) renderVehicleForm(s *styles, formTitle string) string {
 	title := s.title.Render(formTitle)
 
 	var fields []string
-	for i := 0; i < fCount; i++ {
-		label := s.dim.Render(fmt.Sprintf("  %-15s", fieldLabels[i]+":"))
+	for i := 0; i < fMgmtCount; i++ {
+		label := s.dim.Render(fmt.Sprintf("  %-15s", mgmtFieldLabels[i]+":"))
 		value := m.formFields[i]
 
 		var rendered string
 		if i == m.formCursor {
-			// Focused field: show cursor
 			cursor := s.highlight.Render("_")
 			fieldStyle := lipgloss.NewStyle().
 				Foreground(lipgloss.Color("252")).
@@ -273,6 +570,73 @@ func (m *model) renderVehicleDeleteConfirm(s *styles) string {
 	help := s.dim.Render("y: confirm  n/Esc: cancel")
 
 	return title + "\n\n" + warning + info + "\n\n" + help
+}
+
+// renderSingleFieldSection renders Insurance/RoadTax/NTC section.
+func (m *model) renderSingleFieldSection(s *styles, sectionName string, getField func(*storage.Vehicle) string) string {
+	title := s.title.Render(sectionName)
+
+	if m.vehicleView == vViewEdit {
+		return m.renderSingleFieldEdit(s, sectionName)
+	}
+
+	if len(m.vehicles) == 0 {
+		empty := s.dim.Render("No vehicles registered. Add vehicles first.")
+		help := s.dim.Render("\n\nEsc: back")
+		return title + "\n\n" + empty + help
+	}
+
+	hdr := fmt.Sprintf("  %-3s %-14s %-14s %-20s", "#", "BRAND", "MODEL", strings.ToUpper(sectionName))
+	header := s.subtitle.Render(hdr)
+	divider := s.dim.Render("  " + strings.Repeat("─", 54))
+
+	var rows []string
+	for i, v := range m.vehicles {
+		val := getField(&v)
+		if val == "" {
+			val = "-"
+		}
+		row := fmt.Sprintf("  %-3d %-14s %-14s %-20s",
+			i+1,
+			truncate(v.Brand, 13),
+			truncate(v.Model, 13),
+			truncate(val, 19),
+		)
+		if i == m.vehicleCursor {
+			row = s.menuSelected.Width(0).Render(row)
+		} else {
+			row = s.info.Render(row)
+		}
+		rows = append(rows, row)
+	}
+	table := strings.Join(rows, "\n")
+
+	help := s.dim.Render("e/Enter: edit  Esc: back")
+
+	return title + "\n" + header + "\n" + divider + "\n" + table + "\n\n" + help
+}
+
+func (m *model) renderSingleFieldEdit(s *styles, sectionName string) string {
+	title := s.title.Render(fmt.Sprintf("Edit %s", sectionName))
+
+	if m.editIndex >= len(m.vehicles) {
+		m.vehicleView = vViewList
+		return ""
+	}
+	v := m.vehicles[m.editIndex]
+	vehicleInfo := s.dim.Render(fmt.Sprintf("  Vehicle: %s %s (%s)", v.Brand, v.Model, v.LicensePlate))
+
+	label := s.dim.Render(fmt.Sprintf("  %-15s", sectionName+":"))
+	value := m.formFields[0]
+	cursor := s.highlight.Render("_")
+	fieldStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("252")).
+		Background(lipgloss.Color("236"))
+	field := label + " " + fieldStyle.Render(value) + cursor
+
+	help := s.dim.Render("Enter: save  Esc: cancel")
+
+	return title + "\n\n" + vehicleInfo + "\n\n" + field + "\n\n" + help
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────
