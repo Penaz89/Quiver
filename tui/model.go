@@ -31,16 +31,11 @@ type ProgramOption = tea.ProgramOption
 
 // ─── Menu items ──────────────────────────────────────────────────────
 
-type menuItem struct {
-	label string
-	icon  string
-}
-
-var menuItems = []menuItem{
-	{label: "HOME", icon: "🏠"},
-	{label: "VEHICLES", icon: "🚗"},
-	{label: "WORK", icon: "🔧"},
-	{label: "SETTINGS", icon: "⚙️"},
+var menuItems = []string{
+	"HOME",
+	"VEHICLES",
+	"WORK",
+	"SETTINGS",
 }
 
 // ─── Model ───────────────────────────────────────────────────────────
@@ -66,19 +61,17 @@ type model struct {
 
 // ─── Styles ──────────────────────────────────────────────────────────
 
-const menuWidth = 24
+const menuWidth = 26
 
 type styles struct {
 	// Layout
 	sidebar      lipgloss.Style
 	content      lipgloss.Style
-	headerBox    lipgloss.Style
 	// Text
 	logo         lipgloss.Style
 	version      lipgloss.Style
 	menuNormal   lipgloss.Style
 	menuSelected lipgloss.Style
-	menuIcon     lipgloss.Style
 	title        lipgloss.Style
 	subtitle     lipgloss.Style
 	info         lipgloss.Style
@@ -112,13 +105,7 @@ func newStyles(width, height int) *styles {
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("63")).
 			Padding(1, 2),
-		headerBox: lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("99")).
-			Padding(0, 2).
-			MarginBottom(1).
-			Align(lipgloss.Center).
-			Width(menuWidth - 2),
+
 		logo: lipgloss.NewStyle().
 			Bold(true).
 			Foreground(lipgloss.Color("205")),
@@ -127,15 +114,14 @@ func newStyles(width, height int) *styles {
 			Italic(true),
 		menuNormal: lipgloss.NewStyle().
 			Foreground(lipgloss.Color("252")).
-			PaddingLeft(1),
+			PaddingLeft(1).
+			Width(menuWidth - 4),
 		menuSelected: lipgloss.NewStyle().
 			Foreground(lipgloss.Color("205")).
 			Bold(true).
 			Background(lipgloss.Color("236")).
 			PaddingLeft(1).
 			Width(menuWidth - 4),
-		menuIcon: lipgloss.NewStyle().
-			PaddingRight(1),
 		title: lipgloss.NewStyle().
 			Bold(true).
 			Foreground(lipgloss.Color("205")).
@@ -226,26 +212,23 @@ func (m *model) View() tea.View {
 	s := m.styles
 
 	// ── Sidebar ──────────────────────────────────────────────
-	logoText := s.logo.Render("🏹 QUIVER")
-	versionText := s.version.Render(fmt.Sprintf("v%s", m.version))
-	header := s.headerBox.Render(logoText + "\n" + versionText)
+	logoLine := s.logo.Render("QUIVER")
+	versionLine := s.version.Render(fmt.Sprintf("v%s", m.version))
+	sep := s.dim.Render(strings.Repeat("─", menuWidth-2))
 
 	var menuLines []string
 	for i, item := range menuItems {
-		label := fmt.Sprintf("%s %s", item.icon, item.label)
 		if i == m.menuCursor {
-			label = s.menuSelected.Render("▸ " + label)
+			menuLines = append(menuLines, s.menuSelected.Render("▸ "+item))
 		} else {
-			label = s.menuNormal.Render("  " + label)
+			menuLines = append(menuLines, s.menuNormal.Render("  "+item))
 		}
-		menuLines = append(menuLines, label)
 	}
 	menu := strings.Join(menuLines, "\n")
 
-	userLine := s.dim.Render("──────────────────") + "\n" +
-		s.status.Render("● ") + s.info.Render(m.user)
+	userLine := s.status.Render("● ") + s.info.Render(m.user)
 
-	sidebarContent := header + "\n\n" + menu + "\n\n" + userLine
+	sidebarContent := logoLine + "\n" + versionLine + "\n" + sep + "\n\n" + menu + "\n\n" + sep + "\n" + userLine
 	sidebar := s.sidebar.Render(sidebarContent)
 
 	// ── Content area ─────────────────────────────────────────
