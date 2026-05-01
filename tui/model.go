@@ -84,6 +84,8 @@ type model struct {
 	focusContent bool
 	dataDir      string
 	version      string
+	lang         string // "en" or "it"
+	settings     storage.Settings
 
 	// Vehicle state
 	vehicles             []storage.Vehicle
@@ -102,6 +104,9 @@ type model struct {
 	insFormCursor   int
 	insPickerMode   bool
 	insPickerCursor int
+
+	// Settings state
+	settingsCursor int
 }
 
 // ─── Styles ──────────────────────────────────────────────────────────
@@ -229,6 +234,7 @@ func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramO
 	// Load existing data from persistent storage
 	vehicles, _ := storage.LoadVehicles(dataDir)
 	insurances, _ := storage.LoadInsurance(dataDir)
+	settings := storage.LoadSettings(dataDir)
 
 	m := &model{
 		user:       user,
@@ -239,9 +245,12 @@ func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramO
 		menuCursor: 0,
 		dataDir:    dataDir,
 		version:    version,
+		lang:       settings.Language,
+		settings:   settings,
 		vehicles:   vehicles,
 		insurances: insurances,
 	}
+	m.updateMenuLabels()
 	return m, []tea.ProgramOption{}
 }
 
@@ -273,6 +282,11 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Route input to vehicle section when active
 		if m.menuCursor == 1 && m.focusContent {
 			return m.updateVehicleSection(msg)
+		}
+
+		// Route input to settings when active
+		if m.menuCursor == 3 && m.focusContent {
+			return m.updateSettings(msg)
 		}
 
 		// Toggle focus between sidebar and content
@@ -320,7 +334,7 @@ func (m *model) View() tea.View {
 	case 2:
 		contentStr = m.renderWork(s)
 	case 3:
-		contentStr = m.renderSettings(s)
+		contentStr = m.renderSettingsView(s)
 	}
 	contentStyle := s.content
 	if m.focusContent {
@@ -362,11 +376,11 @@ func (m *model) View() tea.View {
 	// ── Help bar ─────────────────────────────────────────────
 	var helpText string
 	if sw == 0 {
-		helpText = "  ↑/↓ switch view • q quit"
+		helpText = fmt.Sprintf("  ↑/↓ %s • q %s", t(m.lang, "help.navigate"), t(m.lang, "help.quit"))
 	} else if m.focusContent {
-		helpText = "  Esc: menu • content focused"
+		helpText = fmt.Sprintf("  Esc: %s • %s", t(m.lang, "help.menu"), t(m.lang, "help.contentFocused"))
 	} else {
-		helpText = "  ↑/↓ navigate • Tab/Enter: focus content • q quit"
+		helpText = fmt.Sprintf("  ↑/↓ %s • Tab/Enter: %s • q %s", t(m.lang, "help.navigate"), t(m.lang, "help.focusContent"), t(m.lang, "help.quit"))
 	}
 	help := s.helpBar.Render(helpText)
 
@@ -398,21 +412,21 @@ func (m *model) renderHome(s *styles) string {
 	versionLine := s.version.Render(fmt.Sprintf("  v%s", m.version))
 
 	welcome := s.info.Render(fmt.Sprintf(
-		"Welcome back, %s!",
+		t(m.lang, "home.welcome"),
 		s.highlight.Render(m.user),
 	))
 
 	sessionInfo := fmt.Sprintf(
 		"%s  %s\n%s  %dx%d\n%s  %s\n%s  %s\n%s  %s",
-		s.dim.Render("Terminal:"),
+		s.dim.Render(t(m.lang, "home.terminal")),
 		s.info.Render(m.term),
-		s.dim.Render("Window:"),
+		s.dim.Render(t(m.lang, "home.window")),
 		m.width, m.height,
-		s.dim.Render("Background:"),
+		s.dim.Render(t(m.lang, "home.background")),
 		s.info.Render(m.bg),
-		s.dim.Render("Color Profile:"),
+		s.dim.Render(t(m.lang, "home.colorProfile")),
 		s.info.Render(m.profile),
-		s.dim.Render("Data Directory:"),
+		s.dim.Render(t(m.lang, "home.dataDir")),
 		s.info.Render(m.dataDir),
 	)
 	infoBox := s.infoBox.Render(sessionInfo)
@@ -423,17 +437,17 @@ func (m *model) renderHome(s *styles) string {
 // renderVehicles is now in vehicles.go as renderVehiclesView
 
 func (m *model) renderWork(s *styles) string {
-	title := s.title.Render("Work")
-	desc := s.subtitle.Render("Work log & tasks")
-	placeholder := s.dim.Render("No work entries yet.")
+	title := s.title.Render(t(m.lang, "work.title"))
+	desc := s.subtitle.Render(t(m.lang, "work.subtitle"))
+	placeholder := s.dim.Render(t(m.lang, "work.noEntries"))
 
 	return title + "\n" + desc + "\n\n" + placeholder
 }
 
-func (m *model) renderSettings(s *styles) string {
-	title := s.title.Render("Settings")
-	desc := s.subtitle.Render("Application configuration")
-	placeholder := s.dim.Render("No settings available yet.")
-
-	return title + "\n" + desc + "\n\n" + placeholder
+// updateMenuLabels refreshes menu item labels based on the current language.
+func (m *model) updateMenuLabels() {
+	menuItems[0] = t(m.lang, "menu.home")
+	menuItems[1] = t(m.lang, "menu.vehicles")
+	menuItems[2] = t(m.lang, "menu.work")
+	menuItems[3] = t(m.lang, "menu.settings")
 }

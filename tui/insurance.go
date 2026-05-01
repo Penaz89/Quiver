@@ -35,10 +35,11 @@ const (
 	insFCount
 )
 
-var insFieldLabels = [insFCount]string{
-	"License Plate",
-	"Total Cost",
-	"Expire Date",
+// insFieldKeys maps to i18n keys for insurance form labels.
+var insFieldKeys = [insFCount]string{
+	"field.licensePlate",
+	"field.totalCost",
+	"field.expireDate",
 }
 
 // ─── Insurance update handlers ───────────────────────────────────────
@@ -199,9 +200,9 @@ func (m *model) renderInsuranceView(s *styles) string {
 		if m.insPickerMode {
 			return m.renderInsurancePicker(s)
 		}
-		return m.renderInsuranceForm(s, "Add Insurance")
+		return m.renderInsuranceForm(s, t(m.lang, "insurance.add"))
 	case vViewEdit:
-		return m.renderInsuranceForm(s, "Edit Insurance")
+		return m.renderInsuranceForm(s, t(m.lang, "insurance.edit"))
 	case vViewDelete:
 		return m.renderInsuranceDeleteConfirm(s)
 	default:
@@ -210,19 +211,20 @@ func (m *model) renderInsuranceView(s *styles) string {
 }
 
 func (m *model) renderInsuranceList(s *styles) string {
-	title := s.title.Render("Insurance")
+	title := s.title.Render(t(m.lang, "insurance.title"))
 
 	if len(m.insurances) == 0 {
-		empty := s.dim.Render("No insurance records yet.")
+		empty := s.dim.Render(t(m.lang, "insurance.noRecords"))
 		var extra string
 		if len(m.vehicles) == 0 {
-			extra = "\n" + s.dim.Render("Add vehicles first in Vehicle Management.")
+			extra = "\n" + s.dim.Render(t(m.lang, "vehicles.addFirst"))
 		}
-		help := s.dim.Render("\n\na: add  Esc: back")
+		help := s.dim.Render(fmt.Sprintf("\n\na: %s  Esc: %s", t(m.lang, "action.add"), t(m.lang, "action.back")))
 		return title + "\n\n" + empty + extra + help
 	}
 
-	hdr := fmt.Sprintf("  %-3s %-14s %-14s %-14s", "#", "PLATE", "COST", "EXPIRES")
+	hdr := fmt.Sprintf("  %-3s %-14s %-14s %-14s",
+		t(m.lang, "col.num"), t(m.lang, "col.plate"), t(m.lang, "col.cost"), t(m.lang, "col.expires"))
 	header := s.subtitle.Render(hdr)
 	divider := s.dim.Render("  " + strings.Repeat("─", 48))
 
@@ -243,14 +245,15 @@ func (m *model) renderInsuranceList(s *styles) string {
 	}
 	table := strings.Join(rows, "\n")
 
-	help := s.dim.Render("a: add  e: edit  d: delete  Esc: back")
+	help := s.dim.Render(fmt.Sprintf("a: %s  e: %s  d: %s  Esc: %s",
+		t(m.lang, "action.add"), t(m.lang, "action.edit"), t(m.lang, "action.delete"), t(m.lang, "action.back")))
 
 	return title + "\n" + header + "\n" + divider + "\n" + table + "\n\n" + help
 }
 
 func (m *model) renderInsurancePicker(s *styles) string {
-	title := s.title.Render("Select Vehicle")
-	desc := s.subtitle.Render("Choose a vehicle by license plate")
+	title := s.title.Render(t(m.lang, "action.selectVeh"))
+	desc := s.subtitle.Render(t(m.lang, "action.chooseByPlate"))
 
 	var lines []string
 	for i, v := range m.vehicles {
@@ -263,7 +266,8 @@ func (m *model) renderInsurancePicker(s *styles) string {
 	}
 	list := strings.Join(lines, "\n")
 
-	help := s.dim.Render("↑/↓: navigate  Enter: select  Esc: cancel")
+	help := s.dim.Render(fmt.Sprintf("↑/↓: %s  Enter: %s  Esc: %s",
+		t(m.lang, "help.navigate"), t(m.lang, "help.select"), t(m.lang, "action.cancel")))
 
 	return title + "\n" + desc + "\n\n" + list + "\n\n" + help
 }
@@ -273,7 +277,7 @@ func (m *model) renderInsuranceForm(s *styles, formTitle string) string {
 
 	var fields []string
 	for i := 0; i < insFCount; i++ {
-		label := s.dim.Render(fmt.Sprintf("  %-15s", insFieldLabels[i]+":"))
+		label := s.dim.Render(fmt.Sprintf("  %-15s", t(m.lang, insFieldKeys[i])+":"))
 		value := m.insFormFields[i]
 
 		var rendered string
@@ -282,7 +286,7 @@ func (m *model) renderInsuranceForm(s *styles, formTitle string) string {
 			plateStyle := lipgloss.NewStyle().
 				Foreground(lipgloss.Color("42")).
 				Bold(true)
-			rendered = label + " " + plateStyle.Render(value) + s.dim.Render(" (locked)")
+			rendered = label + " " + plateStyle.Render(value) + s.dim.Render(" (" + t(m.lang, "action.locked") + ")")
 		} else if i == m.insFormCursor {
 			cursor := s.highlight.Render("_")
 			fieldStyle := lipgloss.NewStyle().
@@ -296,7 +300,8 @@ func (m *model) renderInsuranceForm(s *styles, formTitle string) string {
 	}
 	form := strings.Join(fields, "\n\n")
 
-	help := s.dim.Render("Tab/↑↓: switch field  Enter: save  Esc: cancel")
+	help := s.dim.Render(fmt.Sprintf("Tab/↑↓: %s  Enter: %s  Esc: %s",
+		t(m.lang, "help.switchField"), t(m.lang, "action.save"), t(m.lang, "action.cancel")))
 
 	return title + "\n\n" + form + "\n\n" + help
 }
@@ -308,20 +313,20 @@ func (m *model) renderInsuranceDeleteConfirm(s *styles) string {
 	}
 	ins := m.insurances[m.insuranceCursor]
 
-	title := s.title.Render("Delete Insurance")
+	title := s.title.Render(t(m.lang, "delete.insurance"))
 	warning := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("196")).
 		Bold(true).
-		Render("Are you sure you want to delete this record?")
+		Render(t(m.lang, "delete.confirmInsurance"))
 
 	info := fmt.Sprintf(
 		"\n  %s %s\n  %s %s\n  %s %s",
-		s.dim.Render("Plate:"), s.info.Render(ins.LicensePlate),
-		s.dim.Render("Cost:"), s.info.Render(ins.TotalCost),
-		s.dim.Render("Expires:"), s.info.Render(ins.ExpireDate),
+		s.dim.Render(t(m.lang, "field.licensePlate")+":"), s.info.Render(ins.LicensePlate),
+		s.dim.Render(t(m.lang, "field.totalCost")+":"), s.info.Render(ins.TotalCost),
+		s.dim.Render(t(m.lang, "field.expireDate")+":"), s.info.Render(ins.ExpireDate),
 	)
 
-	help := s.dim.Render("y: confirm  n/Esc: cancel")
+	help := s.dim.Render(fmt.Sprintf("y: %s  n/Esc: %s", t(m.lang, "action.confirm"), t(m.lang, "action.cancel")))
 
 	return title + "\n\n" + warning + info + "\n\n" + help
 }

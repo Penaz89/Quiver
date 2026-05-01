@@ -38,11 +38,14 @@ const (
 	vSectionNTC                           // NTC
 )
 
-var vehicleSections = []string{
-	"Vehicle Management",
-	"Insurance",
-	"Road Tax",
-	"NTC",
+// vehicleSectionLabels returns the localized section names.
+func vehicleSectionLabels(lang string) []string {
+	return []string{
+		t(lang, "vehicles.management"),
+		t(lang, "vehicles.insurance"),
+		t(lang, "vehicles.roadTax"),
+		t(lang, "vehicles.ntc"),
+	}
 }
 
 // ─── Vehicle sub-view states (within each section) ───────────────────
@@ -79,11 +82,12 @@ const (
 	fNTCCount = 1
 )
 
-var mgmtFieldLabels = [fMgmtCount]string{
-	"Brand",
-	"Model",
-	"License Plate",
-	"Owner",
+// mgmtFieldKeys maps to i18n keys for vehicle form labels.
+var mgmtFieldKeys = [fMgmtCount]string{
+	"field.brand",
+	"field.model",
+	"field.licensePlate",
+	"field.owner",
 }
 
 // fCount is the max across all sections (used for formFields array size)
@@ -134,7 +138,7 @@ func (m *model) updateVehicleSectionMenu(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.vehicleSectionCursor--
 		}
 	case "down", "j":
-		if m.vehicleSectionCursor < len(vehicleSections)-1 {
+		if m.vehicleSectionCursor < len(vehicleSectionLabels(m.lang))-1 {
 			m.vehicleSectionCursor++
 		}
 	case "enter":
@@ -330,11 +334,12 @@ func (m *model) renderVehiclesView(s *styles) string {
 }
 
 func (m *model) renderVehicleSectionMenu(s *styles) string {
-	title := s.title.Render("Vehicles")
-	desc := s.subtitle.Render("Select a section")
+	title := s.title.Render(t(m.lang, "vehicles.title"))
+	desc := s.subtitle.Render(t(m.lang, "vehicles.selectSection"))
 
+	sections := vehicleSectionLabels(m.lang)
 	var lines []string
-	for i, section := range vehicleSections {
+	for i, section := range sections {
 		if i == m.vehicleSectionCursor {
 			lines = append(lines, s.menuSelected.Width(0).Render("  ▸ "+section))
 		} else {
@@ -349,17 +354,18 @@ func (m *model) renderVehicleSectionMenu(s *styles) string {
 	// ── Statistics ───────────────────────────────────────────
 	stats := m.renderVehicleStats(s)
 
-	help := s.dim.Render("↑/↓: navigate  Enter: select  Esc: back to menu")
+	help := s.dim.Render(fmt.Sprintf("↑/↓: %s  Enter: %s  Esc: %s",
+		t(m.lang, "help.navigate"), t(m.lang, "help.select"), t(m.lang, "action.back")))
 
 	return title + "\n" + desc + "\n\n" + menu + "\n\n" + divider + "\n\n" + stats + "\n\n" + help
 }
 
 func (m *model) renderVehicleStats(s *styles) string {
-	statsTitle := s.subtitle.Render("  Statistics")
+	statsTitle := s.subtitle.Render("  " + t(m.lang, "vehicles.statistics"))
 
 	total := len(m.vehicles)
 	if total == 0 {
-		return statsTitle + "\n" + s.dim.Render("  No vehicles registered.")
+		return statsTitle + "\n" + s.dim.Render("  " + t(m.lang, "vehicles.noVehicles"))
 	}
 
 	// Count populated fields
@@ -407,21 +413,21 @@ func (m *model) renderVehicleStats(s *styles) string {
 
 	// Summary line
 	totalLine := fmt.Sprintf("  %s  %s",
-		s.dim.Render("Total Vehicles:"),
+		s.dim.Render(t(m.lang, "vehicles.totalVehicles")),
 		s.highlight.Render(fmt.Sprintf("%d", total)),
 	)
 
 	// Coverage bars
 	insLine := fmt.Sprintf("  %s  %s",
-		s.dim.Render("Insurance:"),
+		s.dim.Render(t(m.lang, "vehicles.insurance")+":"),
 		renderCoverage(s, insured, total),
 	)
 	taxLine := fmt.Sprintf("  %s  %s",
-		s.dim.Render("Road Tax:"),
+		s.dim.Render(t(m.lang, "vehicles.roadTax")+":"),
 		renderCoverage(s, taxed, total),
 	)
 	ntcLine := fmt.Sprintf("  %s  %s",
-		s.dim.Render("NTC:"),
+		s.dim.Render(t(m.lang, "vehicles.ntc")+":"),
 		renderCoverage(s, inspected, total),
 	)
 
@@ -431,28 +437,28 @@ func (m *model) renderVehicleStats(s *styles) string {
 	var expiries []string
 	if nextInsurance != "" {
 		expiries = append(expiries, fmt.Sprintf("  %s %s %s",
-			s.dim.Render("Insurance:"),
+			s.dim.Render(t(m.lang, "vehicles.insurance")+":"),
 			s.info.Render(nextInsurance),
 			s.dim.Render("("+nextInsVehicle+")"),
 		))
 	}
 	if nextRoadTax != "" {
 		expiries = append(expiries, fmt.Sprintf("  %s %s %s",
-			s.dim.Render("Road Tax:"),
+			s.dim.Render(t(m.lang, "vehicles.roadTax")+":"),
 			s.info.Render(nextRoadTax),
 			s.dim.Render("("+nextRTVehicle+")"),
 		))
 	}
 	if nextNTC != "" {
 		expiries = append(expiries, fmt.Sprintf("  %s %s %s",
-			s.dim.Render("NTC:"),
+			s.dim.Render(t(m.lang, "vehicles.ntc")+":"),
 			s.info.Render(nextNTC),
 			s.dim.Render("("+nextNTCVehicle+")"),
 		))
 	}
 
 	if len(expiries) > 0 {
-		expiryTitle := "\n\n" + s.subtitle.Render("  Next Expiry")
+		expiryTitle := "\n\n" + s.subtitle.Render("  " + t(m.lang, "vehicles.nextExpiry"))
 		result += expiryTitle + "\n\n" + strings.Join(expiries, "\n")
 	}
 
@@ -484,15 +490,16 @@ func (m *model) renderVehicleMgmt(s *styles) string {
 }
 
 func (m *model) renderVehicleList(s *styles) string {
-	title := s.title.Render("Vehicle Management")
+	title := s.title.Render(t(m.lang, "vehicles.management"))
 
 	if len(m.vehicles) == 0 {
-		empty := s.dim.Render("No vehicles registered yet.")
-		help := s.dim.Render("\n\na: add vehicle  Esc: back")
+		empty := s.dim.Render(t(m.lang, "vehicles.noVehicles"))
+		help := s.dim.Render(fmt.Sprintf("\n\na: %s  Esc: %s", t(m.lang, "action.add"), t(m.lang, "action.back")))
 		return title + "\n\n" + empty + help
 	}
 
-	hdr := fmt.Sprintf("  %-3s %-14s %-14s %-14s %-14s", "#", "BRAND", "MODEL", "PLATE", "OWNER")
+	hdr := fmt.Sprintf("  %-3s %-14s %-14s %-14s %-14s",
+		t(m.lang, "col.num"), t(m.lang, "col.brand"), t(m.lang, "col.model"), t(m.lang, "col.plate"), t(m.lang, "col.owner"))
 	header := s.subtitle.Render(hdr)
 	divider := s.dim.Render("  " + strings.Repeat("─", 60))
 
@@ -514,7 +521,8 @@ func (m *model) renderVehicleList(s *styles) string {
 	}
 	table := strings.Join(rows, "\n")
 
-	help := s.dim.Render("a: add  e: edit  d: delete  Esc: back")
+	help := s.dim.Render(fmt.Sprintf("a: %s  e: %s  d: %s  Esc: %s",
+		t(m.lang, "action.add"), t(m.lang, "action.edit"), t(m.lang, "action.delete"), t(m.lang, "action.back")))
 
 	return title + "\n" + header + "\n" + divider + "\n" + table + "\n\n" + help
 }
@@ -524,7 +532,8 @@ func (m *model) renderVehicleForm(s *styles, formTitle string) string {
 
 	var fields []string
 	for i := 0; i < fMgmtCount; i++ {
-		label := s.dim.Render(fmt.Sprintf("  %-15s", mgmtFieldLabels[i]+":"))
+		// Use localized field label
+		label := s.dim.Render(fmt.Sprintf("  %-15s", t(m.lang, mgmtFieldKeys[i])+":"))
 		value := m.formFields[i]
 
 		var rendered string
@@ -541,7 +550,8 @@ func (m *model) renderVehicleForm(s *styles, formTitle string) string {
 	}
 	form := strings.Join(fields, "\n\n")
 
-	help := s.dim.Render("Tab/↑↓: switch field  Enter: save  Esc: cancel")
+	help := s.dim.Render(fmt.Sprintf("Tab/↑↓: %s  Enter: %s  Esc: %s",
+		t(m.lang, "help.switchField"), t(m.lang, "action.save"), t(m.lang, "action.cancel")))
 
 	return title + "\n\n" + form + "\n\n" + help
 }
@@ -553,21 +563,21 @@ func (m *model) renderVehicleDeleteConfirm(s *styles) string {
 	}
 	v := m.vehicles[m.vehicleCursor]
 
-	title := s.title.Render("Delete Vehicle")
+	title := s.title.Render(t(m.lang, "delete.vehicle"))
 	warning := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("196")).
 		Bold(true).
-		Render("Are you sure you want to delete this vehicle?")
+		Render(t(m.lang, "delete.confirmVehicle"))
 
 	info := fmt.Sprintf(
 		"\n  %s %s\n  %s %s\n  %s %s\n  %s %s",
-		s.dim.Render("Brand:"), s.info.Render(v.Brand),
-		s.dim.Render("Model:"), s.info.Render(v.Model),
-		s.dim.Render("Plate:"), s.info.Render(v.LicensePlate),
-		s.dim.Render("Owner:"), s.info.Render(v.Owner),
+		s.dim.Render(t(m.lang, "field.brand")+":"), s.info.Render(v.Brand),
+		s.dim.Render(t(m.lang, "field.model")+":"), s.info.Render(v.Model),
+		s.dim.Render(t(m.lang, "field.licensePlate")+":"), s.info.Render(v.LicensePlate),
+		s.dim.Render(t(m.lang, "field.owner")+":"), s.info.Render(v.Owner),
 	)
 
-	help := s.dim.Render("y: confirm  n/Esc: cancel")
+	help := s.dim.Render(fmt.Sprintf("y: %s  n/Esc: %s", t(m.lang, "action.confirm"), t(m.lang, "action.cancel")))
 
 	return title + "\n\n" + warning + info + "\n\n" + help
 }
@@ -581,12 +591,13 @@ func (m *model) renderSingleFieldSection(s *styles, sectionName string, getField
 	}
 
 	if len(m.vehicles) == 0 {
-		empty := s.dim.Render("No vehicles registered. Add vehicles first.")
-		help := s.dim.Render("\n\nEsc: back")
+		empty := s.dim.Render(t(m.lang, "vehicles.addFirst"))
+		help := s.dim.Render("\n\nEsc: " + t(m.lang, "action.back"))
 		return title + "\n\n" + empty + help
 	}
 
-	hdr := fmt.Sprintf("  %-3s %-14s %-14s %-20s", "#", "BRAND", "MODEL", strings.ToUpper(sectionName))
+	hdr := fmt.Sprintf("  %-3s %-14s %-14s %-20s",
+		t(m.lang, "col.num"), t(m.lang, "col.brand"), t(m.lang, "col.model"), strings.ToUpper(sectionName))
 	header := s.subtitle.Render(hdr)
 	divider := s.dim.Render("  " + strings.Repeat("─", 54))
 
@@ -611,7 +622,7 @@ func (m *model) renderSingleFieldSection(s *styles, sectionName string, getField
 	}
 	table := strings.Join(rows, "\n")
 
-	help := s.dim.Render("e/Enter: edit  Esc: back")
+	help := s.dim.Render(fmt.Sprintf("e/Enter: %s  Esc: %s", t(m.lang, "action.edit"), t(m.lang, "action.back")))
 
 	return title + "\n" + header + "\n" + divider + "\n" + table + "\n\n" + help
 }
@@ -634,7 +645,7 @@ func (m *model) renderSingleFieldEdit(s *styles, sectionName string) string {
 		Background(lipgloss.Color("236"))
 	field := label + " " + fieldStyle.Render(value) + cursor
 
-	help := s.dim.Render("Enter: save  Esc: cancel")
+	help := s.dim.Render(fmt.Sprintf("Enter: %s  Esc: %s", t(m.lang, "action.save"), t(m.lang, "action.cancel")))
 
 	return title + "\n\n" + vehicleInfo + "\n\n" + field + "\n\n" + help
 }
