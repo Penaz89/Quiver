@@ -38,6 +38,34 @@ var menuItems = []string{
 	"SETTINGS",
 }
 
+// ─── ASCII banners ───────────────────────────────────────────────────
+
+// Large banner (~48 cols)
+const bannerLarge = "" +
+	"  ██████╗ ██╗   ██╗██╗██╗   ██╗███████╗██████╗ \n" +
+	" ██╔═══██╗██║   ██║██║██║   ██║██╔════╝██╔══██╗\n" +
+	" ██║   ██║██║   ██║██║██║   ██║█████╗  ██████╔╝\n" +
+	" ██║▄▄ ██║██║   ██║██║╚██╗ ██╔╝██╔══╝  ██╔══██╗\n" +
+	" ╚██████╔╝╚██████╔╝██║ ╚████╔╝ ███████╗██║  ██║\n" +
+	"  ╚══▀▀═╝  ╚═════╝ ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝"
+
+// Small banner (~22 cols)
+const bannerSmall = "" +
+	" ╔═╗╦ ╦╦╦  ╦╔═╗╦═╗\n" +
+	" ║═╬╗║ ║║╚╗╔╝║╣ ╠╦╝\n" +
+	" ╚═╝╚╚═╝╩ ╚╝ ╚═╝╩╚═"
+
+// ─── Layout breakpoints ─────────────────────────────────────────────
+
+const (
+	// Terminal width below which we hide the sidebar entirely
+	breakpointCompact = 50
+	// Terminal width below which we use narrow sidebar
+	breakpointNarrow = 80
+	// Content width below which we use the small ASCII banner
+	breakpointBannerSmall = 55
+)
+
 // ─── Model ───────────────────────────────────────────────────────────
 
 // model holds the TUI application state.
@@ -54,20 +82,13 @@ type model struct {
 	menuCursor int
 	dataDir    string
 	version    string
-
-	// Styles (computed based on window size)
-	styles *styles
 }
 
 // ─── Styles ──────────────────────────────────────────────────────────
 
-const menuWidth = 26
-
 type styles struct {
-	// Layout
 	sidebar      lipgloss.Style
 	content      lipgloss.Style
-	// Text
 	logo         lipgloss.Style
 	version      lipgloss.Style
 	menuNormal   lipgloss.Style
@@ -82,30 +103,52 @@ type styles struct {
 	helpBar      lipgloss.Style
 }
 
-func newStyles(width, height int) *styles {
-	contentWidth := width - menuWidth - 4 // account for borders/padding
-	if contentWidth < 20 {
-		contentWidth = 20
+// sidebarWidth returns the sidebar width for the given terminal width.
+func sidebarWidth(termWidth int) int {
+	if termWidth < breakpointCompact {
+		return 0 // no sidebar
 	}
-	contentHeight := height - 4
-	if contentHeight < 10 {
-		contentHeight = 10
+	if termWidth < breakpointNarrow {
+		return 18 // narrow
+	}
+	return 26 // normal
+}
+
+func newStyles(width, height int) *styles {
+	sw := sidebarWidth(width)
+
+	// Content panel fills the remaining space
+	contentWidth := width - sw - 6 // borders + padding
+	if sw == 0 {
+		contentWidth = width - 4
+	}
+	if contentWidth < 10 {
+		contentWidth = 10
 	}
 
-	return &styles{
-		sidebar: lipgloss.NewStyle().
-			Width(menuWidth).
+	contentHeight := height - 4
+	if contentHeight < 6 {
+		contentHeight = 6
+	}
+
+	sidebarStyle := lipgloss.NewStyle()
+	if sw > 0 {
+		sidebarStyle = sidebarStyle.
+			Width(sw).
 			Height(contentHeight).
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("63")).
-			Padding(1, 1),
+			Padding(1, 1)
+	}
+
+	return &styles{
+		sidebar: sidebarStyle,
 		content: lipgloss.NewStyle().
 			Width(contentWidth).
 			Height(contentHeight).
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("63")).
 			Padding(1, 2),
-
 		logo: lipgloss.NewStyle().
 			Bold(true).
 			Foreground(lipgloss.Color("205")),
@@ -115,13 +158,13 @@ func newStyles(width, height int) *styles {
 		menuNormal: lipgloss.NewStyle().
 			Foreground(lipgloss.Color("252")).
 			PaddingLeft(1).
-			Width(menuWidth - 4),
+			Width(sw - 2),
 		menuSelected: lipgloss.NewStyle().
 			Foreground(lipgloss.Color("205")).
 			Bold(true).
 			Background(lipgloss.Color("236")).
 			PaddingLeft(1).
-			Width(menuWidth - 4),
+			Width(sw - 2),
 		title: lipgloss.NewStyle().
 			Bold(true).
 			Foreground(lipgloss.Color("205")).
@@ -145,8 +188,7 @@ func newStyles(width, height int) *styles {
 		status: lipgloss.NewStyle().
 			Foreground(lipgloss.Color("42")),
 		helpBar: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("241")).
-			MarginTop(1),
+			Foreground(lipgloss.Color("241")),
 	}
 }
 
@@ -166,7 +208,6 @@ func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramO
 		menuCursor: 0,
 		dataDir:    dataDir,
 		version:    version,
-		styles:     newStyles(pty.Window.Width, pty.Window.Height),
 	}
 	return m, []tea.ProgramOption{}
 }
@@ -190,7 +231,6 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.styles = newStyles(msg.Width, msg.Height)
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "ctrl+c":
@@ -209,47 +249,60 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *model) View() tea.View {
-	s := m.styles
-
-	// ── Sidebar ──────────────────────────────────────────────
-	logoLine := s.logo.Render("QUIVER")
-	versionLine := s.version.Render(fmt.Sprintf("v%s", m.version))
-	sep := s.dim.Render(strings.Repeat("─", menuWidth-2))
-
-	var menuLines []string
-	for i, item := range menuItems {
-		if i == m.menuCursor {
-			menuLines = append(menuLines, s.menuSelected.Render("▸ "+item))
-		} else {
-			menuLines = append(menuLines, s.menuNormal.Render("  "+item))
-		}
-	}
-	menu := strings.Join(menuLines, "\n")
-
-	userLine := s.status.Render("● ") + s.info.Render(m.user)
-
-	sidebarContent := logoLine + "\n" + versionLine + "\n" + sep + "\n\n" + menu + "\n\n" + sep + "\n" + userLine
-	sidebar := s.sidebar.Render(sidebarContent)
+	s := newStyles(m.width, m.height)
+	sw := sidebarWidth(m.width)
 
 	// ── Content area ─────────────────────────────────────────
 	var contentStr string
 	switch m.menuCursor {
 	case 0:
-		contentStr = m.viewHome()
+		contentStr = m.renderHome(s)
 	case 1:
-		contentStr = m.viewVehicles()
+		contentStr = m.renderVehicles(s)
 	case 2:
-		contentStr = m.viewWork()
+		contentStr = m.renderWork(s)
 	case 3:
-		contentStr = m.viewSettings()
+		contentStr = m.renderSettings(s)
 	}
 	content := s.content.Render(contentStr)
 
-	// ── Compose layout ───────────────────────────────────────
-	layout := lipgloss.JoinHorizontal(lipgloss.Top, sidebar, content)
+	var layout string
+
+	if sw > 0 {
+		// ── Sidebar ──────────────────────────────────────────
+		logoLine := s.logo.Render("QUIVER")
+		versionLine := s.version.Render(fmt.Sprintf("v%s", m.version))
+		sep := s.dim.Render(strings.Repeat("─", sw-4))
+
+		var menuLines []string
+		for i, item := range menuItems {
+			if i == m.menuCursor {
+				menuLines = append(menuLines, s.menuSelected.Render("▸ "+item))
+			} else {
+				menuLines = append(menuLines, s.menuNormal.Render("  "+item))
+			}
+		}
+		menu := strings.Join(menuLines, "\n")
+		userLine := s.status.Render("● ") + s.info.Render(m.user)
+
+		sidebarContent := logoLine + "\n" + versionLine + "\n" + sep + "\n\n" + menu + "\n\n" + sep + "\n" + userLine
+		sidebar := s.sidebar.Render(sidebarContent)
+
+		layout = lipgloss.JoinHorizontal(lipgloss.Top, sidebar, content)
+	} else {
+		// ── Compact: no sidebar, show current view name at top ─
+		indicator := s.dim.Render("◂ ") +
+			s.highlight.Render(menuItems[m.menuCursor]) +
+			s.dim.Render(" ▸")
+		layout = indicator + "\n" + content
+	}
 
 	// ── Help bar ─────────────────────────────────────────────
-	help := s.helpBar.Render("  ↑/↓ navigate • q quit")
+	helpText := "  ↑/↓ navigate • q quit"
+	if sw == 0 {
+		helpText = "  ↑/↓ switch view • q quit"
+	}
+	help := s.helpBar.Render(helpText)
 
 	full := layout + "\n" + help
 
@@ -260,16 +313,21 @@ func (m *model) View() tea.View {
 
 // ─── Views ───────────────────────────────────────────────────────────
 
-func (m *model) viewHome() string {
-	s := m.styles
+func (m *model) renderHome(s *styles) string {
+	// Choose banner size based on available content width
+	contentW := m.width - sidebarWidth(m.width) - 6
+	if sidebarWidth(m.width) == 0 {
+		contentW = m.width - 4
+	}
 
-	banner := s.highlight.Render(
-		"  ██████╗ ██╗   ██╗██╗██╗   ██╗███████╗██████╗ \n" +
-			" ██╔═══██╗██║   ██║██║██║   ██║██╔════╝██╔══██╗\n" +
-			" ██║   ██║██║   ██║██║██║   ██║█████╗  ██████╔╝\n" +
-			" ██║▄▄ ██║██║   ██║██║╚██╗ ██╔╝██╔══╝  ██╔══██╗\n" +
-			" ╚██████╔╝╚██████╔╝██║ ╚████╔╝ ███████╗██║  ██║\n" +
-			"  ╚══▀▀═╝  ╚═════╝ ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝")
+	var header string
+	if contentW >= breakpointBannerSmall {
+		header = s.highlight.Render(bannerLarge)
+	} else if contentW >= 24 {
+		header = s.highlight.Render(bannerSmall)
+	} else {
+		header = s.title.Render("QUIVER")
+	}
 
 	versionLine := s.version.Render(fmt.Sprintf("  v%s", m.version))
 
@@ -293,33 +351,27 @@ func (m *model) viewHome() string {
 	)
 	infoBox := s.infoBox.Render(sessionInfo)
 
-	return banner + "\n" + versionLine + "\n\n" + welcome + "\n" + infoBox
+	return header + "\n" + versionLine + "\n\n" + welcome + "\n" + infoBox
 }
 
-func (m *model) viewVehicles() string {
-	s := m.styles
-
-	title := s.title.Render("🚗  Vehicles")
+func (m *model) renderVehicles(s *styles) string {
+	title := s.title.Render("Vehicles")
 	desc := s.subtitle.Render("Vehicle management")
 	placeholder := s.dim.Render("No vehicles registered yet.")
 
 	return title + "\n" + desc + "\n\n" + placeholder
 }
 
-func (m *model) viewWork() string {
-	s := m.styles
-
-	title := s.title.Render("🔧  Work")
+func (m *model) renderWork(s *styles) string {
+	title := s.title.Render("Work")
 	desc := s.subtitle.Render("Work log & tasks")
 	placeholder := s.dim.Render("No work entries yet.")
 
 	return title + "\n" + desc + "\n\n" + placeholder
 }
 
-func (m *model) viewSettings() string {
-	s := m.styles
-
-	title := s.title.Render("⚙️  Settings")
+func (m *model) renderSettings(s *styles) string {
+	title := s.title.Render("Settings")
 	desc := s.subtitle.Render("Application configuration")
 	placeholder := s.dim.Render("No settings available yet.")
 
