@@ -41,20 +41,39 @@ var menuItems = []string{
 
 // ─── ASCII banners ───────────────────────────────────────────────────
 
-// Large banner (~48 cols)
+// Large banner (~38 cols) - Slant font
 const bannerLarge = "" +
-	"  ██████╗ ██╗   ██╗██╗██╗   ██╗███████╗██████╗ \n" +
-	" ██╔═══██╗██║   ██║██║██║   ██║██╔════╝██╔══██╗\n" +
-	" ██║   ██║██║   ██║██║██║   ██║█████╗  ██████╔╝\n" +
-	" ██║▄▄ ██║██║   ██║██║╚██╗ ██╔╝██╔══╝  ██╔══██╗\n" +
-	" ╚██████╔╝╚██████╔╝██║ ╚████╔╝ ███████╗██║  ██║\n" +
-	"  ╚══▀▀═╝  ╚═════╝ ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝"
+	"   ____  __  _______    ____________ \n" +
+	"  / __ \\/ / / /  _/ |  / / ____/ __ \\\n" +
+	" / / / / / / // / | | / / __/ / /_/ /\n" +
+	"/ /_/ / /_/ // /  | |/ / /___/ _, _/ \n" +
+	"\\___\\_\\____/___/  |___/_____/_/ |_|  "
 
-// Small banner (~35 cols)
+// Small banner (~32 cols) - Small Slant font
 const bannerSmall = "" +
-	"  ╔═╗  ╦ ╦  ╦  ╦  ╦  ╔═╗  ╦═╗\n" +
-	"  ║ ║  ║ ║  ║  ╚╗╔╝  ╠╣   ╠╦╝\n" +
-	"  ╚═╩  ╚═╝  ╩   ╚╝   ╚═╝  ╩╚═"
+	"  ____  __  _______   _________ \n" +
+	" / __ \\/ / / /  _/ | / / __/ _ \\\n" +
+	"/ /_/ / /_/ // / | |/ / _// , _/\n" +
+	"\\___\\_\\____/___/ |___/___/_/|_| "
+
+// Sidebar logo (~22 cols) for normal sidebar
+const sidebarLogo = "" +
+	" ███ █ █ █ █ █ ███ ███\n" +
+	" █ █ █ █ █ █ █ █▀▀ █ █\n" +
+	" ███ █ █ █ █ █ █▄▄ ██▀\n" +
+	"   █ ███ █  █  ███ █ █"
+
+// Sidebar logo narrow (~11 cols) for narrow sidebar
+const sidebarLogoNarrow = "" +
+	"  ███ █ █ █ \n" +
+	"  █ █ █ █ █ \n" +
+	"  ███ █ █ █ \n" +
+	"    █ ███ █ \n" +
+	"            \n" +
+	" █ █ ███ ███\n" +
+	" █ █ █▀▀ █ █\n" +
+	" █ █ █▄▄ ██▀\n" +
+	"  █  ███ █ █"
 
 // ─── Layout breakpoints ─────────────────────────────────────────────
 
@@ -348,7 +367,12 @@ func (m *model) View() tea.View {
 
 	if sw > 0 {
 		// ── Sidebar ──────────────────────────────────────────
-		logoLine := s.logo.Render("QUIVER")
+		var logoLine string
+		if sw >= 26 {
+			logoLine = s.logo.Render(sidebarLogo)
+		} else {
+			logoLine = s.logo.Render(sidebarLogoNarrow)
+		}
 		versionLine := s.version.Render(fmt.Sprintf("v%s", m.version))
 		sep := s.dim.Render(strings.Repeat("─", sw-4))
 
