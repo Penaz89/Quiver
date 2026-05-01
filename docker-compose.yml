@@ -1,0 +1,25 @@
+# Quiver - An SSH TUI Application
+# Copyright (C) 2026  penaz
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+services:
+  quiver:
+    build:
+      context: .
+      args:
+        VERSION: "0.1.0"
+    container_name: quiver
+    restart: unless-stopped
+    ports:
+      - "2222:2222"
+    volumes:
+      - quiver_data:/data
+    environment:
+      - QUIVER_HOST=0.0.0.0
+      - QUIVER_PORT=2222
+      - QUIVER_DATA_DIR=/data
+      - TZ=Europe/Rome
+
+volumes:
+  quiver_data:
+    driver: local
