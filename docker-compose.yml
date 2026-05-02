@@ -2,6 +2,8 @@
 # Copyright (C) 2026  penaz
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+version: '3.8'
+
 services:
   quiver:
     build:

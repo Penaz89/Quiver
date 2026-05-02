@@ -63,6 +63,12 @@ func main() {
 	s, err := wish.NewServer(
 		wish.WithAddress(net.JoinHostPort(host, port)),
 		wish.WithHostKeyPath(hostKeyPath),
+		wish.WithPublicKeyAuth(func(ctx ssh.Context, key ssh.PublicKey) bool {
+			return true
+		}),
+		wish.WithPasswordAuth(func(ctx ssh.Context, password string) bool {
+			return true
+		}),
 		wish.WithMiddleware(
 			bubbletea.Middleware(func(s ssh.Session) (tui.Model, []tui.ProgramOption) {
 				return tui.NewModel(s, dataDir, Version)
