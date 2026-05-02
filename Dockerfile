@@ -16,7 +16,7 @@ RUN go mod download
 # Build the binary
 COPY . .
 ARG VERSION=dev
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+RUN CGO_ENABLED=0 GOOS=linux go build \
     -ldflags="-s -w -X main.Version=${VERSION}" \
     -o /bin/quiver .
 
