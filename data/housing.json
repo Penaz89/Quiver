@@ -1,7 +1,7 @@
 [
   {
-    "expense": "Affitto",
-    "cost": "500",
+    "expense": "Spese Comuni",
+    "cost": "800",
     "type": "type.monthly"
   }
 ]

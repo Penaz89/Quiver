@@ -23,5 +23,10 @@
     "service": "AllDebrid",
     "cost": "3",
     "type": "type.monthly"
+  },
+  {
+    "service": "Cloud",
+    "cost": "22",
+    "type": "type.monthly"
   }
 ]

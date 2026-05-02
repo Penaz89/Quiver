@@ -494,13 +494,23 @@ func (m *model) updateHouseForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		} else {
 			m.houseFormCur = houseFCount - 1
 		}
-	case "left", "right", " ":
+	case "left", "right":
 		if m.houseFormCur == houseFType {
 			if m.houseForm[houseFType] == "type.monthly" {
 				m.houseForm[houseFType] = "type.annual"
 			} else {
 				m.houseForm[houseFType] = "type.monthly"
 			}
+		}
+	case " ":
+		if m.houseFormCur == houseFType {
+			if m.houseForm[houseFType] == "type.monthly" {
+				m.houseForm[houseFType] = "type.annual"
+			} else {
+				m.houseForm[houseFType] = "type.monthly"
+			}
+		} else {
+			m.houseForm[m.houseFormCur] += key
 		}
 	case "enter":
 		h := storage.Housing{
@@ -530,6 +540,9 @@ func (m *model) updateHouseForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 	default:
+		if key == "space" {
+			key = " "
+		}
 		if m.houseFormCur != houseFType {
 			runes := []rune(key)
 			if len(runes) == 1 {
@@ -766,8 +779,10 @@ func (m *model) updateHoliForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		} else {
 			m.holiFormCur = holiFCount - 1
 		}
-	case "left", "right", " ":
+	case "left", "right":
 		// No toggle fields anymore
+	case " ":
+		m.holiForm[m.holiFormCur] += key
 	case "enter":
 		h := storage.Holiday{
 			Destination: strings.TrimSpace(m.holiForm[holiFDestination]),
@@ -800,6 +815,9 @@ func (m *model) updateHoliForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			*field = string(runes[:len(runes)-1])
 		}
 	default:
+		if key == "space" {
+			key = " "
+		}
 		runes := []rune(key)
 		if len(runes) == 1 {
 			field := &m.holiForm[m.holiFormCur]
@@ -1040,13 +1058,23 @@ func (m *model) updateSubForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		} else {
 			m.subFormCur = subFCount - 1
 		}
-	case "left", "right", " ":
+	case "left", "right":
 		if m.subFormCur == subFType {
 			if m.subForm[subFType] == "type.monthly" {
 				m.subForm[subFType] = "type.annual"
 			} else {
 				m.subForm[subFType] = "type.monthly"
 			}
+		}
+	case " ":
+		if m.subFormCur == subFType {
+			if m.subForm[subFType] == "type.monthly" {
+				m.subForm[subFType] = "type.annual"
+			} else {
+				m.subForm[subFType] = "type.monthly"
+			}
+		} else {
+			m.subForm[m.subFormCur] += key
 		}
 	case "enter":
 		sub := storage.Subscription{
@@ -1076,6 +1104,9 @@ func (m *model) updateSubForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 	default:
+		if key == "space" {
+			key = " "
+		}
 		if m.subFormCur != subFType {
 			runes := []rune(key)
 			if len(runes) == 1 {

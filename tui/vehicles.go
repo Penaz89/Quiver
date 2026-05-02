@@ -230,6 +230,9 @@ func (m *model) updateVehicleForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			*field = string(runes[:len(runes)-1])
 		}
 	default:
+		if key == "space" {
+			key = " "
+		}
 		runes := []rune(key)
 		if len(runes) == 1 && unicode.IsPrint(runes[0]) {
 			m.formFields[m.formCursor] += key

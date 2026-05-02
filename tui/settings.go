@@ -83,6 +83,9 @@ func (m *model) updateSettings(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	default:
 		if m.settingsCursor == len(langOptions) {
+			if key == "space" {
+				key = " "
+			}
 			runes := []rune(key)
 			if len(runes) == 1 {
 				m.settings.WeatherLoc += key

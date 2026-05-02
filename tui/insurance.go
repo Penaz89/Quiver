@@ -155,13 +155,23 @@ func (m *model) updateInsuranceForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			prev = insFCount - 1 // skip plate field, wrap to last
 		}
 		m.insFormCursor = prev
-	case "left", "right", " ":
+	case "left", "right":
 		if m.insFormCursor == insFType {
 			if m.insFormFields[insFType] == "type.semiannual" {
 				m.insFormFields[insFType] = "type.annual"
 			} else {
 				m.insFormFields[insFType] = "type.semiannual"
 			}
+		}
+	case " ":
+		if m.insFormCursor == insFType {
+			if m.insFormFields[insFType] == "type.semiannual" {
+				m.insFormFields[insFType] = "type.annual"
+			} else {
+				m.insFormFields[insFType] = "type.semiannual"
+			}
+		} else {
+			m.insFormFields[m.insFormCursor] += key
 		}
 	case "enter":
 		expiryStr := strings.TrimSpace(m.insFormFields[insFExpiry])
