@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strings"
 
+	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/ssh"
@@ -105,6 +106,7 @@ type model struct {
 	version      string
 	lang         string // "en" or "it"
 	settings     storage.Settings
+	vp           viewport.Model
 
 	// Vehicle state
 	vehicles             []storage.Vehicle
@@ -138,6 +140,7 @@ type styles struct {
 	version        lipgloss.Style
 	menuNormal     lipgloss.Style
 	menuSelected   lipgloss.Style
+	menuActiveDim  lipgloss.Style
 	title          lipgloss.Style
 	subtitle       lipgloss.Style
 	info           lipgloss.Style
@@ -208,14 +211,17 @@ func newStyles(width, height int) *styles {
 			Italic(true),
 		menuNormal: lipgloss.NewStyle().
 			Foreground(lipgloss.Color("252")).
-			PaddingLeft(1).
-			Width(sw - 2),
+			PaddingLeft(1),
 		menuSelected: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("205")).
+			Foreground(lipgloss.Color("255")).
+			Background(lipgloss.Color("63")).
 			Bold(true).
-			Background(lipgloss.Color("236")).
-			PaddingLeft(1).
-			Width(sw - 2),
+			PaddingLeft(1),
+		menuActiveDim: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("252")).
+			Background(lipgloss.Color("237")).
+			Bold(true).
+			PaddingLeft(1),
 		title: lipgloss.NewStyle().
 			Bold(true).
 			Foreground(lipgloss.Color("205")).
@@ -268,7 +274,13 @@ func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramO
 		settings:   settings,
 		vehicles:   vehicles,
 		insurances: insurances,
+		vp:         viewport.New(),
 	}
+	
+	// Disable up/down in viewport so it doesn't conflict with forms
+	m.vp.KeyMap.Up.SetEnabled(false)
+	m.vp.KeyMap.Down.SetEnabled(false)
+	
 	m.updateMenuLabels()
 	return m, []tea.ProgramOption{}
 }
@@ -278,6 +290,7 @@ func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramO
 func (m *model) Init() tea.Cmd {
 	return tea.Batch(
 		tea.RequestBackgroundColor,
+		m.vp.Init(),
 	)
 }
 
@@ -292,10 +305,24 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+	case tea.MouseMsg:
+		var cmd tea.Cmd
+		m.vp, cmd = m.vp.Update(msg)
+		return m, cmd
 	case tea.KeyMsg:
 		// Always allow ctrl+c
 		if msg.String() == "ctrl+c" {
 			return m, tea.Quit
+		}
+
+		// Handle viewport scrolling explicitly
+		if msg.String() == "pgup" {
+			m.vp.HalfPageUp()
+			return m, nil
+		}
+		if msg.String() == "pgdown" {
+			m.vp.HalfPageDown()
+			return m, nil
 		}
 
 		// Route input to vehicle section when active
@@ -357,11 +384,31 @@ func (m *model) View() tea.View {
 	case 3:
 		contentStr = m.renderSettingsView(s)
 	}
+	// Configure viewport size based on the layout
+	contentWidth := m.width - sw - 6 // borders + padding
+	if sw == 0 {
+		contentWidth = m.width - 4
+	}
+	if contentWidth < 10 {
+		contentWidth = 10
+	}
+
+	contentHeight := m.height - 4
+	if contentHeight < 6 {
+		contentHeight = 6
+	}
+
+	m.vp.SetWidth(contentWidth)
+	m.vp.SetHeight(contentHeight)
+
+	// Set content and get rendered viewport
+	m.vp.SetContent(contentStr)
+	
 	contentStyle := s.content
 	if m.focusContent {
 		contentStyle = s.contentFocused
 	}
-	content := contentStyle.Render(contentStr)
+	content := contentStyle.Render(m.vp.View())
 
 	var layout string
 
@@ -379,9 +426,9 @@ func (m *model) View() tea.View {
 		var menuLines []string
 		for i, item := range menuItems {
 			if i == m.menuCursor {
-				menuLines = append(menuLines, s.menuSelected.Render("▸ "+item))
+				menuLines = append(menuLines, s.menuSelected.Width(sw-4).Render(item))
 			} else {
-				menuLines = append(menuLines, s.menuNormal.Render("  "+item))
+				menuLines = append(menuLines, s.menuNormal.Width(sw-4).Render(item))
 			}
 		}
 		menu := strings.Join(menuLines, "\n")
@@ -404,7 +451,7 @@ func (m *model) View() tea.View {
 	if sw == 0 {
 		helpText = fmt.Sprintf("  ↑/↓ %s • q %s", t(m.lang, "help.navigate"), t(m.lang, "help.quit"))
 	} else if m.focusContent {
-		helpText = fmt.Sprintf("  ←: %s • %s", t(m.lang, "help.goBack"), t(m.lang, "help.contentFocused"))
+		helpText = fmt.Sprintf("  ←: %s • PgUp/PgDn: %s • %s", t(m.lang, "help.goBack"), "scroll", t(m.lang, "help.contentFocused"))
 	} else {
 		helpText = fmt.Sprintf("  ↑/↓ %s • →: %s • q %s", t(m.lang, "help.navigate"), t(m.lang, "help.enter"), t(m.lang, "help.quit"))
 	}

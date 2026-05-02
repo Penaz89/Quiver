@@ -20,16 +20,17 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 // Vehicle represents a registered vehicle.
 type Vehicle struct {
-	Brand        string `json:"brand"`
-	Model        string `json:"model"`
-	LicensePlate string `json:"license_plate"`
-	Owner        string `json:"owner"`
-	RoadTax      string `json:"road_tax"`
-	NTC          string `json:"ntc"`
+	Brand        string    `json:"brand"`
+	Model        string    `json:"model"`
+	LicensePlate string    `json:"license_plate"`
+	Owner        string    `json:"owner"`
+	RoadTax      time.Time `json:"road_tax"`
+	NTC          time.Time `json:"ntc"`
 }
 
 func vehiclePath(dataDir string) string {

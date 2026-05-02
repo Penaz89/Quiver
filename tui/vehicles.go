@@ -19,6 +19,7 @@ package tui
 import (
 	"fmt"
 	"strings"
+	"time"
 	"unicode"
 
 	tea "charm.land/bubbletea/v2"
@@ -116,14 +117,14 @@ func (m *model) updateVehicleSection(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case vViewAdd, vViewEdit:
 			return m.updateSingleFieldForm(msg, fRoadTaxCount)
 		default:
-			return m.updateSingleFieldList(msg, func(v *storage.Vehicle) *string { return &v.RoadTax })
+			return m.updateSingleFieldList(msg)
 		}
 	case vSectionNTC:
 		switch m.vehicleView {
 		case vViewAdd, vViewEdit:
 			return m.updateSingleFieldForm(msg, fNTCCount)
 		default:
-			return m.updateSingleFieldList(msg, func(v *storage.Vehicle) *string { return &v.NTC })
+			return m.updateSingleFieldList(msg)
 		}
 	}
 	return m, nil
@@ -258,7 +259,7 @@ func (m *model) updateVehicleDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 // updateSingleFieldList handles a list view for Insurance/RoadTax/NTC sections.
-func (m *model) updateSingleFieldList(msg tea.KeyMsg, getField func(*storage.Vehicle) *string) (tea.Model, tea.Cmd) {
+func (m *model) updateSingleFieldList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 	switch key {
 	case "up", "k":
@@ -273,7 +274,18 @@ func (m *model) updateSingleFieldList(msg tea.KeyMsg, getField func(*storage.Veh
 		if len(m.vehicles) > 0 {
 			m.vehicleView = vViewEdit
 			m.editIndex = m.vehicleCursor
-			val := *getField(&m.vehicles[m.vehicleCursor])
+			v := m.vehicles[m.vehicleCursor]
+			var val string
+			switch m.vehicleSection {
+			case vSectionRoadTax:
+				if !v.RoadTax.IsZero() {
+					val = v.RoadTax.Format("02/01/2006")
+				}
+			case vSectionNTC:
+				if !v.NTC.IsZero() {
+					val = v.NTC.Format("02/01/2006")
+				}
+			}
 			m.formFields = [fCount]string{val}
 			m.formCursor = 0
 		}
@@ -290,11 +302,16 @@ func (m *model) updateSingleFieldForm(msg tea.KeyMsg, _ int) (tea.Model, tea.Cmd
 	case "enter":
 		if len(m.vehicles) > 0 && m.editIndex < len(m.vehicles) {
 			val := strings.TrimSpace(m.formFields[0])
+			date, err := time.Parse("02/01/2006", val)
+			if err != nil && val != "" {
+				return m, nil // Stay on form if invalid
+			}
+
 			switch m.vehicleSection {
 			case vSectionRoadTax:
-				m.vehicles[m.editIndex].RoadTax = val
+				m.vehicles[m.editIndex].RoadTax = date
 			case vSectionNTC:
-				m.vehicles[m.editIndex].NTC = val
+				m.vehicles[m.editIndex].NTC = date
 			}
 			_ = storage.SaveVehicles(m.dataDir, m.vehicles)
 		}
@@ -310,7 +327,17 @@ func (m *model) updateSingleFieldForm(msg tea.KeyMsg, _ int) (tea.Model, tea.Cmd
 	default:
 		runes := []rune(key)
 		if len(runes) == 1 && unicode.IsPrint(runes[0]) {
-			m.formFields[0] += key
+			field := &m.formFields[0]
+			if !unicode.IsDigit(runes[0]) {
+				return m, nil
+			}
+			if len(*field) >= 10 {
+				return m, nil
+			}
+			*field += key
+			if len(*field) == 2 || len(*field) == 5 {
+				*field += "/"
+			}
 		}
 	}
 	return m, nil
@@ -319,21 +346,14 @@ func (m *model) updateSingleFieldForm(msg tea.KeyMsg, _ int) (tea.Model, tea.Cmd
 // ─── Render ──────────────────────────────────────────────────────────
 
 func (m *model) renderVehiclesView(s *styles) string {
-	switch m.vehicleSection {
-	case vSectionMgmt:
-		return m.renderVehicleMgmt(s)
-	case vSectionInsurance:
-		return m.renderInsuranceView(s)
-	case vSectionRoadTax:
-		return m.renderSingleFieldSection(s, "Road Tax", func(v *storage.Vehicle) string { return v.RoadTax })
-	case vSectionNTC:
-		return m.renderSingleFieldSection(s, "NTC", func(v *storage.Vehicle) string { return v.NTC })
-	default:
-		return m.renderVehicleSectionMenu(s)
-	}
-}
+	// ── Column 2: Submenu ────────────────────────────────────────
+	submenuWidth := 24
+	col2Style := lipgloss.NewStyle().
+		Border(lipgloss.NormalBorder(), false, true, false, false).
+		BorderForeground(lipgloss.Color("63")).
+		PaddingRight(2).
+		MarginRight(2)
 
-func (m *model) renderVehicleSectionMenu(s *styles) string {
 	title := s.title.Render(t(m.lang, "vehicles.title"))
 	desc := s.subtitle.Render(t(m.lang, "vehicles.selectSection"))
 
@@ -341,31 +361,53 @@ func (m *model) renderVehicleSectionMenu(s *styles) string {
 	var lines []string
 	for i, section := range sections {
 		if i == m.vehicleSectionCursor {
-			lines = append(lines, s.menuSelected.Width(0).Render("  ▸ "+section))
+			if m.vehicleSection == vSectionMenu {
+				lines = append(lines, s.menuSelected.Width(submenuWidth).Render(section))
+			} else {
+				lines = append(lines, s.menuActiveDim.Width(submenuWidth).Render(section))
+			}
 		} else {
-			lines = append(lines, s.menuNormal.Width(0).Render("    "+section))
+			lines = append(lines, s.menuNormal.Width(submenuWidth).Render(section))
 		}
 	}
 	menu := strings.Join(lines, "\n")
+	col2 := title + "\n" + desc + "\n\n" + menu
 
-	// ── Divider ──────────────────────────────────────────────
-	divider := s.dim.Render("  " + strings.Repeat("─", 40))
+	// ── Column 3: Content / Preview ──────────────────────────────
+	var col3 string
+	switch m.vehicleSection {
+	case vSectionMgmt:
+		col3 = m.renderVehicleMgmt(s)
+	case vSectionInsurance:
+		col3 = m.renderInsuranceView(s)
+	case vSectionRoadTax:
+		col3 = m.renderSingleFieldSection(s, "Road Tax")
+	case vSectionNTC:
+		col3 = m.renderSingleFieldSection(s, "NTC")
+	default:
+		// Preview mode (Stats & Expiries)
+		statsLeft, expiriesRight := m.renderVehicleStats(s)
+		if expiriesRight != "" {
+			divider := s.dim.Render(strings.Repeat("─", 30))
+			col3 = statsLeft + "\n\n" + divider + "\n\n" + expiriesRight
+		} else {
+			col3 = statsLeft
+		}
+		
+		help := s.dim.Render(fmt.Sprintf("↑/↓: %s  →: %s  ←: %s",
+			t(m.lang, "help.navigate"), t(m.lang, "help.enter"), t(m.lang, "help.goBack")))
+		col3 += "\n\n" + help
+	}
 
-	// ── Statistics ───────────────────────────────────────────
-	stats := m.renderVehicleStats(s)
-
-	help := s.dim.Render(fmt.Sprintf("↑/↓: %s  →: %s  ←: %s",
-		t(m.lang, "help.navigate"), t(m.lang, "help.enter"), t(m.lang, "help.goBack")))
-
-	return title + "\n" + desc + "\n\n" + menu + "\n\n" + divider + "\n\n" + stats + "\n\n" + help
+	return lipgloss.JoinHorizontal(lipgloss.Top, col2Style.Render(col2), col3)
 }
 
-func (m *model) renderVehicleStats(s *styles) string {
+func (m *model) renderVehicleStats(s *styles) (string, string) {
 	statsTitle := s.subtitle.Render("  " + t(m.lang, "vehicles.statistics"))
 
 	total := len(m.vehicles)
 	if total == 0 {
-		return statsTitle + "\n" + s.dim.Render("  " + t(m.lang, "vehicles.noVehicles"))
+		return statsTitle + "\n" + s.dim.Render("  " + t(m.lang, "vehicles.noVehicles")), ""
 	}
 
 	// Count populated fields
@@ -378,9 +420,10 @@ func (m *model) renderVehicleStats(s *styles) string {
 	var nextInsurance, nextInsVehicle string
 	for _, ins := range m.insurances {
 		insuredPlates[ins.LicensePlate] = true
-		if ins.ExpireDate != "" {
-			if nextInsurance == "" || ins.ExpireDate < nextInsurance {
-				nextInsurance = ins.ExpireDate
+		if !ins.ExpireDate.IsZero() {
+			dateStr := ins.ExpireDate.Format("2006-01-02")
+			if nextInsurance == "" || dateStr < nextInsurance {
+				nextInsurance = ins.ExpireDate.Format("02/01/2006")
 				// Find vehicle name for this plate
 				for _, v := range m.vehicles {
 					if v.LicensePlate == ins.LicensePlate {
@@ -395,17 +438,17 @@ func (m *model) renderVehicleStats(s *styles) string {
 
 	for _, v := range m.vehicles {
 		vName := v.Brand + " " + v.Model
-		if v.RoadTax != "" {
+		if !v.RoadTax.IsZero() {
 			taxed++
-			if nextRoadTax == "" || v.RoadTax < nextRoadTax {
-				nextRoadTax = v.RoadTax
+			if nextRoadTax == "" || v.RoadTax.Format("2006-01-02") < nextRoadTax {
+				nextRoadTax = v.RoadTax.Format("02/01/2006")
 				nextRTVehicle = vName
 			}
 		}
-		if v.NTC != "" {
+		if !v.NTC.IsZero() {
 			inspected++
-			if nextNTC == "" || v.NTC < nextNTC {
-				nextNTC = v.NTC
+			if nextNTC == "" || v.NTC.Format("2006-01-02") < nextNTC {
+				nextNTC = v.NTC.Format("02/01/2006")
 				nextNTCVehicle = vName
 			}
 		}
@@ -431,38 +474,39 @@ func (m *model) renderVehicleStats(s *styles) string {
 		renderCoverage(s, inspected, total),
 	)
 
-	result := statsTitle + "\n\n" + totalLine + "\n\n" + insLine + "\n" + taxLine + "\n" + ntcLine
+	leftStats := statsTitle + "\n\n" + totalLine + "\n\n" + insLine + "\n" + taxLine + "\n" + ntcLine
 
-	// Next expiry section
+	// Next expiry section (Right side)
 	var expiries []string
 	if nextInsurance != "" {
-		expiries = append(expiries, fmt.Sprintf("  %s %s %s",
+		expiries = append(expiries, fmt.Sprintf("%s\n%s %s",
 			s.dim.Render(t(m.lang, "vehicles.insurance")+":"),
 			s.info.Render(nextInsurance),
 			s.dim.Render("("+nextInsVehicle+")"),
 		))
 	}
 	if nextRoadTax != "" {
-		expiries = append(expiries, fmt.Sprintf("  %s %s %s",
+		expiries = append(expiries, fmt.Sprintf("%s\n%s %s",
 			s.dim.Render(t(m.lang, "vehicles.roadTax")+":"),
 			s.info.Render(nextRoadTax),
 			s.dim.Render("("+nextRTVehicle+")"),
 		))
 	}
 	if nextNTC != "" {
-		expiries = append(expiries, fmt.Sprintf("  %s %s %s",
+		expiries = append(expiries, fmt.Sprintf("%s\n%s %s",
 			s.dim.Render(t(m.lang, "vehicles.ntc")+":"),
 			s.info.Render(nextNTC),
 			s.dim.Render("("+nextNTCVehicle+")"),
 		))
 	}
 
+	var rightExpiries string
 	if len(expiries) > 0 {
-		expiryTitle := "\n\n" + s.subtitle.Render("  " + t(m.lang, "vehicles.nextExpiry"))
-		result += expiryTitle + "\n\n" + strings.Join(expiries, "\n")
+		expiryTitle := s.subtitle.Render(t(m.lang, "vehicles.nextExpiry"))
+		rightExpiries = expiryTitle + "\n\n" + strings.Join(expiries, "\n\n")
 	}
 
-	return result
+	return leftStats, rightExpiries
 }
 
 // renderCoverage shows a fraction like "3/5" colored by coverage level.
@@ -583,7 +627,7 @@ func (m *model) renderVehicleDeleteConfirm(s *styles) string {
 }
 
 // renderSingleFieldSection renders Insurance/RoadTax/NTC section.
-func (m *model) renderSingleFieldSection(s *styles, sectionName string, getField func(*storage.Vehicle) string) string {
+func (m *model) renderSingleFieldSection(s *styles, sectionName string) string {
 	title := s.title.Render(sectionName)
 
 	if m.vehicleView == vViewEdit {
@@ -603,7 +647,17 @@ func (m *model) renderSingleFieldSection(s *styles, sectionName string, getField
 
 	var rows []string
 	for i, v := range m.vehicles {
-		val := getField(&v)
+		var val string
+		switch m.vehicleSection {
+		case vSectionRoadTax:
+			if !v.RoadTax.IsZero() {
+				val = v.RoadTax.Format("02/01/2006")
+			}
+		case vSectionNTC:
+			if !v.NTC.IsZero() {
+				val = v.NTC.Format("02/01/2006")
+			}
+		}
 		if val == "" {
 			val = "-"
 		}
@@ -643,7 +697,15 @@ func (m *model) renderSingleFieldEdit(s *styles, sectionName string) string {
 	fieldStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("252")).
 		Background(lipgloss.Color("236"))
-	field := label + " " + fieldStyle.Render(value) + cursor
+
+	valDisp := value
+	var field string
+	if valDisp == "" {
+		valDisp = s.dim.Render("GG/MM/AAAA")
+		field = label + " " + valDisp + cursor
+	} else {
+		field = label + " " + fieldStyle.Render(valDisp) + cursor
+	}
 
 	help := s.dim.Render(fmt.Sprintf("Enter: %s  Esc: %s", t(m.lang, "action.save"), t(m.lang, "action.cancel")))
 

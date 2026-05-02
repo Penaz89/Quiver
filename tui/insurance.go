@@ -19,6 +19,7 @@ package tui
 import (
 	"fmt"
 	"strings"
+	"time"
 	"unicode"
 
 	tea "charm.land/bubbletea/v2"
@@ -83,7 +84,11 @@ func (m *model) updateInsuranceList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			ins := m.insurances[m.insuranceCursor]
 			m.vehicleView = vViewEdit
 			m.editIndex = m.insuranceCursor
-			m.insFormFields = [insFCount]string{ins.LicensePlate, ins.TotalCost, ins.ExpireDate}
+			m.insFormFields = [insFCount]string{
+				ins.LicensePlate,
+				ins.TotalCost,
+				ins.ExpireDate.Format("02/01/2006"),
+			}
 			m.insFormCursor = 1 // start on TotalCost, plate is pre-selected
 			m.insPickerMode = false
 		}
@@ -139,10 +144,18 @@ func (m *model) updateInsuranceForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.insFormCursor = prev
 	case "enter":
+		expiryStr := strings.TrimSpace(m.insFormFields[insFExpiry])
+		expiryDate, err := time.Parse("02/01/2006", expiryStr)
+		if err != nil {
+			// If invalid date, we could show an error, but for now let's just not save
+			// or we could use time.Now() as fallback, but better to stay on the field
+			return m, nil
+		}
+
 		ins := storage.Insurance{
 			LicensePlate: strings.TrimSpace(m.insFormFields[insFPlate]),
 			TotalCost:    strings.TrimSpace(m.insFormFields[insFCost]),
-			ExpireDate:   strings.TrimSpace(m.insFormFields[insFExpiry]),
+			ExpireDate:   expiryDate,
 		}
 		if ins.LicensePlate == "" {
 			m.vehicleView = vViewList
@@ -169,7 +182,24 @@ func (m *model) updateInsuranceForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.insFormCursor > 0 { // don't type in plate field
 			runes := []rune(key)
 			if len(runes) == 1 && unicode.IsPrint(runes[0]) {
-				m.insFormFields[m.insFormCursor] += key
+				field := &m.insFormFields[m.insFormCursor]
+
+				// Special handling for date field
+				if m.insFormCursor == insFExpiry {
+					if !unicode.IsDigit(runes[0]) {
+						return m, nil // only digits for date
+					}
+					if len(*field) >= 10 {
+						return m, nil // max length DD/MM/YYYY
+					}
+					*field += key
+					// Auto-add slashes
+					if len(*field) == 2 || len(*field) == 5 {
+						*field += "/"
+					}
+				} else {
+					*field += key
+				}
 			}
 		}
 	}
@@ -234,7 +264,7 @@ func (m *model) renderInsuranceList(s *styles) string {
 			i+1,
 			truncate(ins.LicensePlate, 13),
 			truncate(ins.TotalCost, 13),
-			truncate(ins.ExpireDate, 13),
+			ins.ExpireDate.Format("02/01/2006"),
 		)
 		if i == m.insuranceCursor {
 			row = s.menuSelected.Width(0).Render(row)
@@ -292,9 +322,20 @@ func (m *model) renderInsuranceForm(s *styles, formTitle string) string {
 			fieldStyle := lipgloss.NewStyle().
 				Foreground(lipgloss.Color("252")).
 				Background(lipgloss.Color("236"))
-			rendered = label + " " + fieldStyle.Render(value) + cursor
+
+			valDisp := value
+			if i == insFExpiry && valDisp == "" {
+				valDisp = s.dim.Render("GG/MM/AAAA")
+				rendered = label + " " + valDisp + cursor
+			} else {
+				rendered = label + " " + fieldStyle.Render(valDisp) + cursor
+			}
 		} else {
-			rendered = label + " " + s.info.Render(value)
+			valDisp := value
+			if i == insFExpiry && valDisp == "" {
+				valDisp = s.dim.Render("GG/MM/AAAA")
+			}
+			rendered = label + " " + s.info.Render(valDisp)
 		}
 		fields = append(fields, rendered)
 	}
@@ -323,7 +364,7 @@ func (m *model) renderInsuranceDeleteConfirm(s *styles) string {
 		"\n  %s %s\n  %s %s\n  %s %s",
 		s.dim.Render(t(m.lang, "field.licensePlate")+":"), s.info.Render(ins.LicensePlate),
 		s.dim.Render(t(m.lang, "field.totalCost")+":"), s.info.Render(ins.TotalCost),
-		s.dim.Render(t(m.lang, "field.expireDate")+":"), s.info.Render(ins.ExpireDate),
+		s.dim.Render(t(m.lang, "field.expireDate")+":"), s.info.Render(ins.ExpireDate.Format("02/01/2006")),
 	)
 
 	help := s.dim.Render(fmt.Sprintf("y: %s  n/Esc: %s", t(m.lang, "action.confirm"), t(m.lang, "action.cancel")))

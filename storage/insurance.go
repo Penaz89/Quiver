@@ -20,13 +20,14 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 // Insurance represents an insurance policy linked to a vehicle by license plate.
 type Insurance struct {
-	LicensePlate string `json:"license_plate"`
-	TotalCost    string `json:"total_cost"`
-	ExpireDate   string `json:"expire_date"`
+	LicensePlate string    `json:"license_plate"`
+	TotalCost    string    `json:"total_cost"`
+	ExpireDate   time.Time `json:"expire_date"`
 }
 
 func insurancePath(dataDir string) string {
