@@ -103,6 +103,14 @@ var translations = map[string]map[string]string{
 	"finances.title":       {"en": "Finances", "it": "Finanze"},
 	"finances.subtitle":    {"en": "Financial log & balance", "it": "Registro finanziario e bilancio"},
 	"finances.noEntries":   {"en": "No financial entries yet.", "it": "Nessuna voce finanziaria."},
+	"finances.fixedExp":    {"en": "Fixed Expenses", "it": "Spese Fisse"},
+	"finances.annualTotal": {"en": "Annual Total", "it": "Totale Annuale"},
+	"finances.monthlyTotal":{"en": "Monthly Total", "it": "Totale Mensile"},
+	"finances.subtotal":    {"en": "Subtotal", "it": "Subtotale"},
+	"finances.grandTotal":  {"en": "GRAND TOTAL", "it": "GRAN TOTALE"},
+	"cat.vehicles":         {"en": "VEHICLES", "it": "VEICOLI"},
+	"col.annual":           {"en": "ANNUAL", "it": "ANNUALE"},
+	"col.monthly":          {"en": "MONTHLY", "it": "MENSILE"},
 
 	// ── Settings view ────────────────────────────────────────
 	"settings.title":       {"en": "Settings", "it": "Impostazioni"},

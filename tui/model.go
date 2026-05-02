@@ -108,6 +108,10 @@ type model struct {
 	insPickerMode   bool
 	insPickerCursor int
 
+	// Finances state
+	finSection    finSection
+	finMenuCursor int
+
 	// Settings state
 	settingsCursor int
 }
@@ -312,6 +316,11 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.updateVehicleSection(msg)
 		}
 
+		// Route input to finances section when active
+		if m.menuCursor == 2 && m.focusContent {
+			return m.updateFinances(msg)
+		}
+
 		// Route input to settings when active
 		if m.menuCursor == 3 && m.focusContent {
 			return m.updateSettings(msg)
@@ -362,7 +371,7 @@ func (m *model) View() tea.View {
 	case 1:
 		contentStr = m.renderVehiclesView(s)
 	case 2:
-		contentStr = m.renderFinances(s)
+		contentStr = m.renderFinancesView(s)
 	case 3:
 		contentStr = m.renderSettingsView(s)
 	}
@@ -487,13 +496,7 @@ func (m *model) renderHome(s *styles) string {
 
 // renderVehicles is now in vehicles.go as renderVehiclesView
 
-func (m *model) renderFinances(s *styles) string {
-	title := s.title.Render(t(m.lang, "finances.title"))
-	desc := s.subtitle.Render(t(m.lang, "finances.subtitle"))
-	placeholder := s.dim.Render(t(m.lang, "finances.noEntries"))
 
-	return title + "\n" + desc + "\n\n" + placeholder
-}
 
 // updateMenuLabels refreshes menu item labels based on the current language.
 func (m *model) updateMenuLabels() {
