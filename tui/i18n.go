@@ -59,6 +59,7 @@ var translations = map[string]map[string]string{
 	"field.owner":        {"en": "Owner", "it": "Proprietario"},
 	"field.totalCost":    {"en": "Total Cost", "it": "Costo Totale"},
 	"field.expireDate":   {"en": "Expire Date", "it": "Data Scadenza"},
+	"field.insType":      {"en": "Type", "it": "Tipologia"},
 
 	// ── Table column headers ─────────────────────────────────
 	"col.num":     {"en": "#", "it": "#"},
@@ -68,6 +69,11 @@ var translations = map[string]map[string]string{
 	"col.owner":   {"en": "OWNER", "it": "PROPRIETARIO"},
 	"col.cost":    {"en": "COST", "it": "COSTO"},
 	"col.expires": {"en": "EXPIRES", "it": "SCADENZA"},
+	"col.type":    {"en": "TYPE", "it": "TIPOLOGIA"},
+
+	// ── Types ────────────────────────────────────────────────
+	"type.semiannual": {"en": "Semiannual", "it": "Semestrale"},
+	"type.annual":     {"en": "Annual", "it": "Annuale"},
 
 	// ── CRUD actions ─────────────────────────────────────────
 	"action.add":       {"en": "Add", "it": "Aggiungi"},

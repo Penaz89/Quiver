@@ -28,6 +28,7 @@ type Insurance struct {
 	LicensePlate string    `json:"license_plate"`
 	TotalCost    string    `json:"total_cost"`
 	ExpireDate   time.Time `json:"expire_date"`
+	Type         string    `json:"type"`
 }
 
 func insurancePath(dataDir string) string {

@@ -31,6 +31,7 @@ import (
 
 const (
 	insFPlate  = iota // License plate (selected via picker)
+	insFType          // Type (Semestrale/Annuale)
 	insFCost          // Total cost
 	insFExpiry        // Expire date
 	insFCount
@@ -39,6 +40,7 @@ const (
 // insFieldKeys maps to i18n keys for insurance form labels.
 var insFieldKeys = [insFCount]string{
 	"field.licensePlate",
+	"field.insType",
 	"field.totalCost",
 	"field.expireDate",
 }
@@ -75,8 +77,13 @@ func (m *model) updateInsuranceList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil // can't add without vehicles
 		}
 		m.vehicleView = vViewAdd
-		m.insFormFields = [insFCount]string{}
-		m.insFormCursor = 0
+		m.insFormFields = [insFCount]string{
+			"", // Plate is set by picker
+			"type.annual", // Default type
+			"",
+			"",
+		}
+		m.insFormCursor = insFType
 		m.insPickerMode = true
 		m.insPickerCursor = 0
 	case "e", "enter":
@@ -84,12 +91,17 @@ func (m *model) updateInsuranceList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			ins := m.insurances[m.insuranceCursor]
 			m.vehicleView = vViewEdit
 			m.editIndex = m.insuranceCursor
+			insType := ins.Type
+			if insType == "" {
+				insType = "type.annual"
+			}
 			m.insFormFields = [insFCount]string{
 				ins.LicensePlate,
+				insType,
 				ins.TotalCost,
 				ins.ExpireDate.Format("02/01/2006"),
 			}
-			m.insFormCursor = 1 // start on TotalCost, plate is pre-selected
+			m.insFormCursor = insFType // start on Type, plate is pre-selected
 			m.insPickerMode = false
 		}
 	case "d", "x":
@@ -143,6 +155,14 @@ func (m *model) updateInsuranceForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			prev = insFCount - 1 // skip plate field, wrap to last
 		}
 		m.insFormCursor = prev
+	case "left", "right", " ":
+		if m.insFormCursor == insFType {
+			if m.insFormFields[insFType] == "type.semiannual" {
+				m.insFormFields[insFType] = "type.annual"
+			} else {
+				m.insFormFields[insFType] = "type.semiannual"
+			}
+		}
 	case "enter":
 		expiryStr := strings.TrimSpace(m.insFormFields[insFExpiry])
 		expiryDate, err := time.Parse("02/01/2006", expiryStr)
@@ -154,6 +174,7 @@ func (m *model) updateInsuranceForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 		ins := storage.Insurance{
 			LicensePlate: strings.TrimSpace(m.insFormFields[insFPlate]),
+			Type:         strings.TrimSpace(m.insFormFields[insFType]),
 			TotalCost:    strings.TrimSpace(m.insFormFields[insFCost]),
 			ExpireDate:   expiryDate,
 		}
@@ -197,6 +218,14 @@ func (m *model) updateInsuranceForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					if len(*field) == 2 || len(*field) == 5 {
 						*field += "/"
 					}
+				} else if m.insFormCursor == insFCost {
+					if !unicode.IsDigit(runes[0]) && runes[0] != '.' && runes[0] != ',' {
+						return m, nil
+					}
+					if len(*field) >= 15 {
+						return m, nil
+					}
+					*field += key
 				} else {
 					*field += key
 				}
@@ -253,17 +282,32 @@ func (m *model) renderInsuranceList(s *styles) string {
 		return title + "\n\n" + empty + extra + help
 	}
 
-	hdr := fmt.Sprintf("  %-3s %-14s %-14s %-14s",
-		t(m.lang, "col.num"), t(m.lang, "col.plate"), t(m.lang, "col.cost"), t(m.lang, "col.expires"))
+	hdr := fmt.Sprintf("  %-3s %-14s %-14s %-14s %-14s",
+		t(m.lang, "col.num"), t(m.lang, "col.plate"), t(m.lang, "col.type"), t(m.lang, "col.cost"), t(m.lang, "col.expires"))
 	header := s.subtitle.Render(hdr)
-	divider := s.dim.Render("  " + strings.Repeat("─", 48))
+	divider := s.dim.Render("  " + strings.Repeat("─", 63))
 
 	var rows []string
 	for i, ins := range m.insurances {
-		row := fmt.Sprintf("  %-3d %-14s %-14s %-14s",
+		cost := ins.TotalCost
+		if cost == "" {
+			cost = "-"
+		} else {
+			cost = "€ " + cost
+		}
+		
+		insType := ins.Type
+		if insType != "" {
+			insType = t(m.lang, insType)
+		} else {
+			insType = "-"
+		}
+		
+		row := fmt.Sprintf("  %-3d %-14s %-14s %-14s %-14s",
 			i+1,
 			truncate(ins.LicensePlate, 13),
-			truncate(ins.TotalCost, 13),
+			truncate(insType, 13),
+			truncate(cost, 13),
 			ins.ExpireDate.Format("02/01/2006"),
 		)
 		if i == m.insuranceCursor {
@@ -319,6 +363,9 @@ func (m *model) renderInsuranceForm(s *styles, formTitle string) string {
 			rendered = label + " " + plateStyle.Render(value) + s.dim.Render(" (" + t(m.lang, "action.locked") + ")")
 		} else if i == m.insFormCursor {
 			cursor := s.highlight.Render("_")
+			if i == insFType {
+				cursor = "" // no cursor for toggle
+			}
 			fieldStyle := lipgloss.NewStyle().
 				Foreground(lipgloss.Color("252")).
 				Background(lipgloss.Color("236"))
@@ -327,15 +374,34 @@ func (m *model) renderInsuranceForm(s *styles, formTitle string) string {
 			if i == insFExpiry && valDisp == "" {
 				valDisp = s.dim.Render("GG/MM/AAAA")
 				rendered = label + " " + valDisp + cursor
+			} else if i == insFCost && valDisp == "" {
+				valDisp = s.dim.Render("0.00")
+				rendered = label + " € " + valDisp + cursor
+			} else if i == insFType {
+				valDisp = t(m.lang, valDisp)
+				rendered = label + " < " + fieldStyle.Render(valDisp) + " >" + cursor
 			} else {
-				rendered = label + " " + fieldStyle.Render(valDisp) + cursor
+				if i == insFCost {
+					rendered = label + " € " + fieldStyle.Render(valDisp) + cursor
+				} else {
+					rendered = label + " " + fieldStyle.Render(valDisp) + cursor
+				}
 			}
 		} else {
 			valDisp := value
 			if i == insFExpiry && valDisp == "" {
 				valDisp = s.dim.Render("GG/MM/AAAA")
+			} else if i == insFCost && valDisp == "" {
+				valDisp = s.dim.Render("0.00")
 			}
-			rendered = label + " " + s.info.Render(valDisp)
+			
+			if i == insFCost {
+				rendered = label + " € " + s.info.Render(valDisp)
+			} else if i == insFType {
+				rendered = label + " " + s.info.Render(t(m.lang, valDisp))
+			} else {
+				rendered = label + " " + s.info.Render(valDisp)
+			}
 		}
 		fields = append(fields, rendered)
 	}

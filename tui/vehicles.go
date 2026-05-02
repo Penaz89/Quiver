@@ -275,18 +275,20 @@ func (m *model) updateSingleFieldList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.vehicleView = vViewEdit
 			m.editIndex = m.vehicleCursor
 			v := m.vehicles[m.vehicleCursor]
-			var val string
+			var valCost, valDate string
 			switch m.vehicleSection {
 			case vSectionRoadTax:
+				valCost = v.RoadTaxCost
 				if !v.RoadTax.IsZero() {
-					val = v.RoadTax.Format("02/01/2006")
+					valDate = v.RoadTax.Format("02/01/2006")
 				}
 			case vSectionNTC:
+				valCost = v.NTCCost
 				if !v.NTC.IsZero() {
-					val = v.NTC.Format("02/01/2006")
+					valDate = v.NTC.Format("02/01/2006")
 				}
 			}
-			m.formFields = [fCount]string{val}
+			m.formFields = [fCount]string{valCost, valDate}
 			m.formCursor = 0
 		}
 	case "esc", "left":
@@ -299,19 +301,34 @@ func (m *model) updateSingleFieldList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m *model) updateSingleFieldForm(msg tea.KeyMsg, _ int) (tea.Model, tea.Cmd) {
 	key := msg.String()
 	switch key {
+	case "up", "shift+tab":
+		if m.formCursor > 0 {
+			m.formCursor--
+		}
+	case "down", "tab":
+		if m.formCursor < 1 { // Cost -> Date
+			m.formCursor++
+		}
 	case "enter":
 		if len(m.vehicles) > 0 && m.editIndex < len(m.vehicles) {
-			val := strings.TrimSpace(m.formFields[0])
-			date, err := time.Parse("02/01/2006", val)
-			if err != nil && val != "" {
-				return m, nil // Stay on form if invalid
+			cost := strings.TrimSpace(m.formFields[0])
+			dateStr := strings.TrimSpace(m.formFields[1])
+			var date time.Time
+			var err error
+			if dateStr != "" {
+				date, err = time.Parse("02/01/2006", dateStr)
+				if err != nil {
+					return m, nil // Stay on form if invalid
+				}
 			}
 
 			switch m.vehicleSection {
 			case vSectionRoadTax:
 				m.vehicles[m.editIndex].RoadTax = date
+				m.vehicles[m.editIndex].RoadTaxCost = cost
 			case vSectionNTC:
 				m.vehicles[m.editIndex].NTC = date
+				m.vehicles[m.editIndex].NTCCost = cost
 			}
 			_ = storage.SaveVehicles(m.dataDir, m.vehicles)
 		}
@@ -319,7 +336,7 @@ func (m *model) updateSingleFieldForm(msg tea.KeyMsg, _ int) (tea.Model, tea.Cmd
 	case "esc":
 		m.vehicleView = vViewList
 	case "backspace":
-		field := &m.formFields[0]
+		field := &m.formFields[m.formCursor]
 		if len(*field) > 0 {
 			runes := []rune(*field)
 			*field = string(runes[:len(runes)-1])
@@ -327,16 +344,26 @@ func (m *model) updateSingleFieldForm(msg tea.KeyMsg, _ int) (tea.Model, tea.Cmd
 	default:
 		runes := []rune(key)
 		if len(runes) == 1 && unicode.IsPrint(runes[0]) {
-			field := &m.formFields[0]
-			if !unicode.IsDigit(runes[0]) {
-				return m, nil
-			}
-			if len(*field) >= 10 {
-				return m, nil
-			}
-			*field += key
-			if len(*field) == 2 || len(*field) == 5 {
-				*field += "/"
+			field := &m.formFields[m.formCursor]
+			if m.formCursor == 1 { // Date
+				if !unicode.IsDigit(runes[0]) {
+					return m, nil
+				}
+				if len(*field) >= 10 {
+					return m, nil
+				}
+				*field += key
+				if len(*field) == 2 || len(*field) == 5 {
+					*field += "/"
+				}
+			} else { // Cost
+				if !unicode.IsDigit(runes[0]) && runes[0] != '.' && runes[0] != ',' {
+					return m, nil
+				}
+				if len(*field) >= 15 {
+					return m, nil
+				}
+				*field += key
 			}
 		}
 	}
@@ -686,32 +713,42 @@ func (m *model) renderSingleFieldSection(s *styles, sectionName string) string {
 		return title + "\n\n" + empty + help
 	}
 
-	hdr := fmt.Sprintf("  %-3s %-14s %-14s %-20s",
-		t(m.lang, "col.num"), t(m.lang, "col.brand"), t(m.lang, "col.model"), strings.ToUpper(sectionName))
+	hdr := fmt.Sprintf("  %-3s %-14s %-14s %-10s %-12s",
+		t(m.lang, "col.num"), t(m.lang, "col.brand"), t(m.lang, "col.model"), t(m.lang, "col.cost"), t(m.lang, "col.expires"))
 	header := s.subtitle.Render(hdr)
-	divider := s.dim.Render("  " + strings.Repeat("─", 54))
+	divider := s.dim.Render("  " + strings.Repeat("─", 57))
 
 	var rows []string
 	for i, v := range m.vehicles {
-		var val string
+		var cost, dateStr string
 		switch m.vehicleSection {
 		case vSectionRoadTax:
+			cost = v.RoadTaxCost
 			if !v.RoadTax.IsZero() {
-				val = v.RoadTax.Format("02/01/2006")
+				dateStr = v.RoadTax.Format("02/01/2006")
 			}
 		case vSectionNTC:
+			cost = v.NTCCost
 			if !v.NTC.IsZero() {
-				val = v.NTC.Format("02/01/2006")
+				dateStr = v.NTC.Format("02/01/2006")
 			}
 		}
-		if val == "" {
-			val = "-"
+		
+		if cost == "" {
+			cost = "-"
+		} else {
+			cost = "€ " + cost
 		}
-		row := fmt.Sprintf("  %-3d %-14s %-14s %-20s",
+		if dateStr == "" {
+			dateStr = "-"
+		}
+		
+		row := fmt.Sprintf("  %-3d %-14s %-14s %-10s %-12s",
 			i+1,
 			truncate(v.Brand, 13),
 			truncate(v.Model, 13),
-			truncate(val, 19),
+			truncate(cost, 9),
+			dateStr,
 		)
 		if i == m.vehicleCursor {
 			row = s.menuSelected.Width(0).Render(row)
@@ -737,25 +774,40 @@ func (m *model) renderSingleFieldEdit(s *styles, sectionName string) string {
 	v := m.vehicles[m.editIndex]
 	vehicleInfo := s.dim.Render(fmt.Sprintf("  Vehicle: %s %s (%s)", v.Brand, v.Model, v.LicensePlate))
 
-	label := s.dim.Render(fmt.Sprintf("  %-15s", sectionName+":"))
-	value := m.formFields[0]
-	cursor := s.highlight.Render("_")
 	fieldStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("252")).
 		Background(lipgloss.Color("236"))
 
-	valDisp := value
-	var field string
-	if valDisp == "" {
-		valDisp = s.dim.Render("GG/MM/AAAA")
-		field = label + " " + valDisp + cursor
-	} else {
-		field = label + " " + fieldStyle.Render(valDisp) + cursor
+	labels := []string{t(m.lang, "col.cost"), t(m.lang, "col.expires")}
+	var fields []string
+	for i := 0; i < 2; i++ {
+		label := s.dim.Render(fmt.Sprintf("  %-15s", labels[i]+":"))
+		value := m.formFields[i]
+		cursor := ""
+		if m.formCursor == i {
+			cursor = s.highlight.Render("_")
+		}
+
+		valDisp := value
+		if valDisp == "" && i == 1 {
+			valDisp = s.dim.Render("GG/MM/AAAA")
+			fields = append(fields, label+" "+valDisp+cursor)
+		} else if valDisp == "" && i == 0 {
+			valDisp = s.dim.Render("0.00")
+			fields = append(fields, label+" € "+valDisp+cursor)
+		} else {
+			if i == 0 {
+				fields = append(fields, label+" € "+fieldStyle.Render(valDisp)+cursor)
+			} else {
+				fields = append(fields, label+" "+fieldStyle.Render(valDisp)+cursor)
+			}
+		}
 	}
+	formContent := strings.Join(fields, "\n\n")
 
-	help := s.dim.Render(fmt.Sprintf("Enter: %s  Esc: %s", t(m.lang, "action.save"), t(m.lang, "action.cancel")))
+	help := s.dim.Render(fmt.Sprintf("Tab/↑/↓: %s  Enter: %s  Esc: %s", t(m.lang, "help.navigate"), t(m.lang, "action.save"), t(m.lang, "action.cancel")))
 
-	return title + "\n\n" + vehicleInfo + "\n\n" + field + "\n\n" + help
+	return title + "\n\n" + vehicleInfo + "\n\n" + formContent + "\n\n" + help
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────

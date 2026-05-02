@@ -30,7 +30,9 @@ type Vehicle struct {
 	LicensePlate string    `json:"license_plate"`
 	Owner        string    `json:"owner"`
 	RoadTax      time.Time `json:"road_tax"`
+	RoadTaxCost  string    `json:"road_tax_cost"`
 	NTC          time.Time `json:"ntc"`
+	NTCCost      string    `json:"ntc_cost"`
 }
 
 func vehiclePath(dataDir string) string {

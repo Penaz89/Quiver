@@ -2,6 +2,7 @@
   {
     "license_plate": "GD464RH",
     "total_cost": "378",
-    "expire_date": "2027-01-20T00:00:00Z"
+    "expire_date": "2026-11-13T00:00:00Z",
+    "type": "type.semiannual"
   }
 ]
