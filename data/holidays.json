@@ -1,0 +1,13 @@
+[
+  {
+    "destination": "Giappone",
+    "flight_desc": "Volo",
+    "flight_cost": "1200",
+    "accom_desc": "AirBnB",
+    "accom_cost": "1200",
+    "car_desc": "Auris",
+    "car_cost": "400",
+    "ins_desc": "Assicurazione",
+    "ins_cost": "120"
+  }
+]

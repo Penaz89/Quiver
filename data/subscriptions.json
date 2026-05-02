@@ -13,5 +13,15 @@
     "service": "Gemini",
     "cost": "22",
     "type": "type.monthly"
+  },
+  {
+    "service": "RAI",
+    "cost": "9",
+    "type": "type.monthly"
+  },
+  {
+    "service": "AllDebrid",
+    "cost": "3",
+    "type": "type.monthly"
   }
 ]

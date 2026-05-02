@@ -115,6 +115,20 @@ type model struct {
 	finMenuCursor int
 	finView       finSubView
 	
+	// Housing state
+	housing       []storage.Housing
+	houseCursor   int
+	houseForm     [houseFCount]string
+	houseFormCur  int
+	houseEditIdx  int
+	
+	// Holidays state
+	holidays      []storage.Holiday
+	holiCursor    int
+	holiForm      [holiFCount]string
+	holiFormCur   int
+	holiEditIdx   int
+	
 	// Subscriptions state
 	subs        []storage.Subscription
 	subCursor   int
@@ -260,6 +274,8 @@ func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramO
 	insurances, _ := storage.LoadInsurance(dataDir)
 	settings := storage.LoadSettings(dataDir)
 	subs, _ := storage.LoadSubscriptions(dataDir)
+	housing, _ := storage.LoadHousing(dataDir)
+	holidays, _ := storage.LoadHolidays(dataDir)
 
 	m := &model{
 		user:       user,
@@ -275,6 +291,8 @@ func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramO
 		vehicles:   vehicles,
 		insurances: insurances,
 		subs:       subs,
+		housing:    housing,
+		holidays:   holidays,
 		vp:         viewport.New(),
 	}
 	

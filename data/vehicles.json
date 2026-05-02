@@ -8,15 +8,5 @@
     "road_tax_cost": "196",
     "ntc": "0001-01-01T00:00:00Z",
     "ntc_cost": ""
-  },
-  {
-    "brand": "Hyundai",
-    "model": "iX20",
-    "license_plate": "FR003JX",
-    "owner": "Sara",
-    "road_tax": "0001-01-01T00:00:00Z",
-    "road_tax_cost": "",
-    "ntc": "0001-01-01T00:00:00Z",
-    "ntc_cost": ""
   }
 ]
