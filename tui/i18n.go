@@ -25,7 +25,7 @@ var translations = map[string]map[string]string{
 	// ── Main menu ────────────────────────────────────────────
 	"menu.home":     {"en": "HOME", "it": "HOME"},
 	"menu.vehicles": {"en": "VEHICLES", "it": "VEICOLI"},
-	"menu.work":     {"en": "WORK", "it": "LAVORO"},
+	"menu.finances": {"en": "FINANCES", "it": "FINANZE"},
 	"menu.settings": {"en": "SETTINGS", "it": "IMPOSTAZIONI"},
 
 	// ── Home view ────────────────────────────────────────────
@@ -48,6 +48,9 @@ var translations = map[string]map[string]string{
 	"vehicles.statistics":     {"en": "Statistics", "it": "Statistiche"},
 	"vehicles.totalVehicles":  {"en": "Total Vehicles:", "it": "Veicoli Totali:"},
 	"vehicles.nextExpiry":     {"en": "Next Expiry", "it": "Prossima Scadenza"},
+	"vehicles.expiredDays":    {"en": "(Expired %d days ago)", "it": "(Scaduto da %d giorni)"},
+	"vehicles.expiresToday":   {"en": "(Expires today)", "it": "(Scade oggi)"},
+	"vehicles.expiresIn":      {"en": "(In %d days)", "it": "(Tra %d giorni)"},
 
 	// ── Vehicle form ─────────────────────────────────────────
 	"field.brand":        {"en": "Brand", "it": "Marca"},
@@ -90,10 +93,10 @@ var translations = map[string]map[string]string{
 	"insurance.add":      {"en": "Add Insurance", "it": "Aggiungi Assicurazione"},
 	"insurance.edit":     {"en": "Edit Insurance", "it": "Modifica Assicurazione"},
 
-	// ── Work view ────────────────────────────────────────────
-	"work.title":       {"en": "Work", "it": "Lavoro"},
-	"work.subtitle":    {"en": "Work log & tasks", "it": "Registro lavori e attività"},
-	"work.noEntries":   {"en": "No work entries yet.", "it": "Nessuna voce di lavoro."},
+	// ── Finances view ────────────────────────────────────────
+	"finances.title":       {"en": "Finances", "it": "Finanze"},
+	"finances.subtitle":    {"en": "Financial log & balance", "it": "Registro finanziario e bilancio"},
+	"finances.noEntries":   {"en": "No financial entries yet.", "it": "Nessuna voce finanziaria."},
 
 	// ── Settings view ────────────────────────────────────────
 	"settings.title":       {"en": "Settings", "it": "Impostazioni"},

@@ -431,17 +431,19 @@ func (m *model) renderVehicleStats(s *styles) (string, string) {
 
 	// Count populated fields
 	var taxed, inspected int
+	var nextRoadTaxDate, nextNTCDate time.Time
 	var nextRoadTax, nextNTC string
 	var nextRTVehicle, nextNTCVehicle string
 
 	// Insurance stats from separate insurance records
 	insuredPlates := make(map[string]bool)
+	var nextInsuranceDate time.Time
 	var nextInsurance, nextInsVehicle string
 	for _, ins := range m.insurances {
 		insuredPlates[ins.LicensePlate] = true
 		if !ins.ExpireDate.IsZero() {
-			dateStr := ins.ExpireDate.Format("2006-01-02")
-			if nextInsurance == "" || dateStr < nextInsurance {
+			if nextInsuranceDate.IsZero() || ins.ExpireDate.Before(nextInsuranceDate) {
+				nextInsuranceDate = ins.ExpireDate
 				nextInsurance = ins.ExpireDate.Format("02/01/2006")
 				// Find vehicle name for this plate
 				for _, v := range m.vehicles {
@@ -459,14 +461,16 @@ func (m *model) renderVehicleStats(s *styles) (string, string) {
 		vName := v.Brand + " " + v.Model
 		if !v.RoadTax.IsZero() {
 			taxed++
-			if nextRoadTax == "" || v.RoadTax.Format("2006-01-02") < nextRoadTax {
+			if nextRoadTaxDate.IsZero() || v.RoadTax.Before(nextRoadTaxDate) {
+				nextRoadTaxDate = v.RoadTax
 				nextRoadTax = v.RoadTax.Format("02/01/2006")
 				nextRTVehicle = vName
 			}
 		}
 		if !v.NTC.IsZero() {
 			inspected++
-			if nextNTC == "" || v.NTC.Format("2006-01-02") < nextNTC {
+			if nextNTCDate.IsZero() || v.NTC.Before(nextNTCDate) {
+				nextNTCDate = v.NTC
 				nextNTC = v.NTC.Format("02/01/2006")
 				nextNTCVehicle = vName
 			}
@@ -498,24 +502,27 @@ func (m *model) renderVehicleStats(s *styles) (string, string) {
 	// Next expiry section (Right side)
 	var expiries []string
 	if nextInsurance != "" {
-		expiries = append(expiries, fmt.Sprintf("%s\n%s %s",
+		expiries = append(expiries, fmt.Sprintf("%s\n%s %s %s",
 			s.dim.Render(t(m.lang, "vehicles.insurance")+":"),
 			s.info.Render(nextInsurance),
 			s.dim.Render("("+nextInsVehicle+")"),
+			formatDaysRemaining(m.lang, s, nextInsuranceDate),
 		))
 	}
 	if nextRoadTax != "" {
-		expiries = append(expiries, fmt.Sprintf("%s\n%s %s",
+		expiries = append(expiries, fmt.Sprintf("%s\n%s %s %s",
 			s.dim.Render(t(m.lang, "vehicles.roadTax")+":"),
 			s.info.Render(nextRoadTax),
 			s.dim.Render("("+nextRTVehicle+")"),
+			formatDaysRemaining(m.lang, s, nextRoadTaxDate),
 		))
 	}
 	if nextNTC != "" {
-		expiries = append(expiries, fmt.Sprintf("%s\n%s %s",
+		expiries = append(expiries, fmt.Sprintf("%s\n%s %s %s",
 			s.dim.Render(t(m.lang, "vehicles.ntc")+":"),
 			s.info.Render(nextNTC),
 			s.dim.Render("("+nextNTCVehicle+")"),
+			formatDaysRemaining(m.lang, s, nextNTCDate),
 		))
 	}
 
@@ -537,6 +544,26 @@ func renderCoverage(s *styles, count, total int) string {
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Render(label) // red
 	}
 	return lipgloss.NewStyle().Foreground(lipgloss.Color("214")).Render(label) // yellow/orange
+}
+
+// formatDaysRemaining calculates the days left until the target date and returns a formatted string.
+func formatDaysRemaining(lang string, s *styles, target time.Time) string {
+	if target.IsZero() {
+		return ""
+	}
+	now := time.Now()
+	// calculate absolute days difference without time of day
+	targetDate := time.Date(target.Year(), target.Month(), target.Day(), 0, 0, 0, 0, time.Local)
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
+	
+	days := int(targetDate.Sub(today).Hours() / 24)
+	
+	if days < 0 {
+		return s.highlight.Render(fmt.Sprintf(t(lang, "vehicles.expiredDays"), -days))
+	} else if days == 0 {
+		return s.highlight.Render(t(lang, "vehicles.expiresToday"))
+	}
+	return s.dim.Render(fmt.Sprintf(t(lang, "vehicles.expiresIn"), days))
 }
 
 func (m *model) renderVehicleMgmt(s *styles) string {

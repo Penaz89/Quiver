@@ -36,7 +36,7 @@ type ProgramOption = tea.ProgramOption
 var menuItems = []string{
 	"HOME",
 	"VEHICLES",
-	"WORK",
+	"FINANCES",
 	"SETTINGS",
 }
 
@@ -380,7 +380,7 @@ func (m *model) View() tea.View {
 	case 1:
 		contentStr = m.renderVehiclesView(s)
 	case 2:
-		contentStr = m.renderWork(s)
+		contentStr = m.renderFinances(s)
 	case 3:
 		contentStr = m.renderSettingsView(s)
 	}
@@ -519,10 +519,10 @@ func (m *model) renderHome(s *styles) string {
 
 // renderVehicles is now in vehicles.go as renderVehiclesView
 
-func (m *model) renderWork(s *styles) string {
-	title := s.title.Render(t(m.lang, "work.title"))
-	desc := s.subtitle.Render(t(m.lang, "work.subtitle"))
-	placeholder := s.dim.Render(t(m.lang, "work.noEntries"))
+func (m *model) renderFinances(s *styles) string {
+	title := s.title.Render(t(m.lang, "finances.title"))
+	desc := s.subtitle.Render(t(m.lang, "finances.subtitle"))
+	placeholder := s.dim.Render(t(m.lang, "finances.noEntries"))
 
 	return title + "\n" + desc + "\n\n" + placeholder
 }
@@ -531,6 +531,6 @@ func (m *model) renderWork(s *styles) string {
 func (m *model) updateMenuLabels() {
 	menuItems[0] = t(m.lang, "menu.home")
 	menuItems[1] = t(m.lang, "menu.vehicles")
-	menuItems[2] = t(m.lang, "menu.work")
+	menuItems[2] = t(m.lang, "menu.finances")
 	menuItems[3] = t(m.lang, "menu.settings")
 }
