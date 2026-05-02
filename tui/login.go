@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"fmt"
 	"strings"
 	"unicode"
 
@@ -81,7 +80,7 @@ func (m *model) updateLogin(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m *model) renderLoginView(s *styles) string {
-	boxWidth := 40
+	boxWidth := 56
 	
 	var titleText string
 	if m.isRegistering {
@@ -90,65 +89,77 @@ func (m *model) renderLoginView(s *styles) string {
 		titleText = "LOGIN"
 	}
 	
-	title := s.title.Render(titleText)
+	logo := lipgloss.NewStyle().Width(boxWidth).Align(lipgloss.Center).Render(s.logo.Render(sidebarLogo))
+	title := lipgloss.NewStyle().Width(boxWidth).Align(lipgloss.Center).Render(s.title.Render(titleText))	
 	
+	labelStyle := lipgloss.NewStyle().Width(14).Align(lipgloss.Right).MarginRight(1).Foreground(lipgloss.Color("241"))
+	inputStyle := lipgloss.NewStyle().Width(20).Foreground(lipgloss.Color("252")).Background(lipgloss.Color("236")).PaddingLeft(1)
+	emptyStyle := lipgloss.NewStyle().Width(20).PaddingLeft(1).Foreground(lipgloss.Color("241"))
+	filledStyle := lipgloss.NewStyle().Width(20).PaddingLeft(1).Foreground(lipgloss.Color("252"))
+
 	// Username field
-	usrLabel := s.dim.Render("  Username:")
-	usrVal := m.loginForm[0]
+	usrLabel := labelStyle.Render("Username:")
+	var usrVal string
 	if m.loginCursor == 0 {
-		usrVal = lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Background(lipgloss.Color("236")).Render(usrVal) + s.highlight.Render("_")
+		usrVal = inputStyle.Render(m.loginForm[0] + s.highlight.Render("_"))
 	} else {
-		if usrVal == "" {
-			usrVal = s.dim.Render("(empty)")
+		if m.loginForm[0] == "" {
+			usrVal = emptyStyle.Render("(empty)")
 		} else {
-			usrVal = s.info.Render(usrVal)
+			usrVal = filledStyle.Render(m.loginForm[0])
 		}
 	}
-	usrLine := fmt.Sprintf("%-15s %s", usrLabel, usrVal)
+	usrLine := lipgloss.JoinHorizontal(lipgloss.Top, usrLabel, usrVal)
 	
 	// Password field
-	pwdLabel := s.dim.Render("  Password:")
+	pwdLabel := labelStyle.Render("Password:")
 	pwdValRaw := m.loginForm[1]
 	pwdValMasked := strings.Repeat("*", len(pwdValRaw))
 	var pwdVal string
 	if m.loginCursor == 1 {
-		pwdVal = lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Background(lipgloss.Color("236")).Render(pwdValMasked) + s.highlight.Render("_")
+		pwdVal = inputStyle.Render(pwdValMasked + s.highlight.Render("_"))
 	} else {
 		if pwdValRaw == "" {
-			pwdVal = s.dim.Render("(empty)")
+			pwdVal = emptyStyle.Render("(empty)")
 		} else {
-			pwdVal = s.info.Render(pwdValMasked)
+			pwdVal = filledStyle.Render(pwdValMasked)
 		}
 	}
-	pwdLine := fmt.Sprintf("%-15s %s", pwdLabel, pwdVal)
+	pwdLine := lipgloss.JoinHorizontal(lipgloss.Top, pwdLabel, pwdVal)
 	
-	form := usrLine + "\n\n" + pwdLine
+	formBlock := usrLine + "\n\n" + pwdLine
+	form := lipgloss.NewStyle().Width(boxWidth).Align(lipgloss.Center).Render(formBlock)
 	
 	// Error line
 	errLine := ""
 	if m.loginError != "" {
 		if strings.HasPrefix(m.loginError, "Registration successful") {
-			errLine = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Render("  " + m.loginError)
+			errLine = lipgloss.NewStyle().Width(boxWidth).Align(lipgloss.Center).Foreground(lipgloss.Color("42")).Render(m.loginError)
 		} else {
-			errLine = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Render("  " + m.loginError)
+			errLine = lipgloss.NewStyle().Width(boxWidth).Align(lipgloss.Center).Foreground(lipgloss.Color("196")).Render(m.loginError)
 		}
 	}
 	
 	// Help instructions
-	var help string
+	var helpText string
 	if m.isRegistering {
-		help = s.dim.Render("  Enter: Register • Esc: Cancel")
+		helpText = "Enter: Register • Esc: Cancel"
 	} else {
-		help = s.dim.Render("  Enter: Login • Ctrl+N: Create Account • Esc: Quit")
+		helpText = "Enter: Login • Ctrl+N: Create Account • Esc: Quit"
 	}
+	help := lipgloss.NewStyle().Width(boxWidth).Align(lipgloss.Center).Foreground(lipgloss.Color("241")).Render(helpText)
 	
-	content := title + "\n\n" + form + "\n\n" + errLine + "\n\n" + help
+	content := logo + "\n\n" + title + "\n\n" + form
+	if errLine != "" {
+		content += "\n\n" + errLine
+	}
+	content += "\n\n" + help
 	
 	// Center the box
 	box := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("63")).
-		Padding(1, 2).
+		Padding(2, 2).
 		Width(boxWidth).
 		Render(content)
 	
