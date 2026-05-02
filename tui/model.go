@@ -40,6 +40,7 @@ var menuItems = []string{
 	"VEHICLES",
 	"FINANCES",
 	"SETTINGS",
+	"LOGOUT",
 }
 
 // ─── ASCII banners ───────────────────────────────────────────────────
@@ -82,6 +83,14 @@ type model struct {
 	height  int
 	bg      string
 	profile string
+
+	// Auth state
+	isLoggedIn    bool
+	isRegistering bool
+	loginForm     [2]string
+	loginCursor   int
+	loginError    string
+	baseDataDir   string
 
 	// App state
 	menuCursor   int
@@ -269,31 +278,23 @@ func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramO
 	pty, _, _ := s.Pty()
 	user := s.User()
 
-	// Load existing data from persistent storage
-	vehicles, _ := storage.LoadVehicles(dataDir)
-	insurances, _ := storage.LoadInsurance(dataDir)
-	settings := storage.LoadSettings(dataDir)
-	subs, _ := storage.LoadSubscriptions(dataDir)
-	housing, _ := storage.LoadHousing(dataDir)
-	holidays, _ := storage.LoadHolidays(dataDir)
-
 	m := &model{
-		user:       user,
-		term:       pty.Term,
-		width:      pty.Window.Width,
-		height:     pty.Window.Height,
-		bg:         "light",
-		menuCursor: 0,
-		dataDir:    dataDir,
-		version:    version,
-		lang:       settings.Language,
-		settings:   settings,
-		vehicles:   vehicles,
-		insurances: insurances,
-		subs:       subs,
-		housing:    housing,
-		holidays:   holidays,
-		vp:         viewport.New(),
+		user:        user,
+		term:        pty.Term,
+		width:       pty.Window.Width,
+		height:      pty.Window.Height,
+		bg:          "light",
+		menuCursor:  0,
+		dataDir:     dataDir,
+		baseDataDir: dataDir,
+		version:     version,
+		lang:        "en",
+		vp:          viewport.New(),
+	}
+	
+	if user != "" && user != "anonymous" {
+		m.loginForm[0] = user
+		m.loginCursor = 1
 	}
 	
 	// Disable up/down in viewport so it doesn't conflict with forms
@@ -302,6 +303,20 @@ func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramO
 	
 	m.updateMenuLabels()
 	return m, []tea.ProgramOption{}
+}
+
+func (m *model) loadUserData() {
+	m.vehicles, _ = storage.LoadVehicles(m.dataDir)
+	m.insurances, _ = storage.LoadInsurance(m.dataDir)
+	m.settings = storage.LoadSettings(m.dataDir)
+	m.subs, _ = storage.LoadSubscriptions(m.dataDir)
+	m.housing, _ = storage.LoadHousing(m.dataDir)
+	m.holidays, _ = storage.LoadHolidays(m.dataDir)
+	
+	if m.settings.Language != "" {
+		m.lang = m.settings.Language
+	}
+	m.updateMenuLabels()
 }
 
 // ─── Bubble Tea interface ────────────────────────────────────────────
@@ -362,6 +377,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 
+		if !m.isLoggedIn {
+			return m.updateLogin(msg)
+		}
+
 		// Handle viewport scrolling explicitly
 		if msg.String() == "pgup" {
 			m.vp.HalfPageUp()
@@ -391,6 +410,20 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "tab", "enter", "right":
 			if !m.focusContent {
+				if m.menuCursor == 4 {
+					m.isLoggedIn = false
+					m.menuCursor = 0
+					m.user = ""
+					m.loginForm = [2]string{}
+					m.loginCursor = 0
+					m.loginError = ""
+					m.vehicles = nil
+					m.insurances = nil
+					m.subs = nil
+					m.housing = nil
+					m.holidays = nil
+					return m, nil
+				}
 				m.focusContent = true
 				return m, nil
 			}
@@ -422,6 +455,13 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m *model) View() tea.View {
 	s := newStyles(m.width, m.height)
+	
+	if !m.isLoggedIn {
+		v := tea.NewView(m.renderLoginView(s))
+		v.AltScreen = true
+		return v
+	}
+	
 	sw := sidebarWidth(m.width)
 
 	// ── Content area ─────────────────────────────────────────
@@ -562,4 +602,5 @@ func (m *model) updateMenuLabels() {
 	menuItems[1] = t(m.lang, "menu.vehicles")
 	menuItems[2] = t(m.lang, "menu.finances")
 	menuItems[3] = t(m.lang, "menu.settings")
+	menuItems[4] = t(m.lang, "menu.logout")
 }
