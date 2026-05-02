@@ -113,6 +113,14 @@ type model struct {
 	// Finances state
 	finSection    finSection
 	finMenuCursor int
+	finView       finSubView
+	
+	// Subscriptions state
+	subs        []storage.Subscription
+	subCursor   int
+	subForm     [subFCount]string
+	subFormCur  int
+	subEditIdx  int
 
 	// Settings state
 	settingsCursor int
@@ -251,6 +259,7 @@ func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramO
 	vehicles, _ := storage.LoadVehicles(dataDir)
 	insurances, _ := storage.LoadInsurance(dataDir)
 	settings := storage.LoadSettings(dataDir)
+	subs, _ := storage.LoadSubscriptions(dataDir)
 
 	m := &model{
 		user:       user,
@@ -265,6 +274,7 @@ func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramO
 		settings:   settings,
 		vehicles:   vehicles,
 		insurances: insurances,
+		subs:       subs,
 		vp:         viewport.New(),
 	}
 	

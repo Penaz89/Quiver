@@ -1,0 +1,17 @@
+[
+  {
+    "service": "Netflix",
+    "cost": "16",
+    "type": "type.monthly"
+  },
+  {
+    "service": "Navigraph",
+    "cost": "12",
+    "type": "type.monthly"
+  },
+  {
+    "service": "Gemini",
+    "cost": "22",
+    "type": "type.monthly"
+  }
+]

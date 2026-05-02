@@ -74,6 +74,7 @@ var translations = map[string]map[string]string{
 	// ── Types ────────────────────────────────────────────────
 	"type.semiannual": {"en": "Semiannual", "it": "Semestrale"},
 	"type.annual":     {"en": "Annual", "it": "Annuale"},
+	"type.monthly":    {"en": "Monthly", "it": "Mensile"},
 
 	// ── CRUD actions ─────────────────────────────────────────
 	"action.add":       {"en": "Add", "it": "Aggiungi"},
@@ -108,9 +109,13 @@ var translations = map[string]map[string]string{
 	"finances.monthlyTotal":{"en": "Monthly Total", "it": "Totale Mensile"},
 	"finances.subtotal":    {"en": "Subtotal", "it": "Subtotale"},
 	"finances.grandTotal":  {"en": "GRAND TOTAL", "it": "GRAN TOTALE"},
+	"finances.subscriptions":{"en": "Subscriptions", "it": "Abbonamenti"},
+	"subscriptions.noRecords":{"en": "No subscriptions yet.", "it": "Nessun abbonamento."},
 	"cat.vehicles":         {"en": "VEHICLES", "it": "VEICOLI"},
 	"col.annual":           {"en": "ANNUAL", "it": "ANNUALE"},
 	"col.monthly":          {"en": "MONTHLY", "it": "MENSILE"},
+	"col.service":          {"en": "SERVICE", "it": "SERVIZIO"},
+	"field.service":        {"en": "Service", "it": "Servizio"},
 
 	// ── Settings view ────────────────────────────────────────
 	"settings.title":       {"en": "Settings", "it": "Impostazioni"},
