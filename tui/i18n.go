@@ -38,7 +38,7 @@ var translations = map[string]map[string]string{
 
 	// ── Vehicles section ─────────────────────────────────────
 	"vehicles.title":          {"en": "Vehicles", "it": "Veicoli"},
-	"vehicles.selectSection":  {"en": "Select a section", "it": "Seleziona una sezione"},
+	"vehicles.selectSection":  {"en": "Select an option", "it": "Seleziona un'opzione"},
 	"vehicles.management":     {"en": "Vehicle Management", "it": "Gestione Veicoli"},
 	"vehicles.insurance":      {"en": "Insurance", "it": "Assicurazione"},
 	"vehicles.roadTax":        {"en": "Road Tax", "it": "Bollo"},

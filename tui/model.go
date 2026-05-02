@@ -398,8 +398,18 @@ func (m *model) View() tea.View {
 		contentHeight = 6
 	}
 
-	m.vp.SetWidth(contentWidth)
-	m.vp.SetHeight(contentHeight)
+	// Inner dimensions for the viewport (excluding borders and padding)
+	vpWidth := contentWidth - 4
+	if vpWidth < 1 {
+		vpWidth = 1
+	}
+	vpHeight := contentHeight - 4
+	if vpHeight < 1 {
+		vpHeight = 1
+	}
+
+	m.vp.SetWidth(vpWidth)
+	m.vp.SetHeight(vpHeight)
 
 	// Set content and get rendered viewport
 	m.vp.SetContent(contentStr)

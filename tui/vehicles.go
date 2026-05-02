@@ -347,12 +347,11 @@ func (m *model) updateSingleFieldForm(msg tea.KeyMsg, _ int) (tea.Model, tea.Cmd
 
 func (m *model) renderVehiclesView(s *styles) string {
 	// ── Column 2: Submenu ────────────────────────────────────────
-	submenuWidth := 24
-	col2Style := lipgloss.NewStyle().
-		Border(lipgloss.NormalBorder(), false, true, false, false).
-		BorderForeground(lipgloss.Color("63")).
-		PaddingRight(2).
-		MarginRight(2)
+	sw := sidebarWidth(m.width)
+	submenuWidth := sw - 4
+	if submenuWidth < 10 {
+		submenuWidth = 10
+	}
 
 	title := s.title.Render(t(m.lang, "vehicles.title"))
 	desc := s.subtitle.Render(t(m.lang, "vehicles.selectSection"))
@@ -398,6 +397,26 @@ func (m *model) renderVehiclesView(s *styles) string {
 			t(m.lang, "help.navigate"), t(m.lang, "help.enter"), t(m.lang, "help.goBack")))
 		col3 += "\n\n" + help
 	}
+
+	// Calculate heights to stretch the divider
+	col2Height := lipgloss.Height(col2)
+	col3Height := lipgloss.Height(col3)
+	minHeight := m.height - 8 // Viewport inner height (m.height - 4 for content box, - 4 for borders/padding)
+	
+	maxHeight := col2Height
+	if col3Height > maxHeight {
+		maxHeight = col3Height
+	}
+	if minHeight > maxHeight {
+		maxHeight = minHeight
+	}
+
+	col2Style := lipgloss.NewStyle().
+		Border(lipgloss.NormalBorder(), false, true, false, false).
+		BorderForeground(lipgloss.Color("63")).
+		PaddingRight(2).
+		MarginRight(2).
+		Height(maxHeight)
 
 	return lipgloss.JoinHorizontal(lipgloss.Top, col2Style.Render(col2), col3)
 }
