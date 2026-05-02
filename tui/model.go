@@ -42,39 +42,21 @@ var menuItems = []string{
 
 // ─── ASCII banners ───────────────────────────────────────────────────
 
-// Large banner (~38 cols) - Slant font
-const bannerLarge = "" +
-	"   ____  __  _______    ____________ \n" +
-	"  / __ \\/ / / /  _/ |  / / ____/ __ \\\n" +
-	" / / / / / / // / | | / / __/ / /_/ /\n" +
-	"/ /_/ / /_/ // /  | |/ / /___/ _, _/ \n" +
-	"\\___\\_\\____/___/  |___/_____/_/ |_|  "
-
-// Small banner (~32 cols) - Small Slant font
-const bannerSmall = "" +
-	"  ____  __  _______   _________ \n" +
-	" / __ \\/ / / /  _/ | / / __/ _ \\\n" +
-	"/ /_/ / /_/ // / | |/ / _// , _/\n" +
-	"\\___\\_\\____/___/ |___/___/_/|_| "
-
 // Sidebar logo (~22 cols) for normal sidebar
 const sidebarLogo = "" +
-	" ███ █ █ █ █ █ ███ ███\n" +
-	" █ █ █ █ █ █ █ █▀▀ █ █\n" +
-	" ███ █ █ █ █ █ █▄▄ ██▀\n" +
-	"   █ ███ █  █  ███ █ █"
+	"╔═╗ ╦ ╦ ╦ ╦  ╦ ╔═╗ ╦═╗\n" +
+	"║ ║ ║ ║ ║ ╚╗╔╝ ╠═  ╠╦╝\n" +
+	"╚═╣ ╚═╝ ╩  ╚╝  ╚═╝ ╩╚═"
 
-// Sidebar logo narrow (~11 cols) for narrow sidebar
+// Sidebar logo narrow (~14 cols) for narrow sidebar
 const sidebarLogoNarrow = "" +
-	"  ███ █ █ █ \n" +
-	"  █ █ █ █ █ \n" +
-	"  ███ █ █ █ \n" +
-	"    █ ███ █ \n" +
-	"            \n" +
-	" █ █ ███ ███\n" +
-	" █ █ █▀▀ █ █\n" +
-	" █ █ █▄▄ ██▀\n" +
-	"  █  ███ █ █"
+	"  ╔═╗ ╦ ╦ ╦\n" +
+	"  ║ ║ ║ ║ ║\n" +
+	"  ╚═╣ ╚═╝ ╩\n" +
+	"           \n" +
+	"  ╦  ╦ ╔═╗ ╦═╗\n" +
+	"  ╚╗╔╝ ╠═  ╠╦╝\n" +
+	"   ╚╝  ╚═╝ ╩╚═"
 
 // ─── Layout breakpoints ─────────────────────────────────────────────
 
@@ -478,21 +460,7 @@ func (m *model) View() tea.View {
 
 func (m *model) renderHome(s *styles) string {
 	// Choose banner size based on available content width
-	contentW := m.width - sidebarWidth(m.width) - 6
-	if sidebarWidth(m.width) == 0 {
-		contentW = m.width - 4
-	}
 
-	var header string
-	if contentW >= breakpointBannerSmall {
-		header = s.highlight.Render(bannerLarge)
-	} else if contentW >= 24 {
-		header = s.highlight.Render(bannerSmall)
-	} else {
-		header = s.title.Render("QUIVER")
-	}
-
-	versionLine := s.version.Render(fmt.Sprintf("  v%s", m.version))
 
 	welcome := s.info.Render(fmt.Sprintf(
 		t(m.lang, "home.welcome"),
@@ -514,7 +482,7 @@ func (m *model) renderHome(s *styles) string {
 	)
 	infoBox := s.infoBox.Render(sessionInfo)
 
-	return header + "\n" + versionLine + "\n\n" + welcome + "\n" + infoBox
+	return welcome + "\n\n" + infoBox
 }
 
 // renderVehicles is now in vehicles.go as renderVehiclesView
