@@ -43,6 +43,7 @@ var translations = map[string]map[string]string{
 	"vehicles.insurance":      {"en": "Insurance", "it": "Assicurazione"},
 	"vehicles.roadTax":        {"en": "Road Tax", "it": "Bollo"},
 	"vehicles.ntc":            {"en": "NTC", "it": "Revisione"},
+	"vehicles.service":        {"en": "Service", "it": "Tagliando"},
 	"vehicles.noVehicles":     {"en": "No vehicles registered yet.", "it": "Nessun veicolo registrato."},
 	"vehicles.addFirst":       {"en": "Add vehicles first in Vehicle Management.", "it": "Aggiungi prima i veicoli in Gestione Veicoli."},
 	"vehicles.statistics":     {"en": "Statistics", "it": "Statistiche"},

@@ -112,7 +112,7 @@ func (m *model) renderFinancesView(s *styles) string {
 	title := s.title.Render(t(m.lang, "finances.title"))
 	desc := s.subtitle.Render(t(m.lang, "finances.subtitle"))
 
-	labels := []string{t(m.lang, "finances.fixedExp"), t(m.lang, "finances.housing"), t(m.lang, "finances.holidays"), t(m.lang, "finances.subscriptions")}
+	labels := []string{strings.ToUpper(t(m.lang, "finances.fixedExp")), t(m.lang, "finances.housing"), t(m.lang, "finances.holidays"), t(m.lang, "finances.subscriptions")}
 	var lines []string
 	for i, l := range labels {
 		if m.finSection == fSectionMenu && m.finMenuCursor == i {
@@ -121,6 +121,10 @@ func (m *model) renderFinancesView(s *styles) string {
 			lines = append(lines, s.menuActiveDim.Width(submenuWidth).Render(l))
 		} else {
 			lines = append(lines, s.menuNormal.Width(submenuWidth).Render(l))
+		}
+		
+		if i == 0 {
+			lines = append(lines, s.dim.Render(strings.Repeat("─", submenuWidth)))
 		}
 	}
 	menu := strings.Join(lines, "\n")
@@ -203,6 +207,8 @@ func (m *model) renderFixedExpenses(s *styles) string {
 		annualTotal += parseEuro(v.RoadTaxCost)
 		// Revisione
 		annualTotal += parseEuro(v.NTCCost) / 2.0
+		// Tagliando
+		annualTotal += parseEuro(v.ServiceCost)
 
 		// Insurance
 		for _, ins := range m.insurances {

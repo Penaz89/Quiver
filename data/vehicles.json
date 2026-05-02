@@ -6,7 +6,9 @@
     "owner": "Fabiano",
     "road_tax": "2026-09-01T00:00:00Z",
     "road_tax_cost": "196",
-    "ntc": "0001-01-01T00:00:00Z",
-    "ntc_cost": ""
+    "ntc": "2026-12-31T00:00:00Z",
+    "ntc_cost": "150",
+    "service": "2027-01-10T00:00:00Z",
+    "service_cost": "400"
   }
 ]

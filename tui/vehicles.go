@@ -37,6 +37,7 @@ const (
 	vSectionInsurance                     // Insurance
 	vSectionRoadTax                       // Road Tax
 	vSectionNTC                           // NTC
+	vSectionService                       // Service (Tagliando)
 )
 
 // vehicleSectionLabels returns the localized section names.
@@ -46,6 +47,7 @@ func vehicleSectionLabels(lang string) []string {
 		t(lang, "vehicles.insurance"),
 		t(lang, "vehicles.roadTax"),
 		t(lang, "vehicles.ntc"),
+		t(lang, "vehicles.service"),
 	}
 }
 
@@ -112,17 +114,10 @@ func (m *model) updateVehicleSection(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	case vSectionInsurance:
 		return m.updateInsuranceSection(msg)
-	case vSectionRoadTax:
+	case vSectionRoadTax, vSectionNTC, vSectionService:
 		switch m.vehicleView {
 		case vViewAdd, vViewEdit:
-			return m.updateSingleFieldForm(msg, fRoadTaxCount)
-		default:
-			return m.updateSingleFieldList(msg)
-		}
-	case vSectionNTC:
-		switch m.vehicleView {
-		case vViewAdd, vViewEdit:
-			return m.updateSingleFieldForm(msg, fNTCCount)
+			return m.updateSingleFieldForm(msg, 1) // 1 was the old count param, ignored anyway
 		default:
 			return m.updateSingleFieldList(msg)
 		}
@@ -152,6 +147,8 @@ func (m *model) updateVehicleSectionMenu(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.vehicleSection = vSectionRoadTax
 		case 3:
 			m.vehicleSection = vSectionNTC
+		case 4:
+			m.vehicleSection = vSectionService
 		}
 		m.vehicleView = vViewList
 		m.vehicleCursor = 0
@@ -287,6 +284,11 @@ func (m *model) updateSingleFieldList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				if !v.NTC.IsZero() {
 					valDate = v.NTC.Format("02/01/2006")
 				}
+			case vSectionService:
+				valCost = v.ServiceCost
+				if !v.Service.IsZero() {
+					valDate = v.Service.Format("02/01/2006")
+				}
 			}
 			m.formFields = [fCount]string{valCost, valDate}
 			m.formCursor = 0
@@ -329,6 +331,9 @@ func (m *model) updateSingleFieldForm(msg tea.KeyMsg, _ int) (tea.Model, tea.Cmd
 			case vSectionNTC:
 				m.vehicles[m.editIndex].NTC = date
 				m.vehicles[m.editIndex].NTCCost = cost
+			case vSectionService:
+				m.vehicles[m.editIndex].Service = date
+				m.vehicles[m.editIndex].ServiceCost = cost
 			}
 			_ = storage.SaveVehicles(m.dataDir, m.vehicles)
 		}
@@ -410,6 +415,8 @@ func (m *model) renderVehiclesView(s *styles) string {
 		col3 = m.renderSingleFieldSection(s, "Road Tax")
 	case vSectionNTC:
 		col3 = m.renderSingleFieldSection(s, "NTC")
+	case vSectionService:
+		col3 = m.renderSingleFieldSection(s, "Service")
 	default:
 		// Preview mode (Stats & Expiries)
 		statsLeft, expiriesRight := m.renderVehicleStats(s)
@@ -731,6 +738,11 @@ func (m *model) renderSingleFieldSection(s *styles, sectionName string) string {
 			cost = v.NTCCost
 			if !v.NTC.IsZero() {
 				dateStr = v.NTC.Format("02/01/2006")
+			}
+		case vSectionService:
+			cost = v.ServiceCost
+			if !v.Service.IsZero() {
+				dateStr = v.Service.Format("02/01/2006")
 			}
 		}
 		
