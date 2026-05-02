@@ -18,6 +18,7 @@ package tui
 
 import (
 	"fmt"
+	"strings"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -38,26 +39,55 @@ var langOptions = []struct {
 
 func (m *model) updateSettings(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
+	
+	// Total items: 2 languages + 1 weather loc
+	maxCursor := len(langOptions)
+
 	switch key {
-	case "up", "k":
+	case "up", "shift+tab":
 		if m.settingsCursor > 0 {
 			m.settingsCursor--
 		}
-	case "down", "j":
-		if m.settingsCursor < len(langOptions)-1 {
+	case "down", "tab":
+		if m.settingsCursor < maxCursor {
 			m.settingsCursor++
 		}
 	case "enter":
-		selected := langOptions[m.settingsCursor].code
-		if selected != m.lang {
-			m.lang = selected
-			m.settings.Language = selected
+		if m.settingsCursor < len(langOptions) {
+			selected := langOptions[m.settingsCursor].code
+			if selected != m.lang {
+				m.lang = selected
+				m.settings.Language = selected
+				_ = storage.SaveSettings(m.dataDir, m.settings)
+				m.updateMenuLabels()
+			}
+		} else if m.settingsCursor == len(langOptions) {
 			_ = storage.SaveSettings(m.dataDir, m.settings)
-			// Update dynamic menu items
-			m.updateMenuLabels()
+			m.weatherData = "Loading weather..."
+			return m, fetchWeatherCmd(m.settings.WeatherLoc)
 		}
-	case "esc", "left":
+	case "backspace":
+		if m.settingsCursor == len(langOptions) {
+			if len(m.settings.WeatherLoc) > 0 {
+				runes := []rune(m.settings.WeatherLoc)
+				m.settings.WeatherLoc = string(runes[:len(runes)-1])
+			}
+		}
+	case "esc":
+		// On esc, save anyway and exit
+		_ = storage.SaveSettings(m.dataDir, m.settings)
 		m.focusContent = false
+	case "left":
+		if m.settingsCursor < len(langOptions) {
+			m.focusContent = false
+		}
+	default:
+		if m.settingsCursor == len(langOptions) {
+			runes := []rune(key)
+			if len(runes) == 1 {
+				m.settings.WeatherLoc += key
+			}
+		}
 	}
 	return m, nil
 }
@@ -93,20 +123,36 @@ func (m *model) renderSettingsView(s *styles) string {
 		}
 	}
 
-	optList := ""
-	for _, o := range options {
-		optList += o + "\n"
+	optList := strings.Join(options, "\n")
+
+	// Weather section
+	weatherTitle := s.info.Render(fmt.Sprintf("\n  %s", t(m.lang, "settings.weatherLoc")))
+	weatherIdx := len(langOptions)
+	
+	locVal := m.settings.WeatherLoc
+	if locVal == "" {
+		locVal = s.dim.Render("...")
 	}
 
-	help := s.dim.Render(fmt.Sprintf("↑/↓: %s  Enter: %s  ←: %s",
+	var weatherInput string
+	if m.settingsCursor == weatherIdx {
+		cursor := s.highlight.Render("_")
+		fieldStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Background(lipgloss.Color("236"))
+		weatherInput = s.menuSelected.Width(0).Render(fmt.Sprintf("  ▸ %s: %s", t(m.lang, "settings.location"), fieldStyle.Render(locVal)+cursor))
+	} else {
+		weatherInput = s.menuNormal.Width(0).Render(fmt.Sprintf("    %s: %s", t(m.lang, "settings.location"), s.info.Render(locVal)))
+	}
+
+	help := s.dim.Render(fmt.Sprintf("\n\n↑/↓: %s  Enter: %s  Esc: %s",
 		t(m.lang, "help.navigate"),
-		t(m.lang, "help.select"),
+		t(m.lang, "action.save"),
 		t(m.lang, "help.goBack"),
 	))
 
 	return title + "\n" + desc + "\n\n" +
 		langTitle + "\n" + current + "\n\n" +
-		optList + "\n" + help
+		optList + "\n\n" +
+		weatherTitle + "\n" + weatherInput + help
 }
 
 // langDisplayName returns the full display name for a language code.

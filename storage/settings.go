@@ -24,13 +24,15 @@ import (
 
 // Settings holds user-configurable application settings.
 type Settings struct {
-	Language string `json:"language"` // "en" or "it"
+	Language   string `json:"language"`    // "en" or "it"
+	WeatherLoc string `json:"weather_loc"` // e.g. "Rome"
 }
 
 // DefaultSettings returns settings with default values.
 func DefaultSettings() Settings {
 	return Settings{
-		Language: "it",
+		Language:   "it",
+		WeatherLoc: "Rome",
 	}
 }
 

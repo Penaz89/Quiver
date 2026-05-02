@@ -120,6 +120,8 @@ var translations = map[string]map[string]string{
 	"settings.english":     {"en": "English", "it": "Inglese"},
 	"settings.italian":     {"en": "Italian", "it": "Italiano"},
 	"settings.saved":       {"en": "Settings saved!", "it": "Impostazioni salvate!"},
+	"settings.weatherLoc":  {"en": "Weather", "it": "Meteo"},
+	"settings.location":    {"en": "Location", "it": "Località"},
 
 	// ── Help bar ─────────────────────────────────────────────
 	"help.navigate":       {"en": "navigate", "it": "naviga"},

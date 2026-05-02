@@ -18,6 +18,8 @@ package tui
 
 import (
 	"fmt"
+	"io"
+	"net/http"
 	"strings"
 
 	"charm.land/bubbles/v2/viewport"
@@ -114,6 +116,9 @@ type model struct {
 
 	// Settings state
 	settingsCursor int
+
+	// Weather
+	weatherData string
 }
 
 // ─── Styles ──────────────────────────────────────────────────────────
@@ -277,11 +282,39 @@ func (m *model) Init() tea.Cmd {
 	return tea.Batch(
 		tea.RequestBackgroundColor,
 		m.vp.Init(),
+		fetchWeatherCmd(m.settings.WeatherLoc),
 	)
+}
+
+type weatherMsg string
+
+func fetchWeatherCmd(loc string) tea.Cmd {
+	return func() tea.Msg {
+		if loc == "" {
+			return weatherMsg("No weather location set")
+		}
+		
+		req, _ := http.NewRequest("GET", "https://wttr.in/"+loc+"?0Q", nil)
+		req.Header.Set("User-Agent", "curl/7.68.0")
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return weatherMsg("Weather unavailable")
+		}
+		defer resp.Body.Close()
+		
+		b, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return weatherMsg("Error reading weather")
+		}
+		return weatherMsg(string(b))
+	}
 }
 
 func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case weatherMsg:
+		m.weatherData = string(msg)
+		return m, nil
 	case tea.ColorProfileMsg:
 		m.profile = msg.String()
 	case tea.BackgroundColorMsg:
@@ -468,30 +501,27 @@ func (m *model) View() tea.View {
 // ─── Views ───────────────────────────────────────────────────────────
 
 func (m *model) renderHome(s *styles) string {
-	// Choose banner size based on available content width
-
-
 	welcome := s.info.Render(fmt.Sprintf(
 		t(m.lang, "home.welcome"),
 		s.highlight.Render(m.user),
 	))
 
-	sessionInfo := fmt.Sprintf(
-		"%s  %s\n%s  %dx%d\n%s  %s\n%s  %s\n%s  %s",
-		s.dim.Render(t(m.lang, "home.terminal")),
-		s.info.Render(m.term),
-		s.dim.Render(t(m.lang, "home.window")),
-		m.width, m.height,
-		s.dim.Render(t(m.lang, "home.background")),
-		s.info.Render(m.bg),
-		s.dim.Render(t(m.lang, "home.colorProfile")),
-		s.info.Render(m.profile),
-		s.dim.Render(t(m.lang, "home.dataDir")),
-		s.info.Render(m.dataDir),
-	)
-	infoBox := s.infoBox.Render(sessionInfo)
+	weatherBox := s.dim.Render("Loading weather...")
+	if m.weatherData != "" {
+		weatherBox = m.weatherData
+	}
+	
+	// Remove trailing blank lines from weather data to keep it compact
+	weatherBox = strings.TrimRight(weatherBox, "\n")
+	
+	weatherWidget := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("63")).
+		Padding(1, 2).
+		MarginTop(1).
+		Render(weatherBox)
 
-	return welcome + "\n\n" + infoBox
+	return welcome + "\n" + weatherWidget
 }
 
 // renderVehicles is now in vehicles.go as renderVehiclesView
