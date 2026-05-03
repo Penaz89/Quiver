@@ -130,8 +130,13 @@ func (m *model) renderFinancesView(s *styles) string {
 	menu := strings.Join(lines, "\n")
 	col2 := title + "\n" + desc + "\n\n" + menu
 
+	targetSection := m.finSection
+	if targetSection == fSectionMenu {
+		targetSection = finSection(m.finMenuCursor + 1)
+	}
+
 	var col3 string
-	switch m.finSection {
+	switch targetSection {
 	case fSectionFixedExp:
 		col3 = m.renderFixedExpenses(s)
 	case fSectionHousing:
@@ -140,12 +145,11 @@ func (m *model) renderFinancesView(s *styles) string {
 		col3 = m.renderHolidays(s)
 	case fSectionSubscriptions:
 		col3 = m.renderSubscriptions(s)
-	default:
-		// Preview mode
-		placeholder := s.dim.Render(t(m.lang, "finances.noEntries"))
-		help := s.dim.Render(fmt.Sprintf("\n\n↑/↓: %s  →: %s  ←: %s",
-			t(m.lang, "help.navigate"), t(m.lang, "help.enter"), t(m.lang, "help.goBack")))
-		col3 = "\n" + placeholder + help
+	}
+
+	if m.finSection == fSectionMenu {
+		// Optional: add a visual indicator that it's a preview or change help text
+		// But for now, just rendering the target section is enough.
 	}
 
 	// Calculate heights to stretch the divider

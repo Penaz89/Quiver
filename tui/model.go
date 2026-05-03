@@ -162,7 +162,9 @@ type model struct {
 	subEditIdx  int
 
 	// Settings state
-	settingsCursor int
+	settingsSection    setSection
+	settingsMenuCursor int
+	settingsCursor     int
 
 	// Weather
 	weatherData string

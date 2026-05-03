@@ -107,7 +107,7 @@ var translations = map[string]map[string]string{
 	"finances.title":       {"en": "Finances", "it": "Finanze"},
 	"finances.subtitle":    {"en": "Financial log & balance", "it": "Registro finanziario e bilancio"},
 	"finances.noEntries":   {"en": "No financial entries yet.", "it": "Nessuna voce finanziaria."},
-	"finances.fixedExp":    {"en": "Fixed Expenses", "it": "Spese Fisse"},
+	"finances.fixedExp":    {"en": "Expenses Summary", "it": "Resoconto Spese"},
 	"finances.annualTotal": {"en": "Annual Total", "it": "Totale Annuale"},
 	"finances.monthlyTotal":{"en": "Monthly Total", "it": "Totale Mensile"},
 	"finances.subtotal":    {"en": "Subtotal", "it": "Subtotale"},
