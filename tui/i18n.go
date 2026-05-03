@@ -25,6 +25,7 @@ var translations = map[string]map[string]string{
 	// ── Main menu ────────────────────────────────────────────
 	"menu.home":     {"en": "HOME", "it": "HOME"},
 	"menu.habits":   {"en": "HABITS", "it": "ABITUDINI"},
+	"menu.journal":  {"en": "JOURNAL", "it": "DIARIO"},
 	"menu.vehicles": {"en": "VEHICLES", "it": "VEICOLI"},
 	"menu.finances": {"en": "FINANCES", "it": "FINANZE"},
 	"menu.weather":  {"en": "WEATHER", "it": "METEO"},
@@ -150,6 +151,15 @@ var translations = map[string]map[string]string{
 	"habits.deleteHelp":    {"en": "d/del: delete", "it": "d/canc: elimina"},
 	"habits.toggleHelp":    {"en": "space: toggle today", "it": "spazio: segna oggi"},
 	"habits.confirmDelete": {"en": "Delete this habit? (y/N)", "it": "Eliminare questa abitudine? (s/N)"},
+
+	// ── Journal view ─────────────────────────────────────────
+	"journal.title":        {"en": "Journal", "it": "Diario"},
+	"journal.subtitle":     {"en": "Daily plain text notes", "it": "Note giornaliere in plain text"},
+	"journal.exportHelp":   {"en": "e: export Markdown", "it": "e: esporta Markdown"},
+	"journal.exported":     {"en": "Exported to:", "it": "Esportato in:"},
+	"journal.editHelp":     {"en": "enter: edit", "it": "invio: modifica"},
+	"journal.saveHelp":     {"en": "esc: save & back", "it": "esc: salva & indietro"},
+	"journal.navHelp":      {"en": "←/→: change date", "it": "←/→: cambia data"},
 
 	// ── Settings view ────────────────────────────────────────
 	"settings.title":       {"en": "Settings", "it": "Impostazioni"},

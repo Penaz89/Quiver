@@ -21,7 +21,9 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
+	"charm.land/bubbles/v2/textarea"
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -38,6 +40,7 @@ type ProgramOption = tea.ProgramOption
 var defaultMenuItems = []string{
 	"HOME",
 	"HABITS",
+	"JOURNAL",
 	"VEHICLES",
 	"FINANCES",
 	"WEATHER",
@@ -174,6 +177,13 @@ type model struct {
 	habitIsAdding   bool
 	habitIsDeleting bool
 	habitForm       string
+
+	// Journal state
+	journal          storage.Journal
+	journalDate      time.Time
+	journalIsEditing bool
+	journalTextArea  textarea.Model
+	journalMsg       string
 
 	// Weather
 	weatherData string
@@ -318,6 +328,8 @@ func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramO
 		version:     version,
 		lang:        "en",
 		vp:          viewport.New(),
+		journalTextArea: textarea.New(),
+		journalDate: time.Now(),
 	}
 	
 	if user != "" && user != "anonymous" {
@@ -341,6 +353,7 @@ func (m *model) loadUserData() {
 	m.housing, _ = storage.LoadHousing(m.dataDir)
 	m.holidays, _ = storage.LoadHolidays(m.dataDir)
 	m.habits, _ = storage.LoadHabits(m.dataDir)
+	m.journal, _ = storage.LoadJournal(m.dataDir)
 	
 	if m.settings.Language != "" {
 		m.lang = m.settings.Language
@@ -433,6 +446,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m.updateFinances(msg)
 				} else if item == t(m.lang, "menu.habits") {
 					return m.updateHabits(msg)
+				} else if item == t(m.lang, "menu.journal") {
+					return m.updateJournal(msg)
 				} else if item == t(m.lang, "menu.settings") {
 					return m.updateSettings(msg)
 				}
@@ -522,6 +537,8 @@ func (m *model) View() tea.View {
 			contentStr = m.renderFinancesView(s)
 		} else if item == t(m.lang, "menu.habits") {
 			contentStr = m.renderHabitsView(s)
+		} else if item == t(m.lang, "menu.journal") {
+			contentStr = m.renderJournalView(s)
 		} else if item == t(m.lang, "menu.weather") {
 			contentStr = m.renderWeatherView(s)
 		} else if item == t(m.lang, "menu.settings") {
@@ -660,6 +677,7 @@ func (m *model) updateMenuLabels() {
 		m.menuItems = []string{
 			t(m.lang, "menu.home"),
 			t(m.lang, "menu.habits"),
+			t(m.lang, "menu.journal"),
 			t(m.lang, "menu.vehicles"),
 			t(m.lang, "menu.finances"),
 			t(m.lang, "menu.weather"),
