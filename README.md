@@ -8,18 +8,24 @@
 [![Go](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go)](https://go.dev)
 [![Docker](https://img.shields.io/badge/Docker-Alpine-2496ED?logo=docker)](https://hub.docker.com/_/alpine)
 
-An SSH-accessible TUI application built with [Wish](https://github.com/charmbracelet/wish) and [Bubble Tea](https://github.com/charmbracelet/bubbletea), running in a stateless Alpine Linux container.
+An advanced SSH-accessible Terminal User Interface (TUI) application built with [Wish](https://github.com/charmbracelet/wish), [Bubble Tea](https://github.com/charmbracelet/bubbletea), and [Lipgloss](https://github.com/charmbracelet/lipgloss). Designed to be hosted on your home server and accessed from anywhere securely via SSH, running in a stateless Alpine Linux container.
 
 ## Features
 
-- **Multi-user Authentication**: Secure login system with bcrypt encryption. User data is isolated in personal directories.
-- **Administrative Control Panel**: A dedicated special `admin` user is generated automatically on the first run. The admin has access to an exclusive menu to list, add, edit (force password change), and safely delete users via a confirmation prompt.
-- **Financial & Vehicle Tracking**: Advanced TUI views for managing vehicle logs (maintenance, tax, insurance) and personal finances (housing, holidays, subscriptions) with real-time statistics.
-- **Stateless & Portable**: Fully dockerized. Simply mount a volume to persist user data, settings, and SSH host keys.
+- **Multi-user Authentication**: Secure login system with bcrypt encryption. Each user's data is isolated in their own personal directory.
+- **Admin Control Panel**: A special `admin` user is generated automatically on the first run. The admin has access to an exclusive menu to list, add, edit, and securely delete users.
+- **Dynamic Home Dashboard**: A fully responsive landing page summarizing your financial totals, upcoming deadlines (drawn from Tasks, Vehicles, and Insurances), your latest Journal notes, and your most recently added Tasks.
+- **GTD Task Management**: A Kanban-style "Getting Things Done" workflow. Track tasks across columns (`TODO`, `DOING`, `DONE`) with priority markers, projects, and deadlines.
+- **Habit Tracker**: Track daily habits in a "Don't Break The Chain" style, visualizing progress with a GitHub-style ASCII heatmap.
+- **Journal**: A personal plain-text daily journal featuring date-based navigation and automated Markdown export capabilities.
+- **Financial & Vehicle Tracking**: Advanced modules for logging vehicle expenses (maintenance, road tax, insurance) and calculating personal finances (rent/mortgage, holidays, subscriptions) to give you accurate monthly and annual burn rates.
+- **Live Weather**: Integrated weather widget utilizing `wttr.in`.
+- **Localization (i18n)**: Full support for both English and Italian languages, changeable seamlessly from the Settings menu.
+- **Stateless & Portable**: Fully Dockerized architecture. Destroy and recreate the container at will; just mount a volume to persist user data, settings, and SSH host keys.
 
 ## Architecture
 
-```
+```text
 ┌───────────────────────────────────────────┐
 │          Alpine Linux Container           │
 │                                           │
@@ -39,107 +45,108 @@ An SSH-accessible TUI application built with [Wish](https://github.com/charmbrac
 └───────────────────────────────────────────┘
 ```
 
-The container is **fully stateless** — all persistent data (SSH host keys, application data) is stored on a mounted Docker volume at `/data`. You can destroy and recreate the container at any time without data loss.
+The container is **fully stateless**. All application data is serialized in JSON files and stored alongside SSH host keys on a mounted Docker volume at `/data`.
 
-## Quick Start
+## Deployment
 
-### With Docker Compose (recommended)
+Quiver is built with cross-platform deployment in mind and is completely agnostic to the underlying host, making it perfect for Raspberry Pi or NAS setups. 
 
-```bash
-# Build and start
-docker compose up -d
+### 1. Portainer / Docker Compose (Recommended)
 
-# Connect via SSH
-ssh localhost -p 2222
+Quiver is heavily optimized to be deployed as a Portainer Stack.
 
-# View logs
-docker compose logs -f
+```yaml
+services:
+  quiver:
+    image: quiver:latest
+    build: .
+    container_name: quiver_app
+    ports:
+      - "2222:2222"
+    volumes:
+      - quiver_data:/data
+    restart: unless-stopped
 
-# Stop
-docker compose down
+volumes:
+  quiver_data:
 ```
+**In Portainer:**
+1. Navigate to **Stacks** -> **Add stack**.
+2. Paste the `docker-compose.yml` above.
+3. Click **Deploy the stack**.
+4. Connect via terminal: `ssh localhost -p 2222` (replace localhost with your server's IP).
 
-### With Docker CLI
+### 2. Docker CLI
+
+If you prefer the command line:
 
 ```bash
-# Build
-docker build -t quiver --build-arg VERSION=0.1.0 .
+# Build the image
+docker build -t quiver .
 
-# Run with a named volume
+# Run the container with a persistent named volume
 docker run -d \
   --name quiver \
   -p 2222:2222 \
   -v quiver_data:/data \
+  --restart unless-stopped \
   quiver
-
-# Connect
-ssh localhost -p 2222
 ```
 
-### Local Development (no container)
+### 3. Local Development (No Docker)
+
+To compile and run the application directly on your host machine:
 
 ```bash
-# Install dependencies
-go mod download
+# Install Go dependencies
+go mod tidy
 
-# Run locally
+# Run the SSH server locally
 QUIVER_DATA_DIR=./data go run .
 
-# Connect
+# In another terminal window, connect via SSH
 ssh localhost -p 2222
 ```
 
 ## Configuration
 
-All configuration is done via environment variables:
+The application requires minimal configuration, handled entirely via environment variables:
 
 | Variable | Default | Description |
 |---|---|---|
-| `QUIVER_HOST` | `0.0.0.0` | Listen address |
-| `QUIVER_PORT` | `2222` | SSH listen port |
-| `QUIVER_DATA_DIR` | `/data` | Persistent data directory |
-
-## Project Structure
-
-```
-Quiver/
-├── main.go              # Application entry point & SSH server setup
-├── tui/
-│   └── model.go         # Bubble Tea TUI model & views
-├── Dockerfile           # Multi-stage Alpine build
-├── docker-compose.yml   # Container orchestration with volume
-├── .dockerignore
-├── .gitignore
-├── go.mod
-├── go.sum
-├── LICENSE              # GPL-3.0
-└── README.md
-```
+| `QUIVER_HOST` | `0.0.0.0` | IP address the SSH server listens on. |
+| `QUIVER_PORT` | `2222` | Port the SSH server listens on. |
+| `QUIVER_DATA_DIR` | `/data` | Path to the persistent storage directory. |
 
 ## Volume & Persistence
 
-The `/data` volume contains:
-- **`host_key_ed25519`** — SSH host key (auto-generated on first run, persisted so clients don't get host key warnings after container recreation)
-- Application data (future)
+The mapped `/data` volume will generate the following structure automatically:
+- `host_key_ed25519`: The secure SSH host key. Persisting this prevents SSH clients from throwing warnings if you recreate the container.
+- `admin_auth.json`: Secure bcrypt credentials for the default admin user.
+- `{username}/`: Dedicated folders containing all JSON-based data stores (habits, journal, tasks, finances, etc.) for that specific user.
 
-To backup:
+### Backing Up Data
+
 ```bash
 docker run --rm -v quiver_data:/data -v $(pwd):/backup alpine tar czf /backup/quiver-backup.tar.gz -C /data .
 ```
 
-To restore:
+### Restoring Data
+
 ```bash
 docker run --rm -v quiver_data:/data -v $(pwd):/backup alpine tar xzf /backup/quiver-backup.tar.gz -C /data
 ```
 
-## SSH Client Configuration
+## Tips for SSH Clients
 
-To avoid `known_hosts` issues during development, add this to `~/.ssh/config`:
+During testing and development, you might tear down and rebuild the container frequently without persisting the host keys. To prevent `known_hosts` strict checking issues, append this to your `~/.ssh/config`:
 
-```
+```text
 Host localhost
+    Port 2222
     UserKnownHostsFile /dev/null
     StrictHostKeyChecking no
+    LogLevel ERROR
 ```
 
 ## License
