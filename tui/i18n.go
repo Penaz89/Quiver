@@ -159,6 +159,8 @@ var translations = map[string]map[string]string{
 	"journal.exported":     {"en": "Exported to:", "it": "Esportato in:"},
 	"journal.editHelp":     {"en": "enter: edit", "it": "invio: modifica"},
 	"journal.saveHelp":     {"en": "esc: save & back", "it": "esc: salva & indietro"},
+	"journal.deleteHelp":   {"en": "d/del: delete", "it": "d/canc: elimina"},
+	"journal.confirmDelete":{"en": "Delete this note? (y/N)", "it": "Eliminare questa nota? (s/N)"},
 	"journal.navHelp":      {"en": "←/→: change date", "it": "←/→: cambia data"},
 
 	// ── Settings view ────────────────────────────────────────

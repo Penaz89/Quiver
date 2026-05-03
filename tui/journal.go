@@ -27,6 +27,21 @@ func (m *model) updateJournal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	if m.journalIsDeleting {
+		switch msg.String() {
+		case "y", "Y":
+			dateStr := m.journalDate.Format("2006-01-02")
+			if m.journal.Entries != nil {
+				delete(m.journal.Entries, dateStr)
+				_ = storage.SaveJournal(m.dataDir, m.journal)
+			}
+			m.journalIsDeleting = false
+		default:
+			m.journalIsDeleting = false
+		}
+		return m, nil
+	}
+
 	m.journalMsg = "" // clear message
 
 	switch msg.String() {
@@ -42,6 +57,11 @@ func (m *model) updateJournal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.journalTextArea.SetValue(m.journal.Entries[dateStr])
 		m.journalTextArea.Focus()
+	case "d", "del":
+		dateStr := m.journalDate.Format("2006-01-02")
+		if m.journal.Entries != nil && m.journal.Entries[dateStr] != "" {
+			m.journalIsDeleting = true
+		}
 	case "e":
 		path, err := storage.ExportJournalMarkdown(m.dataDir, m.journal)
 		if err == nil {
@@ -68,10 +88,13 @@ func (m *model) renderJournalView(s *styles) string {
 	var content string
 	var help string
 
+	sw := sidebarWidth(m.width)
+	contentW := m.width - sw - 14
+
 	if m.journalIsEditing {
-		m.journalTextArea.SetWidth(m.width - sidebarWidth(m.width) - 10)
-		m.journalTextArea.SetHeight(m.height - 15)
-		content = "\n" + m.journalTextArea.View()
+		m.journalTextArea.SetWidth(contentW)
+		m.journalTextArea.SetHeight(m.height - 16)
+		content = "\n" + lipgloss.NewStyle().MarginLeft(2).Render(m.journalTextArea.View())
 		help = s.dim.Render("\n\n" + t(m.lang, "journal.saveHelp"))
 	} else {
 		entry := ""
@@ -87,14 +110,21 @@ func (m *model) renderJournalView(s *styles) string {
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("240")).
 			Padding(1, 2).
-			Width(m.width - sidebarWidth(m.width) - 8).
+			MarginLeft(2).
+			Width(contentW).
 			Height(m.height - 16).
 			Render(entry)
 		content = "\n" + contentWidget
 
-		helpStr := fmt.Sprintf("\n\n%s  %s  %s  %s",
+		if m.journalIsDeleting {
+			warningStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true).MarginLeft(2)
+			content = "\n\n" + warningStyle.Render(t(m.lang, "journal.confirmDelete"))
+		}
+
+		helpStr := fmt.Sprintf("\n\n%s  %s  %s  %s  %s",
 			t(m.lang, "journal.navHelp"),
 			t(m.lang, "journal.editHelp"),
+			t(m.lang, "journal.deleteHelp"),
 			t(m.lang, "journal.exportHelp"),
 			t(m.lang, "help.goBack"),
 		)

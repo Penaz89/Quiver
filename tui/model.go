@@ -182,6 +182,7 @@ type model struct {
 	journal          storage.Journal
 	journalDate      time.Time
 	journalIsEditing bool
+	journalIsDeleting bool
 	journalTextArea  textarea.Model
 	journalMsg       string
 
