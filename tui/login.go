@@ -53,6 +53,7 @@ func (m *model) updateLogin(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if ok {
 				m.user = user // set the current app user to the authenticated user
 				m.dataDir = storage.GetUserDir(m.baseDataDir, user)
+				registerSessionLogin(m.ctx, m.user)
 				if userRecord.Role == "admin" {
 					m.isAdmin = true
 				}

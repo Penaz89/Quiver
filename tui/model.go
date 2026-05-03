@@ -17,6 +17,7 @@
 package tui
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -84,6 +85,7 @@ const (
 // model holds the TUI application state.
 type model struct {
 	// Session info
+	ctx     context.Context
 	user    string
 	term    string
 	width   int
@@ -345,8 +347,11 @@ func newStyles(width, height int) *styles {
 func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramOption) {
 	pty, _, _ := s.Pty()
 	user := s.User()
+	
+	ctx := s.Context()
 
 	m := &model{
+		ctx:         ctx,
 		user:        user,
 		term:        pty.Term,
 		width:       pty.Window.Width,
@@ -371,6 +376,12 @@ func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramO
 	// Disable up/down in viewport so it doesn't conflict with forms
 	m.vp.KeyMap.Up.SetEnabled(false)
 	m.vp.KeyMap.Down.SetEnabled(false)
+	
+	// Register cleanup when the SSH session ends
+	go func() {
+		<-ctx.Done()
+		cleanupSession(ctx)
+	}()
 	
 	m.updateMenuLabels()
 	return m, []tea.ProgramOption{}
@@ -504,6 +515,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.isAdmin = false
 					m.menuCursor = 0
 					m.user = ""
+					registerSessionLogout(m.ctx)
 					m.loginForm = [2]string{}
 					m.loginCursor = 0
 					m.loginError = ""
@@ -654,7 +666,17 @@ func (m *model) View() tea.View {
 			}
 		}
 		menu := strings.Join(menuLines, "\n")
-		userLine := s.status.Render("● ") + s.info.Render(m.user)
+		
+		activeUsers := getActiveUsersList()
+		if len(activeUsers) == 0 && m.user != "" {
+			activeUsers = []string{m.user} // Fallback
+		}
+		
+		var userLines []string
+		for _, u := range activeUsers {
+			userLines = append(userLines, s.status.Render("● ")+s.info.Render(u))
+		}
+		userLine := strings.Join(userLines, "\n")
 
 		sidebarContent := logoLine + "\n" + versionLine + "\n" + sep + "\n\n" + menu + "\n\n" + sep + "\n" + userLine
 		sidebar := s.sidebar.Render(sidebarContent)
