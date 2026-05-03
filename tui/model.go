@@ -650,7 +650,17 @@ func (m *model) renderHome(s *styles) string {
 func (m *model) renderWeatherView(s *styles) string {
 	weatherBox := s.dim.Render("Loading weather...")
 	if m.weatherData != "" {
-		weatherBox = m.weatherData
+		lines := strings.Split(m.weatherData, "\n")
+		var filtered []string
+		for _, line := range lines {
+			if strings.Contains(line, "@igor_chubin") {
+				locText := t(m.lang, "settings.location") + ": " + m.settings.WeatherLoc
+				filtered = append(filtered, s.info.Render(locText))
+			} else {
+				filtered = append(filtered, line)
+			}
+		}
+		weatherBox = strings.Join(filtered, "\n")
 	}
 	
 	// Remove trailing blank lines from weather data to keep it compact
