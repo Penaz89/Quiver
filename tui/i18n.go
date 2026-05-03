@@ -24,6 +24,7 @@ package tui
 var translations = map[string]map[string]string{
 	// ── Main menu ────────────────────────────────────────────
 	"menu.home":     {"en": "HOME", "it": "HOME"},
+	"menu.habits":   {"en": "HABITS", "it": "ABITUDINI"},
 	"menu.vehicles": {"en": "VEHICLES", "it": "VEICOLI"},
 	"menu.finances": {"en": "FINANCES", "it": "FINANZE"},
 	"menu.settings": {"en": "SETTINGS", "it": "IMPOSTAZIONI"},
@@ -137,6 +138,16 @@ var translations = map[string]map[string]string{
 	"field.carCost":        {"en": "Car Rental (Cost)", "it": "Noleggio auto (Costo)"},
 	"field.insDesc":        {"en": "Travel Ins. (Desc)", "it": "Assicurazione Viaggio (Descrizione)"},
 	"field.insCost":        {"en": "Travel Ins. (Cost)", "it": "Assicurazione Viaggio (Costo)"},
+
+	// ── Habits view ──────────────────────────────────────────
+	"habits.title":         {"en": "Habits", "it": "Abitudini"},
+	"habits.subtitle":      {"en": "Don't break the chain", "it": "Non spezzare la catena"},
+	"habits.noItems":       {"en": "No habits tracked yet. Press 'n' to add one.", "it": "Nessuna abitudine tracciata. Premi 'n' per aggiungerne una."},
+	"habits.add":           {"en": "Add new habit:", "it": "Aggiungi nuova abitudine:"},
+	"habits.name":          {"en": "Habit Name", "it": "Nome abitudine"},
+	"habits.addHelp":       {"en": "n: new", "it": "n: nuova"},
+	"habits.deleteHelp":    {"en": "d/del: delete", "it": "d/canc: elimina"},
+	"habits.toggleHelp":    {"en": "space: toggle today", "it": "spazio: segna oggi"},
 
 	// ── Settings view ────────────────────────────────────────
 	"settings.title":       {"en": "Settings", "it": "Impostazioni"},

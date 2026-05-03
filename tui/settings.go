@@ -139,10 +139,6 @@ func (m *model) renderSettingsView(s *styles) string {
 		} else {
 			lines = append(lines, s.menuNormal.Width(submenuWidth).Render(l))
 		}
-		
-		if i == 0 {
-			lines = append(lines, s.dim.Render(strings.Repeat("─", submenuWidth)))
-		}
 	}
 	menu := strings.Join(lines, "\n")
 	col2 := title + "\n" + desc + "\n\n" + menu

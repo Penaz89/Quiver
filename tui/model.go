@@ -37,6 +37,7 @@ type ProgramOption = tea.ProgramOption
 
 var defaultMenuItems = []string{
 	"HOME",
+	"HABITS",
 	"VEHICLES",
 	"FINANCES",
 	"SETTINGS",
@@ -165,6 +166,12 @@ type model struct {
 	settingsSection    setSection
 	settingsMenuCursor int
 	settingsCursor     int
+
+	// Habits state
+	habits        []storage.Habit
+	habitCursor   int
+	habitIsAdding bool
+	habitForm     string
 
 	// Weather
 	weatherData string
@@ -331,6 +338,7 @@ func (m *model) loadUserData() {
 	m.subs, _ = storage.LoadSubscriptions(m.dataDir)
 	m.housing, _ = storage.LoadHousing(m.dataDir)
 	m.holidays, _ = storage.LoadHolidays(m.dataDir)
+	m.habits, _ = storage.LoadHabits(m.dataDir)
 	
 	if m.settings.Language != "" {
 		m.lang = m.settings.Language
@@ -421,6 +429,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m.updateVehicleSection(msg)
 				} else if item == t(m.lang, "menu.finances") {
 					return m.updateFinances(msg)
+				} else if item == t(m.lang, "menu.habits") {
+					return m.updateHabits(msg)
 				} else if item == t(m.lang, "menu.settings") {
 					return m.updateSettings(msg)
 				}
@@ -508,6 +518,8 @@ func (m *model) View() tea.View {
 			contentStr = m.renderVehiclesView(s)
 		} else if item == t(m.lang, "menu.finances") {
 			contentStr = m.renderFinancesView(s)
+		} else if item == t(m.lang, "menu.habits") {
+			contentStr = m.renderHabitsView(s)
 		} else if item == t(m.lang, "menu.settings") {
 			contentStr = m.renderSettingsView(s)
 		}
@@ -642,6 +654,7 @@ func (m *model) updateMenuLabels() {
 	} else {
 		m.menuItems = []string{
 			t(m.lang, "menu.home"),
+			t(m.lang, "menu.habits"),
 			t(m.lang, "menu.vehicles"),
 			t(m.lang, "menu.finances"),
 			t(m.lang, "menu.settings"),
