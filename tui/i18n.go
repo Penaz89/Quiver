@@ -148,6 +148,7 @@ var translations = map[string]map[string]string{
 	"habits.addHelp":       {"en": "n: new", "it": "n: nuova"},
 	"habits.deleteHelp":    {"en": "d/del: delete", "it": "d/canc: elimina"},
 	"habits.toggleHelp":    {"en": "space: toggle today", "it": "spazio: segna oggi"},
+	"habits.confirmDelete": {"en": "Delete this habit? (y/N)", "it": "Eliminare questa abitudine? (s/N)"},
 
 	// ── Settings view ────────────────────────────────────────
 	"settings.title":       {"en": "Settings", "it": "Impostazioni"},

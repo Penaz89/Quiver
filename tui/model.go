@@ -168,10 +168,11 @@ type model struct {
 	settingsCursor     int
 
 	// Habits state
-	habits        []storage.Habit
-	habitCursor   int
-	habitIsAdding bool
-	habitForm     string
+	habits          []storage.Habit
+	habitCursor     int
+	habitIsAdding   bool
+	habitIsDeleting bool
+	habitForm       string
 
 	// Weather
 	weatherData string

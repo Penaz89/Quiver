@@ -43,6 +43,23 @@ func (m *model) updateHabits(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	if m.habitIsDeleting {
+		switch strings.ToLower(msg.String()) {
+		case "y":
+			if len(m.habits) > 0 {
+				m.habits = append(m.habits[:m.habitCursor], m.habits[m.habitCursor+1:]...)
+				if m.habitCursor >= len(m.habits) && m.habitCursor > 0 {
+					m.habitCursor--
+				}
+				_ = storage.SaveHabits(m.dataDir, m.habits)
+			}
+			m.habitIsDeleting = false
+		default:
+			m.habitIsDeleting = false
+		}
+		return m, nil
+	}
+
 	switch msg.String() {
 	case "up", "k":
 		if m.habitCursor > 0 {
@@ -57,11 +74,7 @@ func (m *model) updateHabits(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.habitForm = ""
 	case "d", "del":
 		if len(m.habits) > 0 {
-			m.habits = append(m.habits[:m.habitCursor], m.habits[m.habitCursor+1:]...)
-			if m.habitCursor >= len(m.habits) && m.habitCursor > 0 {
-				m.habitCursor--
-			}
-			_ = storage.SaveHabits(m.dataDir, m.habits)
+			m.habitIsDeleting = true
 		}
 	case "space":
 		if len(m.habits) > 0 {
@@ -121,6 +134,11 @@ func (m *model) renderHabitsView(s *styles) string {
 	
 	// Layout: List on top, heatmap below
 	layout := listStr + "\n\n" + heatmap
+
+	if m.habitIsDeleting {
+		warningStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
+		layout = listStr + "\n\n" + warningStyle.Render(t(m.lang, "habits.confirmDelete"))
+	}
 
 	help := s.dim.Render(fmt.Sprintf("\n\n↑/↓: %s  %s  %s  %s  ←: %s",
 		t(m.lang, "help.navigate"),
