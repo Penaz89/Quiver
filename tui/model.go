@@ -117,10 +117,10 @@ type model struct {
 	vp           viewport.Model
 
 	// Admin state
-	adminUsers       []storage.User
-	adminUserCursor  int
-	adminForm        [2]string
-	adminFormCursor  int
+	adminUsers            []storage.User
+	adminUserCursor       int
+	adminForm             [2]string
+	adminFormCursor       int
 	adminIsAdding         bool
 	adminIsEditing        bool
 	adminIsDeleting       bool
@@ -149,27 +149,27 @@ type model struct {
 	finSection    finSection
 	finMenuCursor int
 	finView       finSubView
-	
+
 	// Housing state
-	housing       []storage.Housing
-	houseCursor   int
-	houseForm     [houseFCount]string
-	houseFormCur  int
-	houseEditIdx  int
-	
+	housing      []storage.Housing
+	houseCursor  int
+	houseForm    [houseFCount]string
+	houseFormCur int
+	houseEditIdx int
+
 	// Holidays state
-	holidays      []storage.Holiday
-	holiCursor    int
-	holiForm      [holiFCount]string
-	holiFormCur   int
-	holiEditIdx   int
-	
+	holidays    []storage.Holiday
+	holiCursor  int
+	holiForm    [holiFCount]string
+	holiFormCur int
+	holiEditIdx int
+
 	// Subscriptions state
-	subs        []storage.Subscription
-	subCursor   int
-	subForm     [subFCount]string
-	subFormCur  int
-	subEditIdx  int
+	subs       []storage.Subscription
+	subCursor  int
+	subForm    [subFCount]string
+	subFormCur int
+	subEditIdx int
 
 	// Settings state
 	settingsSection    setSection
@@ -184,12 +184,12 @@ type model struct {
 	habitForm       string
 
 	// Journal state
-	journal          storage.Journal
-	journalDate      time.Time
-	journalIsEditing bool
+	journal           storage.Journal
+	journalDate       time.Time
+	journalIsEditing  bool
 	journalIsDeleting bool
-	journalTextArea  textarea.Model
-	journalMsg       string
+	journalTextArea   textarea.Model
+	journalMsg        string
 
 	// Chat state
 	chatInput    textarea.Model
@@ -210,21 +210,21 @@ type model struct {
 	weatherData string
 
 	// Vault state
-	vaultUnlocked   bool
-	vaultExists     bool
-	vaultSecrets    []storage.Secret
-	vaultMasterPwd  string
-	vaultPwdForm    string
-	vaultPwdError   string
-	vaultCursor     int
-	vaultIsAdding   bool
-	vaultIsEditing  bool
-	vaultIsDeleting bool
-	vaultForm       [4]string
-	vaultFormCursor int
-	vaultSearch     string
+	vaultUnlocked    bool
+	vaultExists      bool
+	vaultSecrets     []storage.Secret
+	vaultMasterPwd   string
+	vaultPwdForm     string
+	vaultPwdError    string
+	vaultCursor      int
+	vaultIsAdding    bool
+	vaultIsEditing   bool
+	vaultIsDeleting  bool
+	vaultForm        [4]string
+	vaultFormCursor  int
+	vaultSearch      string
 	vaultIsSearching bool
-	vaultEditIndex  int
+	vaultEditIndex   int
 }
 
 // ─── Styles ──────────────────────────────────────────────────────────
@@ -352,7 +352,7 @@ func newStyles(width, height int) *styles {
 func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramOption) {
 	pty, _, _ := s.Pty()
 	user := s.User()
-	
+
 	ctx := s.Context()
 
 	ta := textarea.New()
@@ -361,43 +361,43 @@ func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramO
 	ta.Prompt = "  "
 	ta.SetHeight(2)
 	ta.Focus()
-	
+
 	m := &model{
-		ctx:         ctx,
-		user:        user,
-		term:        pty.Term,
-		width:       pty.Window.Width,
-		height:      pty.Window.Height,
-		bg:          "light",
-		menuItems:   append([]string(nil), defaultMenuItems...),
-		menuCursor:  0,
-		dataDir:     dataDir,
-		baseDataDir: dataDir,
-		version:     version,
-		lang:        "en",
-		vp:          viewport.New(),
+		ctx:             ctx,
+		user:            user,
+		term:            pty.Term,
+		width:           pty.Window.Width,
+		height:          pty.Window.Height,
+		bg:              "light",
+		menuItems:       append([]string(nil), defaultMenuItems...),
+		menuCursor:      0,
+		dataDir:         dataDir,
+		baseDataDir:     dataDir,
+		version:         version,
+		lang:            "en",
+		vp:              viewport.New(),
 		journalTextArea: textarea.New(),
-		journalDate: time.Now(),
-		chatInput:   ta,
-		chatViewport: viewport.New(),
+		journalDate:     time.Now(),
+		chatInput:       ta,
+		chatViewport:    viewport.New(),
 	}
-	
+
 	if user != "" && user != "anonymous" {
 		m.loginForm[0] = user
 		m.loginCursor = 1
 	}
-	
+
 	// Disable up/down in viewport so it doesn't conflict with forms
 	m.vp.KeyMap.Up.SetEnabled(false)
 	m.vp.KeyMap.Down.SetEnabled(false)
-	
+
 	// Register cleanup when the SSH session ends
 	go func() {
 		<-ctx.Done()
 		UnsubscribeChat(m.chatChan)
 		cleanupSession(ctx)
 	}()
-	
+
 	m.updateMenuLabels()
 	return m, []tea.ProgramOption{}
 }
@@ -412,7 +412,7 @@ func (m *model) loadUserData() {
 	m.habits, _ = storage.LoadHabits(m.dataDir)
 	m.journal, _ = storage.LoadJournal(m.dataDir)
 	m.tasks, _ = storage.LoadTasks(m.dataDir)
-	
+
 	if m.settings.Language != "" {
 		m.lang = m.settings.Language
 	}
@@ -438,7 +438,7 @@ func fetchWeatherCmd(loc string) tea.Cmd {
 		if loc == "" {
 			return weatherMsg("No weather location set")
 		}
-		
+
 		req, _ := http.NewRequest("GET", "https://wttr.in/"+loc+"?2Q", nil)
 		req.Header.Set("User-Agent", "curl/7.68.0")
 		resp, err := http.DefaultClient.Do(req)
@@ -446,7 +446,7 @@ func fetchWeatherCmd(loc string) tea.Cmd {
 			return weatherMsg("Weather unavailable")
 		}
 		defer resp.Body.Close()
-		
+
 		b, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return weatherMsg("Error reading weather")
@@ -469,12 +469,12 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		
+
 		contentW := m.width - sidebarWidth(m.width) - 6
 		innerH := m.height - 8
 		m.vp.SetWidth(contentW)
 		m.vp.SetHeight(innerH)
-		
+
 		m.chatViewport.SetWidth(contentW - 8)
 		m.chatViewport.SetHeight(innerH - 12)
 		m.chatInput.SetWidth(contentW - 8)
@@ -598,7 +598,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m *model) View() tea.View {
 	s := newStyles(m.width, m.height)
-	
+
 	if !m.isLoggedIn {
 		if m.isChangingPassword {
 			v := tea.NewView(m.renderChangePasswordView(s))
@@ -609,7 +609,7 @@ func (m *model) View() tea.View {
 		v.AltScreen = true
 		return v
 	}
-	
+
 	sw := sidebarWidth(m.width)
 
 	// ── Content area ─────────────────────────────────────────
@@ -674,7 +674,7 @@ func (m *model) View() tea.View {
 
 	// Set content and get rendered viewport
 	m.vp.SetContent(contentStr)
-	
+
 	contentStyle := s.content
 	if m.focusContent {
 		contentStyle = s.contentFocused
@@ -703,12 +703,12 @@ func (m *model) View() tea.View {
 			}
 		}
 		menu := strings.Join(menuLines, "\n")
-		
+
 		activeUsers := getActiveUsersList()
 		if len(activeUsers) == 0 && m.user != "" {
 			activeUsers = []string{m.user} // Fallback
 		}
-		
+
 		var userLines []string
 		for _, u := range activeUsers {
 			userLines = append(userLines, s.status.Render("● ")+s.info.Render(u))
@@ -762,10 +762,10 @@ func (m *model) renderWeatherView(s *styles) string {
 		}
 		weatherBox = strings.Join(filtered, "\n")
 	}
-	
+
 	// Remove trailing blank lines from weather data to keep it compact
 	weatherBox = strings.TrimRight(weatherBox, "\n")
-	
+
 	weatherWidget := lipgloss.NewStyle().
 		Padding(1, 2).
 		Render(weatherBox)
@@ -774,8 +774,6 @@ func (m *model) renderWeatherView(s *styles) string {
 }
 
 // renderVehicles is now in vehicles.go as renderVehiclesView
-
-
 
 // updateMenuLabels refreshes menu item labels based on the current language.
 func (m *model) updateMenuLabels() {

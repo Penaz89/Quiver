@@ -8,7 +8,7 @@
 [![Go](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go)](https://go.dev)
 [![Docker](https://img.shields.io/badge/Docker-Alpine-2496ED?logo=docker)](https://hub.docker.com/_/alpine)
 
-An advanced SSH-accessible Terminal User Interface (TUI) application built with [Wish](https://github.com/charmbracelet/wish), [Bubble Tea](https://github.com/charmbracelet/bubbletea), and [Lipgloss](https://github.com/charmbracelet/lipgloss). Designed to be hosted on your home server and accessed from anywhere securely via SSH, running in a stateless Alpine Linux container.
+An advanced SSH-accessible Terminal User Interface (TUI) application built with [Wish](https://github.com/charmbracelet/wish), [Bubble Tea](https://github.com/charmbracelet/bubbletea), and [Lipgloss](https://github.com/charmbracelet/lipgloss). Originally created to fulfill a **personal need** for a centralized self-hosted dashboard, it is specifically designed to be **deployed via Docker Compose** and accessed remotely using **[NeXterm](https://nexterm.dev/)** (or any SSH client) for a secure, terminal-based management experience on any home server.
 
 ## Features
 
@@ -139,8 +139,12 @@ docker run --rm -v quiver_data:/data -v $(pwd):/backup alpine tar czf /backup/qu
 docker run --rm -v quiver_data:/data -v $(pwd):/backup alpine tar xzf /backup/quiver-backup.tar.gz -C /data
 ```
 
-## Tips for SSH Clients
+## Remote Access & SSH Clients
 
+### NeXterm (Recommended)
+For the best experience, especially when accessing Quiver remotely, we recommend using **[NeXterm](https://nexterm.dev/)**. It provides a robust, web-based terminal interface that handles SSH connections beautifully, making it easy to access your dashboard from any browser.
+
+### Standard SSH Client Tips
 During testing and development, you might tear down and rebuild the container frequently without persisting the host keys. To prevent `known_hosts` strict checking issues, append this to your `~/.ssh/config`:
 
 ```text
