@@ -41,6 +41,7 @@ var defaultMenuItems = []string{
 	"HOME",
 	"HABITS",
 	"JOURNAL",
+	"TASKS",
 	"VEHICLES",
 	"FINANCES",
 	"WEATHER",
@@ -185,6 +186,16 @@ type model struct {
 	journalIsDeleting bool
 	journalTextArea  textarea.Model
 	journalMsg       string
+
+	// Tasks state
+	tasks          []storage.Task
+	taskColumn     int // 0: TODO, 1: DOING, 2: DONE
+	taskCursor     int
+	taskIsAdding   bool
+	taskIsEditing  bool
+	taskFormFields [4]string // Title, Project, Priority, Deadline
+	taskFormCursor int
+	taskFormError  string
 
 	// Weather
 	weatherData string
@@ -355,6 +366,7 @@ func (m *model) loadUserData() {
 	m.holidays, _ = storage.LoadHolidays(m.dataDir)
 	m.habits, _ = storage.LoadHabits(m.dataDir)
 	m.journal, _ = storage.LoadJournal(m.dataDir)
+	m.tasks, _ = storage.LoadTasks(m.dataDir)
 	
 	if m.settings.Language != "" {
 		m.lang = m.settings.Language
@@ -449,6 +461,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m.updateHabits(msg)
 				} else if item == t(m.lang, "menu.journal") {
 					return m.updateJournal(msg)
+				} else if item == t(m.lang, "menu.tasks") {
+					return m.updateTasks(msg)
 				} else if item == t(m.lang, "menu.settings") {
 					return m.updateSettings(msg)
 				}
@@ -540,6 +554,8 @@ func (m *model) View() tea.View {
 			contentStr = m.renderHabitsView(s)
 		} else if item == t(m.lang, "menu.journal") {
 			contentStr = m.renderJournalView(s)
+		} else if item == t(m.lang, "menu.tasks") {
+			contentStr = m.renderTasksView(s)
 		} else if item == t(m.lang, "menu.weather") {
 			contentStr = m.renderWeatherView(s)
 		} else if item == t(m.lang, "menu.settings") {
@@ -689,6 +705,7 @@ func (m *model) updateMenuLabels() {
 			t(m.lang, "menu.home"),
 			t(m.lang, "menu.habits"),
 			t(m.lang, "menu.journal"),
+			t(m.lang, "menu.tasks"),
 			t(m.lang, "menu.vehicles"),
 			t(m.lang, "menu.finances"),
 			t(m.lang, "menu.weather"),
