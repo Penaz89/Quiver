@@ -568,7 +568,7 @@ func (m *model) updateHouseForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (m *model) updateHouseDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
-	case "y":
+	case "y", "Y", "s", "S":
 		m.housing = append(m.housing[:m.houseCursor], m.housing[m.houseCursor+1:]...)
 		_ = storage.SaveHousing(m.dataDir, m.housing)
 		if m.houseCursor >= len(m.housing) && m.houseCursor > 0 {
@@ -842,7 +842,7 @@ func (m *model) updateHoliForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (m *model) updateHoliDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
-	case "y":
+	case "y", "Y", "s", "S":
 		m.holidays = append(m.holidays[:m.holiCursor], m.holidays[m.holiCursor+1:]...)
 		_ = storage.SaveHolidays(m.dataDir, m.holidays)
 		if m.holiCursor >= len(m.holidays) && m.holiCursor > 0 {
@@ -1132,7 +1132,7 @@ func (m *model) updateSubForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (m *model) updateSubDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
-	case "y":
+	case "y", "Y", "s", "S":
 		m.subs = append(m.subs[:m.subCursor], m.subs[m.subCursor+1:]...)
 		_ = storage.SaveSubscriptions(m.dataDir, m.subs)
 		if m.subCursor >= len(m.subs) && m.subCursor > 0 {

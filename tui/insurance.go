@@ -248,7 +248,7 @@ func (m *model) updateInsuranceForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m *model) updateInsuranceDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 	switch key {
-	case "y":
+	case "y", "Y", "s", "S":
 		m.insurances = append(m.insurances[:m.insuranceCursor], m.insurances[m.insuranceCursor+1:]...)
 		_ = storage.SaveInsurance(m.dataDir, m.insurances)
 		if m.insuranceCursor >= len(m.insurances) && m.insuranceCursor > 0 {

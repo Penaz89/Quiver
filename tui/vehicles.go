@@ -245,7 +245,7 @@ func (m *model) updateVehicleForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m *model) updateVehicleDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 	switch key {
-	case "y":
+	case "y", "Y", "s", "S":
 		m.vehicles = append(m.vehicles[:m.vehicleCursor], m.vehicles[m.vehicleCursor+1:]...)
 		_ = storage.SaveVehicles(m.dataDir, m.vehicles)
 		if m.vehicleCursor >= len(m.vehicles) && m.vehicleCursor > 0 {

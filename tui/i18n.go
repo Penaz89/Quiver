@@ -207,7 +207,8 @@ var translations = map[string]map[string]string{
 	"vault.noSecrets":      {"en": "No secrets stored. Press 'n' to add one.", "it": "Nessun segreto. Premi 'n' per aggiungerne uno."},
 	"vault.colTitle":       {"en": "TITLE", "it": "TITOLO"},
 	"vault.colUsername":    {"en": "USERNAME", "it": "USERNAME"},
-	"vault.help":           {"en": "n: new • d/del: delete • enter: view/edit • L: lock vault", "it": "n: nuovo • d/canc: elimina • invio: vedi/modifica • L: blocca vault"},
+	"vault.help":           {"en": "/: search • n: new • d/del: delete • enter: view/edit • L: lock vault", "it": "/: cerca • n: nuovo • d/canc: elimina • invio: vedi/modifica • L: blocca vault"},
+	"vault.helpSearchActive": {"en": "Type to search • Enter/Esc: done", "it": "Digita per cercare • Invio/Esc: fine"},
 
 	// ── Settings view ────────────────────────────────────────
 	"settings.title":       {"en": "Settings", "it": "Impostazioni"},

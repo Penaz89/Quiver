@@ -29,7 +29,7 @@ func (m *model) updateJournal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	if m.journalIsDeleting {
 		switch msg.String() {
-		case "y", "Y":
+		case "y", "Y", "s", "S":
 			dateStr := m.journalDate.Format("2006-01-02")
 			if m.journal.Entries != nil {
 				delete(m.journal.Entries, dateStr)

@@ -62,7 +62,7 @@ func (m *model) updateAdminUsers(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m *model) updateAdminDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 	switch key {
-	case "y", "Y":
+	case "y", "Y", "s", "S":
 		u := m.adminUsers[m.adminUserCursor]
 		storage.DeleteUser(m.baseDataDir, u.Username)
 		m.adminUsers, _ = storage.LoadUsers(m.baseDataDir)
@@ -84,7 +84,7 @@ func (m *model) updateAdminDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m *model) updateAdminResetVault(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 	switch key {
-	case "y", "Y":
+	case "y", "Y", "s", "S":
 		u := m.adminUsers[m.adminUserCursor]
 		dataDir := storage.GetUserDir(m.baseDataDir, u.Username)
 		storage.DeleteVault(dataDir)

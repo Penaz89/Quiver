@@ -215,6 +215,9 @@ type model struct {
 	vaultIsDeleting bool
 	vaultForm       [4]string
 	vaultFormCursor int
+	vaultSearch     string
+	vaultIsSearching bool
+	vaultEditIndex  int
 }
 
 // ─── Styles ──────────────────────────────────────────────────────────

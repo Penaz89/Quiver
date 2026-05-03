@@ -10,6 +10,17 @@ import (
 	"github.com/penaz/quiver/storage"
 )
 
+func (m *model) getFilteredVaultSecrets() []int {
+	var indices []int
+	search := strings.ToLower(m.vaultSearch)
+	for i, sec := range m.vaultSecrets {
+		if search == "" || strings.Contains(strings.ToLower(sec.Title), search) || strings.Contains(strings.ToLower(sec.Username), search) || strings.Contains(strings.ToLower(sec.Notes), search) {
+			indices = append(indices, i)
+		}
+	}
+	return indices
+}
+
 func (m *model) updateVault(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// 1. Password input screen
 	if !m.vaultUnlocked {
@@ -87,8 +98,8 @@ func (m *model) updateVault(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				if m.vaultIsAdding {
 					m.vaultSecrets = append(m.vaultSecrets, sec)
 				} else if m.vaultIsEditing {
-					sec.ID = m.vaultSecrets[m.vaultCursor].ID // keep old ID
-					m.vaultSecrets[m.vaultCursor] = sec
+					sec.ID = m.vaultSecrets[m.vaultEditIndex].ID
+					m.vaultSecrets[m.vaultEditIndex] = sec
 				}
 				err := storage.SaveVault(m.dataDir, m.vaultMasterPwd, m.vaultSecrets)
 				if err != nil {
@@ -113,11 +124,10 @@ func (m *model) updateVault(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// 3. Delete confirmation
 	if m.vaultIsDeleting {
 		switch msg.String() {
-		case "y", "Y":
-			m.vaultSecrets = append(m.vaultSecrets[:m.vaultCursor], m.vaultSecrets[m.vaultCursor+1:]...)
+		case "y", "Y", "s", "S":
+			m.vaultSecrets = append(m.vaultSecrets[:m.vaultEditIndex], m.vaultSecrets[m.vaultEditIndex+1:]...)
 			storage.SaveVault(m.dataDir, m.vaultMasterPwd, m.vaultSecrets)
 			m.vaultIsDeleting = false
 			if m.vaultCursor >= len(m.vaultSecrets) && m.vaultCursor > 0 {
@@ -129,31 +139,69 @@ func (m *model) updateVault(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// 4. List navigation
+	filtered := m.getFilteredVaultSecrets()
+	if m.vaultCursor >= len(filtered) {
+		m.vaultCursor = len(filtered) - 1
+	}
+	if m.vaultCursor < 0 {
+		m.vaultCursor = 0
+	}
+
+	// 4. Search input
+	if m.vaultIsSearching {
+		switch msg.String() {
+		case "esc", "enter":
+			m.vaultIsSearching = false
+			m.vaultCursor = 0
+		case "backspace":
+			if len(m.vaultSearch) > 0 {
+				runes := []rune(m.vaultSearch)
+				m.vaultSearch = string(runes[:len(runes)-1])
+			}
+			m.vaultCursor = 0
+		default:
+			key := msg.String()
+			if key == "space" {
+				key = " "
+			}
+			runes := []rune(key)
+			if len(runes) == 1 { // naive check for printable
+				m.vaultSearch += key
+			}
+			m.vaultCursor = 0
+		}
+		return m, nil
+	}
+
+	// 5. List navigation
 	switch msg.String() {
 	case "esc", "left":
 		m.focusContent = false
 	case "j", "down":
-		if m.vaultCursor < len(m.vaultSecrets)-1 {
+		if m.vaultCursor < len(filtered)-1 {
 			m.vaultCursor++
 		}
 	case "k", "up":
 		if m.vaultCursor > 0 {
 			m.vaultCursor--
 		}
+	case "/":
+		m.vaultIsSearching = true
 	case "n":
 		m.vaultIsAdding = true
 		m.vaultForm = [4]string{}
 		m.vaultFormCursor = 0
 	case "enter":
-		if len(m.vaultSecrets) > 0 {
+		if len(filtered) > 0 {
 			m.vaultIsEditing = true
-			sec := m.vaultSecrets[m.vaultCursor]
+			m.vaultEditIndex = filtered[m.vaultCursor]
+			sec := m.vaultSecrets[m.vaultEditIndex]
 			m.vaultForm = [4]string{sec.Title, sec.Username, sec.Password, sec.Notes}
 			m.vaultFormCursor = 0
 		}
 	case "d", "delete":
-		if len(m.vaultSecrets) > 0 {
+		if len(filtered) > 0 {
+			m.vaultEditIndex = filtered[m.vaultCursor]
 			m.vaultIsDeleting = true
 		}
 	case "L": // lock
@@ -230,19 +278,33 @@ func (m *model) renderVaultView(s *styles) string {
 
 	if m.vaultIsDeleting {
 		msg := s.highlight.Render(t(m.lang, "vault.confirmDelete"))
-		sec := m.vaultSecrets[m.vaultCursor]
+		sec := m.vaultSecrets[m.vaultEditIndex]
 		info := s.info.Render(sec.Title)
 		return header + "\n\n" + msg + "\n" + info
 	}
 
-	if len(m.vaultSecrets) == 0 {
-		return header + "\n\n" + s.dim.Render(t(m.lang, "vault.noSecrets"))
+	filtered := m.getFilteredVaultSecrets()
+
+	var searchBar string
+	if m.vaultIsSearching || m.vaultSearch != "" {
+		prompt := "Search: "
+		if m.vaultIsSearching {
+			searchBar = s.highlight.Render(prompt + m.vaultSearch + "█")
+		} else {
+			searchBar = s.dim.Render(prompt + m.vaultSearch)
+		}
+		searchBar += "\n\n"
+	}
+
+	if len(filtered) == 0 {
+		return header + "\n\n" + searchBar + s.dim.Render(t(m.lang, "vault.noSecrets"))
 	}
 
 	// Calculate max widths for nice columns
 	maxTitle := 15
 	maxUser := 15
-	for _, sec := range m.vaultSecrets {
+	for _, idx := range filtered {
+		sec := m.vaultSecrets[idx]
 		if len(sec.Title) > maxTitle {
 			maxTitle = len(sec.Title)
 		}
@@ -256,7 +318,8 @@ func (m *model) renderVaultView(s *styles) string {
 	lines = append(lines, head)
 	lines = append(lines, s.dim.Render(strings.Repeat("─", maxTitle+maxUser+5)))
 
-	for i, sec := range m.vaultSecrets {
+	for i, idx := range filtered {
+		sec := m.vaultSecrets[idx]
 		row := fmt.Sprintf("%-*s │ %-*s", maxTitle, sec.Title, maxUser, sec.Username)
 		if i == m.vaultCursor {
 			lines = append(lines, s.menuSelected.Render("> "+row))
@@ -266,11 +329,14 @@ func (m *model) renderVaultView(s *styles) string {
 	}
 	
 	help := s.dim.Render(t(m.lang, "vault.help"))
+	if m.vaultIsSearching {
+		help = s.dim.Render(t(m.lang, "vault.helpSearchActive"))
+	}
 	
 	// Show details if selected
 	details := ""
-	if len(m.vaultSecrets) > 0 {
-		sec := m.vaultSecrets[m.vaultCursor]
+	if len(filtered) > 0 && m.vaultCursor >= 0 && m.vaultCursor < len(filtered) {
+		sec := m.vaultSecrets[filtered[m.vaultCursor]]
 		detailsBox := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("240")).
@@ -283,5 +349,5 @@ func (m *model) renderVaultView(s *styles) string {
 		details = "\n\n" + detailsBox
 	}
 
-	return header + "\n\n" + strings.Join(lines, "\n") + details + "\n\n" + help
+	return header + "\n\n" + searchBar + strings.Join(lines, "\n") + details + "\n\n" + help
 }

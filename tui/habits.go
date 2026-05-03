@@ -45,7 +45,7 @@ func (m *model) updateHabits(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	if m.habitIsDeleting {
 		switch strings.ToLower(msg.String()) {
-		case "y":
+		case "y", "s":
 			if len(m.habits) > 0 {
 				m.habits = append(m.habits[:m.habitCursor], m.habits[m.habitCursor+1:]...)
 				if m.habitCursor >= len(m.habits) && m.habitCursor > 0 {
