@@ -191,6 +191,11 @@ type model struct {
 	journalTextArea  textarea.Model
 	journalMsg       string
 
+	// Chat state
+	chatInput    textarea.Model
+	chatViewport viewport.Model
+	chatChan     chan ChatMessage
+
 	// Tasks state
 	tasks          []storage.Task
 	taskColumn     int // 0: TODO, 1: DOING, 2: DONE
@@ -350,6 +355,13 @@ func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramO
 	
 	ctx := s.Context()
 
+	ta := textarea.New()
+	ta.Placeholder = "Scrivi un messaggio..."
+	ta.ShowLineNumbers = false
+	ta.Prompt = "  "
+	ta.SetHeight(2)
+	ta.Focus()
+	
 	m := &model{
 		ctx:         ctx,
 		user:        user,
@@ -366,6 +378,8 @@ func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramO
 		vp:          viewport.New(),
 		journalTextArea: textarea.New(),
 		journalDate: time.Now(),
+		chatInput:   ta,
+		chatViewport: viewport.New(),
 	}
 	
 	if user != "" && user != "anonymous" {
@@ -380,6 +394,7 @@ func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramO
 	// Register cleanup when the SSH session ends
 	go func() {
 		<-ctx.Done()
+		UnsubscribeChat(m.chatChan)
 		cleanupSession(ctx)
 	}()
 	
@@ -407,10 +422,12 @@ func (m *model) loadUserData() {
 // ─── Bubble Tea interface ────────────────────────────────────────────
 
 func (m *model) Init() tea.Cmd {
+	m.chatChan = SubscribeChat()
 	return tea.Batch(
 		tea.RequestBackgroundColor,
 		m.vp.Init(),
 		fetchWeatherCmd(m.settings.WeatherLoc),
+		waitForChatActivity(m.chatChan),
 	)
 }
 
@@ -452,10 +469,26 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		
+		contentW := m.width - sidebarWidth(m.width) - 6
+		innerH := m.height - 8
+		m.vp.SetWidth(contentW)
+		m.vp.SetHeight(innerH)
+		
+		m.chatViewport.SetWidth(contentW - 8)
+		m.chatViewport.SetHeight(innerH - 12)
+		m.chatInput.SetWidth(contentW - 8)
+
 	case tea.MouseMsg:
 		var cmd tea.Cmd
 		m.vp, cmd = m.vp.Update(msg)
 		return m, cmd
+	case chatMsg:
+		if m.focusContent && m.menuItems[m.menuCursor] == "CHAT" {
+			m.chatViewport.GotoBottom()
+		}
+		return m, waitForChatActivity(m.chatChan)
+
 	case tea.KeyMsg:
 		// Always allow ctrl+c
 		if msg.String() == "ctrl+c" {
@@ -497,6 +530,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m.updateJournal(msg)
 				} else if item == t(m.lang, "menu.weather") {
 					// weather view is static
+				} else if item == "CHAT" {
+					return m.updateChat(msg)
 				} else if item == t(m.lang, "menu.vault") {
 					return m.updateVault(msg)
 				} else if item == t(m.lang, "menu.settings") {
@@ -602,6 +637,8 @@ func (m *model) View() tea.View {
 			contentStr = m.renderTasksView(s)
 		} else if item == t(m.lang, "menu.weather") {
 			contentStr = m.renderWeatherView(s)
+		} else if item == "CHAT" {
+			contentStr = m.renderChatView(s)
 		} else if item == t(m.lang, "menu.vault") {
 			contentStr = m.renderVaultView(s)
 		} else if item == t(m.lang, "menu.settings") {
@@ -757,6 +794,7 @@ func (m *model) updateMenuLabels() {
 			t(m.lang, "menu.vehicles"),
 			t(m.lang, "menu.finances"),
 			t(m.lang, "menu.weather"),
+			"CHAT",
 			t(m.lang, "menu.vault"),
 			t(m.lang, "menu.settings"),
 			t(m.lang, "menu.logout"),

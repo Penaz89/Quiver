@@ -28,15 +28,15 @@ func (m *model) updateLogin(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.loginCursor = 0
 			return m, nil
 		}
-		
+
 		user := strings.TrimSpace(m.loginForm[0])
 		pass := m.loginForm[1]
-		
+
 		if user == "" || pass == "" {
 			m.loginError = "Username and password cannot be empty."
 			return m, nil
 		}
-		
+
 		if m.isRegistering {
 			err := storage.CreateUser(m.baseDataDir, user, pass)
 			if err != nil {
@@ -65,12 +65,12 @@ func (m *model) updateLogin(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					m.changePasswordErr = ""
 					return m, nil
 				}
-				
+
 				m.isLoggedIn = true
 				m.loadUserData()
 				m.loginError = ""
 				m.loginForm = [2]string{} // clear credentials
-				
+
 				var cmds []tea.Cmd
 				if m.settings.WeatherLoc != "" {
 					cmds = append(cmds, fetchWeatherCmd(m.settings.WeatherLoc))
@@ -112,17 +112,17 @@ func (m *model) updateLogin(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (m *model) renderLoginView(s *styles) string {
 	boxWidth := 56
-	
+
 	var titleText string
 	if m.isRegistering {
 		titleText = "CREATE NEW ACCOUNT"
 	} else {
 		titleText = "LOGIN"
 	}
-	
+
 	logo := lipgloss.NewStyle().Width(boxWidth).Align(lipgloss.Center).Render(s.logo.Render(sidebarLogo))
-	title := lipgloss.NewStyle().Width(boxWidth).Align(lipgloss.Center).Render(s.title.Render(titleText))	
-	
+	title := lipgloss.NewStyle().Width(boxWidth).Align(lipgloss.Center).Render(s.title.Render(titleText))
+
 	labelStyle := lipgloss.NewStyle().Width(14).Align(lipgloss.Right).MarginRight(1).Foreground(lipgloss.Color("241"))
 	inputStyle := lipgloss.NewStyle().Width(20).Foreground(lipgloss.Color("252")).Background(lipgloss.Color("236")).PaddingLeft(1)
 	emptyStyle := lipgloss.NewStyle().Width(20).PaddingLeft(1).Foreground(lipgloss.Color("241"))
@@ -141,7 +141,7 @@ func (m *model) renderLoginView(s *styles) string {
 		}
 	}
 	usrLine := lipgloss.JoinHorizontal(lipgloss.Top, usrLabel, usrVal)
-	
+
 	// Password field
 	pwdLabel := labelStyle.Render("Password:")
 	pwdValRaw := m.loginForm[1]
@@ -157,11 +157,11 @@ func (m *model) renderLoginView(s *styles) string {
 		}
 	}
 	pwdLine := lipgloss.JoinHorizontal(lipgloss.Top, pwdLabel, pwdVal)
-	
+
 	// Action buttons
 	btnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Background(lipgloss.Color("236")).Padding(0, 2)
 	activeBtnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("232")).Background(lipgloss.Color("42")).Padding(0, 2).Bold(true)
-	
+
 	var submitText string
 	var toggleText string
 	if m.isRegistering {
@@ -171,23 +171,23 @@ func (m *model) renderLoginView(s *styles) string {
 		submitText = "LOGIN"
 		toggleText = "Create Account"
 	}
-	
+
 	submitBtn := btnStyle.Render(submitText)
 	if m.loginCursor == 2 {
 		submitBtn = activeBtnStyle.Render(submitText)
 	}
-	
+
 	toggleBtn := btnStyle.Render(toggleText)
 	if m.loginCursor == 3 {
 		toggleBtn = activeBtnStyle.Render(toggleText)
 	}
-	
+
 	buttons := lipgloss.JoinHorizontal(lipgloss.Center, submitBtn, "   ", toggleBtn)
 	buttonsBlock := lipgloss.NewStyle().Width(boxWidth).Align(lipgloss.Center).Render(buttons)
-	
+
 	formBlock := usrLine + "\n\n" + pwdLine + "\n\n\n" + buttonsBlock
 	form := lipgloss.NewStyle().Width(boxWidth).Align(lipgloss.Center).Render(formBlock)
-	
+
 	// Error line
 	errLine := ""
 	if m.loginError != "" {
@@ -197,17 +197,17 @@ func (m *model) renderLoginView(s *styles) string {
 			errLine = lipgloss.NewStyle().Width(boxWidth).Align(lipgloss.Center).Foreground(lipgloss.Color("196")).Render(m.loginError)
 		}
 	}
-	
+
 	// Help instructions
-	helpText := "Tab/Arrows: Navigate • Enter: Select • Esc: Quit"
+	helpText := "Tab: Navigate • Enter: Select • Esc: Quit"
 	help := lipgloss.NewStyle().Width(boxWidth).Align(lipgloss.Center).Foreground(lipgloss.Color("241")).Render(helpText)
-	
+
 	content := logo + "\n\n" + title + "\n\n" + form
 	if errLine != "" {
 		content += "\n\n" + errLine
 	}
 	content += "\n\n" + help
-	
+
 	// Center the box
 	box := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
@@ -215,7 +215,7 @@ func (m *model) renderLoginView(s *styles) string {
 		Padding(2, 2).
 		Width(boxWidth).
 		Render(content)
-	
+
 	// Use lipgloss to place the box in the middle of the terminal
 	centered := lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, box)
 	return centered
@@ -231,7 +231,7 @@ func (m *model) updateChangePassword(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "enter":
 		pass1 := m.changePasswordForm[0]
 		pass2 := m.changePasswordForm[1]
-		
+
 		if pass1 == "" || pass2 == "" {
 			m.changePasswordErr = "Password cannot be empty."
 			return m, nil
@@ -240,19 +240,19 @@ func (m *model) updateChangePassword(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.changePasswordErr = "Passwords do not match."
 			return m, nil
 		}
-		
+
 		err := storage.UpdateUserPassword(m.baseDataDir, m.user, pass1, false)
 		if err != nil {
 			m.changePasswordErr = "Error: " + err.Error()
 			return m, nil
 		}
-		
+
 		m.isChangingPassword = false
 		m.isLoggedIn = true
 		m.loadUserData()
 		m.loginError = ""
 		m.loginForm = [2]string{} // clear credentials
-		
+
 		var cmds []tea.Cmd
 		if m.settings.WeatherLoc != "" {
 			cmds = append(cmds, fetchWeatherCmd(m.settings.WeatherLoc))
@@ -282,10 +282,10 @@ func (m *model) updateChangePassword(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m *model) renderChangePasswordView(s *styles) string {
 	boxWidth := 56
 	titleText := "CHANGE DEFAULT PASSWORD"
-	
+
 	logo := lipgloss.NewStyle().Width(boxWidth).Align(lipgloss.Center).Render(s.logo.Render(sidebarLogo))
-	title := lipgloss.NewStyle().Width(boxWidth).Align(lipgloss.Center).Render(s.title.Render(titleText))	
-	
+	title := lipgloss.NewStyle().Width(boxWidth).Align(lipgloss.Center).Render(s.title.Render(titleText))
+
 	labelStyle := lipgloss.NewStyle().Width(14).Align(lipgloss.Right).MarginRight(1).Foreground(lipgloss.Color("241"))
 	inputStyle := lipgloss.NewStyle().Width(20).Foreground(lipgloss.Color("252")).Background(lipgloss.Color("236")).PaddingLeft(1)
 	emptyStyle := lipgloss.NewStyle().Width(20).PaddingLeft(1).Foreground(lipgloss.Color("241"))
@@ -306,7 +306,7 @@ func (m *model) renderChangePasswordView(s *styles) string {
 		}
 	}
 	pwdLine := lipgloss.JoinHorizontal(lipgloss.Top, pwdLabel, pwdVal)
-	
+
 	// Password field 2
 	pwd2Label := labelStyle.Render("Confirm:")
 	pwd2ValRaw := m.changePasswordForm[1]
@@ -322,30 +322,30 @@ func (m *model) renderChangePasswordView(s *styles) string {
 		}
 	}
 	pwd2Line := lipgloss.JoinHorizontal(lipgloss.Top, pwd2Label, pwd2Val)
-	
+
 	formBlock := pwdLine + "\n\n" + pwd2Line
 	form := lipgloss.NewStyle().Width(boxWidth).Align(lipgloss.Center).Render(formBlock)
-	
+
 	// Error line
 	errLine := ""
 	if m.changePasswordErr != "" {
 		errLine = lipgloss.NewStyle().Width(boxWidth).Align(lipgloss.Center).Foreground(lipgloss.Color("196")).Render(m.changePasswordErr)
 	}
-	
+
 	help := lipgloss.NewStyle().Width(boxWidth).Align(lipgloss.Center).Foreground(lipgloss.Color("241")).Render("Enter: Confirm • Esc: Quit")
-	
+
 	content := logo + "\n\n" + title + "\n\n" + form
 	if errLine != "" {
 		content += "\n\n" + errLine
 	}
 	content += "\n\n" + help
-	
+
 	box := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("208")).
 		Padding(2, 2).
 		Width(boxWidth).
 		Render(content)
-	
+
 	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, box)
 }
