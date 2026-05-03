@@ -27,6 +27,7 @@ var translations = map[string]map[string]string{
 	"menu.habits":   {"en": "HABITS", "it": "ABITUDINI"},
 	"menu.vehicles": {"en": "VEHICLES", "it": "VEICOLI"},
 	"menu.finances": {"en": "FINANCES", "it": "FINANZE"},
+	"menu.weather":  {"en": "WEATHER", "it": "METEO"},
 	"menu.settings": {"en": "SETTINGS", "it": "IMPOSTAZIONI"},
 	"menu.users":    {"en": "USERS", "it": "UTENTI"},
 	"menu.logout":   {"en": "LOGOUT", "it": "LOGOUT"},

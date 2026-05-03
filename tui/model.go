@@ -40,6 +40,7 @@ var defaultMenuItems = []string{
 	"HABITS",
 	"VEHICLES",
 	"FINANCES",
+	"WEATHER",
 	"SETTINGS",
 	"LOGOUT",
 }
@@ -521,6 +522,8 @@ func (m *model) View() tea.View {
 			contentStr = m.renderFinancesView(s)
 		} else if item == t(m.lang, "menu.habits") {
 			contentStr = m.renderHabitsView(s)
+		} else if item == t(m.lang, "menu.weather") {
+			contentStr = m.renderWeatherView(s)
 		} else if item == t(m.lang, "menu.settings") {
 			contentStr = m.renderSettingsView(s)
 		}
@@ -623,6 +626,10 @@ func (m *model) renderHome(s *styles) string {
 		s.highlight.Render(m.user),
 	))
 
+	return welcome
+}
+
+func (m *model) renderWeatherView(s *styles) string {
 	weatherBox := s.dim.Render("Loading weather...")
 	if m.weatherData != "" {
 		weatherBox = m.weatherData
@@ -632,13 +639,10 @@ func (m *model) renderHome(s *styles) string {
 	weatherBox = strings.TrimRight(weatherBox, "\n")
 	
 	weatherWidget := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("63")).
 		Padding(1, 2).
-		MarginTop(1).
 		Render(weatherBox)
 
-	return welcome + "\n" + weatherWidget
+	return weatherWidget
 }
 
 // renderVehicles is now in vehicles.go as renderVehiclesView
@@ -658,6 +662,7 @@ func (m *model) updateMenuLabels() {
 			t(m.lang, "menu.habits"),
 			t(m.lang, "menu.vehicles"),
 			t(m.lang, "menu.finances"),
+			t(m.lang, "menu.weather"),
 			t(m.lang, "menu.settings"),
 			t(m.lang, "menu.logout"),
 		}
