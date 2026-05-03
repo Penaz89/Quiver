@@ -45,6 +45,7 @@ var defaultMenuItems = []string{
 	"VEHICLES",
 	"FINANCES",
 	"WEATHER",
+	"VAULT",
 	"SETTINGS",
 	"LOGOUT",
 }
@@ -118,10 +119,11 @@ type model struct {
 	adminUserCursor  int
 	adminForm        [2]string
 	adminFormCursor  int
-	adminIsAdding    bool
-	adminIsEditing   bool
-	adminIsDeleting  bool
-	adminError       string
+	adminIsAdding         bool
+	adminIsEditing        bool
+	adminIsDeleting       bool
+	adminIsResettingVault bool
+	adminError            string
 
 	// Vehicle state
 	vehicles             []storage.Vehicle
@@ -199,6 +201,20 @@ type model struct {
 
 	// Weather
 	weatherData string
+
+	// Vault state
+	vaultUnlocked   bool
+	vaultExists     bool
+	vaultSecrets    []storage.Secret
+	vaultMasterPwd  string
+	vaultPwdForm    string
+	vaultPwdError   string
+	vaultCursor     int
+	vaultIsAdding   bool
+	vaultIsEditing  bool
+	vaultIsDeleting bool
+	vaultForm       [4]string
+	vaultFormCursor int
 }
 
 // ─── Styles ──────────────────────────────────────────────────────────
@@ -447,8 +463,12 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if m.isAdmin {
-			if m.menuCursor == 0 && m.focusContent {
-				return m.updateAdminUsers(msg)
+			if m.focusContent {
+				if m.menuCursor == 0 {
+					return m.updateAdminUsers(msg)
+				} else if m.menuCursor == 1 {
+					return m.updateAdminVault(msg)
+				}
 			}
 		} else {
 			if m.focusContent {
@@ -461,8 +481,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m.updateHabits(msg)
 				} else if item == t(m.lang, "menu.journal") {
 					return m.updateJournal(msg)
-				} else if item == t(m.lang, "menu.tasks") {
-					return m.updateTasks(msg)
+				} else if item == t(m.lang, "menu.weather") {
+					// weather view is static
+				} else if item == t(m.lang, "menu.vault") {
+					return m.updateVault(msg)
 				} else if item == t(m.lang, "menu.settings") {
 					return m.updateSettings(msg)
 				}
@@ -487,6 +509,11 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.subs = nil
 					m.housing = nil
 					m.holidays = nil
+					m.vaultUnlocked = false
+					m.vaultExists = false
+					m.vaultMasterPwd = ""
+					m.vaultSecrets = nil
+					m.vaultPwdForm = ""
 					m.updateMenuLabels()
 					return m, nil
 				}
@@ -541,6 +568,8 @@ func (m *model) View() tea.View {
 		switch m.menuCursor {
 		case 0:
 			contentStr = m.renderAdminUsersView(s)
+		case 1:
+			contentStr = m.renderAdminVaultView(s)
 		}
 	} else {
 		item := m.menuItems[m.menuCursor]
@@ -558,6 +587,8 @@ func (m *model) View() tea.View {
 			contentStr = m.renderTasksView(s)
 		} else if item == t(m.lang, "menu.weather") {
 			contentStr = m.renderWeatherView(s)
+		} else if item == t(m.lang, "menu.vault") {
+			contentStr = m.renderVaultView(s)
 		} else if item == t(m.lang, "menu.settings") {
 			contentStr = m.renderSettingsView(s)
 		}
@@ -689,6 +720,7 @@ func (m *model) updateMenuLabels() {
 	if m.isAdmin {
 		m.menuItems = []string{
 			t(m.lang, "menu.users"),
+			t(m.lang, "menu.vault"),
 			t(m.lang, "menu.logout"),
 		}
 	} else {
@@ -700,6 +732,7 @@ func (m *model) updateMenuLabels() {
 			t(m.lang, "menu.vehicles"),
 			t(m.lang, "menu.finances"),
 			t(m.lang, "menu.weather"),
+			t(m.lang, "menu.vault"),
 			t(m.lang, "menu.settings"),
 			t(m.lang, "menu.logout"),
 		}

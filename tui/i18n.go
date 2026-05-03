@@ -30,6 +30,7 @@ var translations = map[string]map[string]string{
 	"menu.vehicles": {"en": "VEHICLES", "it": "VEICOLI"},
 	"menu.finances": {"en": "FINANCES", "it": "FINANZE"},
 	"menu.weather":  {"en": "WEATHER", "it": "METEO"},
+	"menu.vault":    {"en": "VAULT", "it": "VAULT"},
 	"menu.settings": {"en": "SETTINGS", "it": "IMPOSTAZIONI"},
 	"menu.users":    {"en": "USERS", "it": "UTENTI"},
 	"menu.logout":   {"en": "LOGOUT", "it": "LOGOUT"},
@@ -190,6 +191,23 @@ var translations = map[string]map[string]string{
 	"tasks.statusHelp":    {"en": "H/L: change status", "it": "H/L: cambia stato"},
 	"tasks.editHelp":      {"en": "enter: edit", "it": "invio: modifica"},
 	"tasks.deleteHelp":    {"en": "d/del: delete", "it": "d/canc: elimina"},
+
+	// ── Vault view ───────────────────────────────────────────
+	"vault.title":          {"en": "Vault", "it": "Vault"},
+	"vault.subtitle":       {"en": "AES-GCM Encrypted Secrets", "it": "Segreti Cifrati AES-GCM"},
+	"vault.enterMasterPwd": {"en": "Enter Master Password:", "it": "Inserisci Master Password:"},
+	"vault.createMasterPwd":{"en": "Create Master Password (new vault):", "it": "Crea Master Password (nuovo vault):"},
+	"vault.add":            {"en": "Add new secret:", "it": "Aggiungi nuovo segreto:"},
+	"vault.edit":           {"en": "Edit secret:", "it": "Modifica segreto:"},
+	"vault.fieldTitle":     {"en": "Title", "it": "Titolo"},
+	"vault.fieldUsername":  {"en": "Username", "it": "Username"},
+	"vault.fieldPassword":  {"en": "Password", "it": "Password"},
+	"vault.fieldNotes":     {"en": "Notes", "it": "Note"},
+	"vault.confirmDelete":  {"en": "Delete this secret? (y/N)", "it": "Eliminare questo segreto? (s/N)"},
+	"vault.noSecrets":      {"en": "No secrets stored. Press 'n' to add one.", "it": "Nessun segreto. Premi 'n' per aggiungerne uno."},
+	"vault.colTitle":       {"en": "TITLE", "it": "TITOLO"},
+	"vault.colUsername":    {"en": "USERNAME", "it": "USERNAME"},
+	"vault.help":           {"en": "n: new • d/del: delete • enter: view/edit • L: lock vault", "it": "n: nuovo • d/canc: elimina • invio: vedi/modifica • L: blocca vault"},
 
 	// ── Settings view ────────────────────────────────────────
 	"settings.title":       {"en": "Settings", "it": "Impostazioni"},
