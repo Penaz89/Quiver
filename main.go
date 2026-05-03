@@ -33,6 +33,7 @@ import (
 	"charm.land/wish/v2/bubbletea"
 	"charm.land/wish/v2/logging"
 	"github.com/charmbracelet/ssh"
+	"github.com/penaz/quiver/storage"
 	"github.com/penaz/quiver/tui"
 )
 
@@ -52,9 +53,12 @@ func main() {
 	port := envOrDefault("QUIVER_PORT", defaultPort)
 	dataDir := envOrDefault("QUIVER_DATA_DIR", defaultDataDir)
 
-	// Ensure data directory exists
 	if err := os.MkdirAll(dataDir, 0700); err != nil {
 		log.Fatal("Failed to create data directory", "path", dataDir, "error", err)
+	}
+	
+	if err := storage.EnsureAdminUser(dataDir); err != nil {
+		log.Fatal("Failed to ensure admin user", "error", err)
 	}
 
 	// Host key lives on the persistent volume so it survives container recreation

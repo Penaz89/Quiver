@@ -12,6 +12,8 @@ import (
 type User struct {
 	Username     string `json:"username"`
 	PasswordHash string `json:"password_hash"`
+	Role         string `json:"role,omitempty"`
+	MustChange   bool   `json:"must_change,omitempty"`
 }
 
 // GetUsersFile returns the path to the users registry.
@@ -45,19 +47,120 @@ func SaveUsers(dataDir string, users []User) error {
 	return os.WriteFile(GetUsersFile(dataDir), data, 0644)
 }
 
-// CheckUserAuth checks if a username and password match.
-func CheckUserAuth(dataDir, username, password string) bool {
+// CheckUserAuth checks if a username and password match. Returns the User and true if matched.
+func CheckUserAuth(dataDir, username, password string) (*User, bool) {
 	users, err := LoadUsers(dataDir)
 	if err != nil {
-		return false
+		return nil, false
 	}
 	for _, u := range users {
 		if u.Username == username {
 			err = bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password))
-			return err == nil
+			if err == nil {
+				return &u, true
+			}
+			return nil, false
 		}
 	}
-	return false
+	return nil, false
+}
+
+// GetUser gets a user by username
+func GetUser(dataDir, username string) (*User, error) {
+	users, err := LoadUsers(dataDir)
+	if err != nil {
+		return nil, err
+	}
+	for _, u := range users {
+		if u.Username == username {
+			return &u, nil
+		}
+	}
+	return nil, os.ErrNotExist
+}
+
+// DeleteUser deletes a user by username
+func DeleteUser(dataDir, username string) error {
+	users, err := LoadUsers(dataDir)
+	if err != nil {
+		return err
+	}
+	var newUsers []User
+	found := false
+	for _, u := range users {
+		if u.Username != username {
+			newUsers = append(newUsers, u)
+		} else {
+			found = true
+		}
+	}
+	if !found {
+		return os.ErrNotExist
+	}
+	
+	// Try to remove their directory
+	userDir := filepath.Join(dataDir, "users", username)
+	_ = os.RemoveAll(userDir)
+	
+	return SaveUsers(dataDir, newUsers)
+}
+
+// UpdateUserPassword updates the password for a user. If mustChange is false, clears the MustChange flag.
+func UpdateUserPassword(dataDir, username, password string, mustChange bool) error {
+	users, err := LoadUsers(dataDir)
+	if err != nil {
+		return err
+	}
+	
+	found := false
+	for i, u := range users {
+		if u.Username == username {
+			hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+			if err != nil {
+				return err
+			}
+			users[i].PasswordHash = string(hash)
+			users[i].MustChange = mustChange
+			found = true
+			break
+		}
+	}
+	
+	if !found {
+		return os.ErrNotExist
+	}
+	
+	return SaveUsers(dataDir, users)
+}
+
+// EnsureAdminUser creates the default admin user if it doesn't exist.
+func EnsureAdminUser(dataDir string) error {
+	users, err := LoadUsers(dataDir)
+	if err != nil {
+		return err
+	}
+	for _, u := range users {
+		if u.Username == "admin" {
+			return nil
+		}
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte("admin"), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	users = append(users, User{
+		Username:     "admin",
+		PasswordHash: string(hash),
+		Role:         "admin",
+		MustChange:   true,
+	})
+	
+	userDir := filepath.Join(dataDir, "users", "admin")
+	if err := os.MkdirAll(userDir, 0700); err != nil {
+		return err
+	}
+	
+	return SaveUsers(dataDir, users)
 }
 
 // CreateUser creates a new user if the username doesn't exist.

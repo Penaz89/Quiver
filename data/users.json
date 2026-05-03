@@ -4,7 +4,8 @@
     "password_hash": "$2a$10$5hrkZaMCo9Tnml9uIVLGe.ojvA.LUqJLGLHMdGYJL5d1tgqMxHNB."
   },
   {
-    "username": "Zappi",
-    "password_hash": "$2a$10$RQLi.UnINxppuz9C3I/m5.l/ouXXVUzOCJSSxLYj4.q5HD0uDiODO"
+    "username": "admin",
+    "password_hash": "$2a$10$yuXzb6oc5oU1EaIkPQ7qQu7IxqkisRL6IFfx7u8rzMljRWJWMzD06",
+    "role": "admin"
   }
 ]

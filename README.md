@@ -10,6 +10,13 @@
 
 An SSH-accessible TUI application built with [Wish](https://github.com/charmbracelet/wish) and [Bubble Tea](https://github.com/charmbracelet/bubbletea), running in a stateless Alpine Linux container.
 
+## Features
+
+- **Multi-user Authentication**: Secure login system with bcrypt encryption. User data is isolated in personal directories.
+- **Administrative Control Panel**: A dedicated special `admin` user is generated automatically on the first run. The admin has access to an exclusive menu to list, add, edit (force password change), and safely delete users via a confirmation prompt.
+- **Financial & Vehicle Tracking**: Advanced TUI views for managing vehicle logs (maintenance, tax, insurance) and personal finances (housing, holidays, subscriptions) with real-time statistics.
+- **Stateless & Portable**: Fully dockerized. Simply mount a volume to persist user data, settings, and SSH host keys.
+
 ## Architecture
 
 ```

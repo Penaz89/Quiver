@@ -35,7 +35,7 @@ type ProgramOption = tea.ProgramOption
 
 // ─── Menu items ──────────────────────────────────────────────────────
 
-var menuItems = []string{
+var defaultMenuItems = []string{
 	"HOME",
 	"VEHICLES",
 	"FINANCES",
@@ -85,14 +85,20 @@ type model struct {
 	profile string
 
 	// Auth state
-	isLoggedIn    bool
-	isRegistering bool
-	loginForm     [2]string
-	loginCursor   int
-	loginError    string
-	baseDataDir   string
+	isLoggedIn         bool
+	isRegistering      bool
+	loginForm          [2]string
+	loginCursor        int
+	loginError         string
+	baseDataDir        string
+	isAdmin            bool
+	isChangingPassword bool
+	changePasswordForm [2]string
+	changePasswordCur  int
+	changePasswordErr  string
 
 	// App state
+	menuItems    []string
 	menuCursor   int
 	focusContent bool
 	dataDir      string
@@ -100,6 +106,16 @@ type model struct {
 	lang         string // "en" or "it"
 	settings     storage.Settings
 	vp           viewport.Model
+
+	// Admin state
+	adminUsers       []storage.User
+	adminUserCursor  int
+	adminForm        [2]string
+	adminFormCursor  int
+	adminIsAdding    bool
+	adminIsEditing   bool
+	adminIsDeleting  bool
+	adminError       string
 
 	// Vehicle state
 	vehicles             []storage.Vehicle
@@ -284,6 +300,7 @@ func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramO
 		width:       pty.Window.Width,
 		height:      pty.Window.Height,
 		bg:          "light",
+		menuItems:   append([]string(nil), defaultMenuItems...),
 		menuCursor:  0,
 		dataDir:     dataDir,
 		baseDataDir: dataDir,
@@ -391,27 +408,41 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		// Route input to vehicle section when active
-		if m.menuCursor == 1 && m.focusContent {
-			return m.updateVehicleSection(msg)
-		}
-
-		// Route input to finances section when active
-		if m.menuCursor == 2 && m.focusContent {
-			return m.updateFinances(msg)
-		}
-
-		// Route input to settings when active
-		if m.menuCursor == 3 && m.focusContent {
-			return m.updateSettings(msg)
+		if m.isAdmin {
+			if m.menuCursor == 0 && m.focusContent {
+				return m.updateAdminUsers(msg)
+			}
+		} else {
+			// Route input to vehicle section when active
+			if m.menuCursor == 1 && m.focusContent {
+				return m.updateVehicleSection(msg)
+			}
+	
+			// Route input to finances section when active
+			if m.menuCursor == 2 && m.focusContent {
+				return m.updateFinances(msg)
+			}
+	
+			// Route input to settings when active
+			if m.menuCursor == 3 && m.focusContent {
+				return m.updateSettings(msg)
+			}
 		}
 
 		// Toggle focus between sidebar and content
 		switch msg.String() {
 		case "tab", "enter", "right":
 			if !m.focusContent {
-				if m.menuCursor == 4 {
+				isLogout := false
+				if m.isAdmin && m.menuCursor == 1 {
+					isLogout = true
+				} else if !m.isAdmin && m.menuCursor == 4 {
+					isLogout = true
+				}
+
+				if isLogout {
 					m.isLoggedIn = false
+					m.isAdmin = false
 					m.menuCursor = 0
 					m.user = ""
 					m.loginForm = [2]string{}
@@ -422,6 +453,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.subs = nil
 					m.housing = nil
 					m.holidays = nil
+					m.updateMenuLabels()
 					return m, nil
 				}
 				m.focusContent = true
@@ -444,7 +476,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.menuCursor--
 				}
 			case "down", "j":
-				if m.menuCursor < len(menuItems)-1 {
+				if m.menuCursor < len(m.menuItems)-1 {
 					m.menuCursor++
 				}
 			}
@@ -457,6 +489,11 @@ func (m *model) View() tea.View {
 	s := newStyles(m.width, m.height)
 	
 	if !m.isLoggedIn {
+		if m.isChangingPassword {
+			v := tea.NewView(m.renderChangePasswordView(s))
+			v.AltScreen = true
+			return v
+		}
 		v := tea.NewView(m.renderLoginView(s))
 		v.AltScreen = true
 		return v
@@ -466,15 +503,22 @@ func (m *model) View() tea.View {
 
 	// ── Content area ─────────────────────────────────────────
 	var contentStr string
-	switch m.menuCursor {
-	case 0:
-		contentStr = m.renderHome(s)
-	case 1:
-		contentStr = m.renderVehiclesView(s)
-	case 2:
-		contentStr = m.renderFinancesView(s)
-	case 3:
-		contentStr = m.renderSettingsView(s)
+	if m.isAdmin {
+		switch m.menuCursor {
+		case 0:
+			contentStr = m.renderAdminUsersView(s)
+		}
+	} else {
+		switch m.menuCursor {
+		case 0:
+			contentStr = m.renderHome(s)
+		case 1:
+			contentStr = m.renderVehiclesView(s)
+		case 2:
+			contentStr = m.renderFinancesView(s)
+		case 3:
+			contentStr = m.renderSettingsView(s)
+		}
 	}
 	// Configure viewport size based on the layout
 	contentWidth := m.width - sw - 6 // borders + padding
@@ -526,7 +570,7 @@ func (m *model) View() tea.View {
 		sep := s.dim.Render(strings.Repeat("─", sw-4))
 
 		var menuLines []string
-		for i, item := range menuItems {
+		for i, item := range m.menuItems {
 			if i == m.menuCursor {
 				menuLines = append(menuLines, s.menuSelected.Width(sw-4).Render(item))
 			} else {
@@ -543,7 +587,7 @@ func (m *model) View() tea.View {
 	} else {
 		// ── Compact: no sidebar, show current view name at top ─
 		indicator := s.dim.Render("◂ ") +
-			s.highlight.Render(menuItems[m.menuCursor]) +
+			s.highlight.Render(m.menuItems[m.menuCursor]) +
 			s.dim.Render(" ▸")
 		layout = indicator + "\n" + content
 	}
@@ -598,9 +642,18 @@ func (m *model) renderHome(s *styles) string {
 
 // updateMenuLabels refreshes menu item labels based on the current language.
 func (m *model) updateMenuLabels() {
-	menuItems[0] = t(m.lang, "menu.home")
-	menuItems[1] = t(m.lang, "menu.vehicles")
-	menuItems[2] = t(m.lang, "menu.finances")
-	menuItems[3] = t(m.lang, "menu.settings")
-	menuItems[4] = t(m.lang, "menu.logout")
+	if m.isAdmin {
+		m.menuItems = []string{
+			t(m.lang, "menu.users"),
+			t(m.lang, "menu.logout"),
+		}
+		return
+	}
+	
+	m.menuItems = append([]string(nil), defaultMenuItems...)
+	m.menuItems[0] = t(m.lang, "menu.home")
+	m.menuItems[1] = t(m.lang, "menu.vehicles")
+	m.menuItems[2] = t(m.lang, "menu.finances")
+	m.menuItems[3] = t(m.lang, "menu.settings")
+	m.menuItems[4] = t(m.lang, "menu.logout")
 }
