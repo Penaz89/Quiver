@@ -17,10 +17,18 @@ func (m *model) updateLogin(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 	switch key {
 	case "tab", "down":
-		m.loginCursor = (m.loginCursor + 1) % 2
+		m.loginCursor = (m.loginCursor + 1) % 4
 	case "shift+tab", "up":
-		m.loginCursor = (m.loginCursor - 1 + 2) % 2
+		m.loginCursor = (m.loginCursor - 1 + 4) % 4
 	case "enter":
+		if m.loginCursor == 3 {
+			m.isRegistering = !m.isRegistering
+			m.loginError = ""
+			m.loginForm[1] = ""
+			m.loginCursor = 0
+			return m, nil
+		}
+		
 		user := strings.TrimSpace(m.loginForm[0])
 		pass := m.loginForm[1]
 		
@@ -75,22 +83,22 @@ func (m *model) updateLogin(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 	case "backspace":
-		field := &m.loginForm[m.loginCursor]
-		if len(*field) > 0 {
-			runes := []rune(*field)
-			*field = string(runes[:len(runes)-1])
+		if m.loginCursor < 2 {
+			field := &m.loginForm[m.loginCursor]
+			if len(*field) > 0 {
+				runes := []rune(*field)
+				*field = string(runes[:len(runes)-1])
+			}
 		}
-	case "ctrl+n":
-		m.isRegistering = !m.isRegistering
-		m.loginError = ""
-		m.loginForm[1] = ""
 	default:
-		if key == "space" {
-			key = " "
-		}
-		runes := []rune(key)
-		if len(runes) == 1 && unicode.IsPrint(runes[0]) {
-			m.loginForm[m.loginCursor] += key
+		if m.loginCursor < 2 {
+			if key == "space" {
+				key = " "
+			}
+			runes := []rune(key)
+			if len(runes) == 1 && unicode.IsPrint(runes[0]) {
+				m.loginForm[m.loginCursor] += key
+			}
 		}
 	}
 	return m, nil
@@ -144,7 +152,34 @@ func (m *model) renderLoginView(s *styles) string {
 	}
 	pwdLine := lipgloss.JoinHorizontal(lipgloss.Top, pwdLabel, pwdVal)
 	
-	formBlock := usrLine + "\n\n" + pwdLine
+	// Action buttons
+	btnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Background(lipgloss.Color("236")).Padding(0, 2)
+	activeBtnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("232")).Background(lipgloss.Color("42")).Padding(0, 2).Bold(true)
+	
+	var submitText string
+	var toggleText string
+	if m.isRegistering {
+		submitText = "REGISTER"
+		toggleText = "Back to Login"
+	} else {
+		submitText = "LOGIN"
+		toggleText = "Create Account"
+	}
+	
+	submitBtn := btnStyle.Render(submitText)
+	if m.loginCursor == 2 {
+		submitBtn = activeBtnStyle.Render(submitText)
+	}
+	
+	toggleBtn := btnStyle.Render(toggleText)
+	if m.loginCursor == 3 {
+		toggleBtn = activeBtnStyle.Render(toggleText)
+	}
+	
+	buttons := lipgloss.JoinHorizontal(lipgloss.Center, submitBtn, "   ", toggleBtn)
+	buttonsBlock := lipgloss.NewStyle().Width(boxWidth).Align(lipgloss.Center).Render(buttons)
+	
+	formBlock := usrLine + "\n\n" + pwdLine + "\n\n\n" + buttonsBlock
 	form := lipgloss.NewStyle().Width(boxWidth).Align(lipgloss.Center).Render(formBlock)
 	
 	// Error line
@@ -158,12 +193,7 @@ func (m *model) renderLoginView(s *styles) string {
 	}
 	
 	// Help instructions
-	var helpText string
-	if m.isRegistering {
-		helpText = "Enter: Register • Esc: Cancel"
-	} else {
-		helpText = "Enter: Login • Ctrl+N: Create Account • Esc: Quit"
-	}
+	helpText := "Tab/Arrows: Navigate • Enter: Select • Esc: Quit"
 	help := lipgloss.NewStyle().Width(boxWidth).Align(lipgloss.Center).Foreground(lipgloss.Color("241")).Render(helpText)
 	
 	content := logo + "\n\n" + title + "\n\n" + form

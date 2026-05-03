@@ -28,7 +28,7 @@ func (m *model) updateAdminUsers(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if len(m.adminUsers) > 0 && m.adminUserCursor < len(m.adminUsers)-1 {
 			m.adminUserCursor++
 		}
-	case "ctrl+n", "n":
+	case "n", "N":
 		m.adminIsAdding = true
 		m.adminIsEditing = false
 		m.adminForm = [2]string{}
