@@ -69,7 +69,12 @@ func (m *model) updateLogin(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.loadUserData()
 				m.loginError = ""
 				m.loginForm = [2]string{} // clear credentials
-				return m, nil
+				
+				var cmds []tea.Cmd
+				if m.settings.WeatherLoc != "" {
+					cmds = append(cmds, fetchWeatherCmd(m.settings.WeatherLoc))
+				}
+				return m, tea.Batch(cmds...)
 			}
 			m.loginError = "Invalid username or password."
 			m.loginForm[1] = "" // clear password
@@ -246,7 +251,12 @@ func (m *model) updateChangePassword(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.loadUserData()
 		m.loginError = ""
 		m.loginForm = [2]string{} // clear credentials
-		return m, nil
+		
+		var cmds []tea.Cmd
+		if m.settings.WeatherLoc != "" {
+			cmds = append(cmds, fetchWeatherCmd(m.settings.WeatherLoc))
+		}
+		return m, tea.Batch(cmds...)
 	case "esc":
 		// Cannot skip password change, quit application
 		return m, tea.Quit

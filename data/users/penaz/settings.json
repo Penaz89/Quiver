@@ -1,4 +1,7 @@
 {
   "language": "it",
-  "weather_loc": "Verona,Italy"
+  "weather_loc": "Verona,Italy",
+  "rss_urls": [
+    "https://www.ansa.it/sito/notizie/topnews/topnews_rss.xml"
+  ]
 }

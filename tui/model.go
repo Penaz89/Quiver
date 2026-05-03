@@ -415,19 +415,15 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m.updateAdminUsers(msg)
 			}
 		} else {
-			// Route input to vehicle section when active
-			if m.menuCursor == 1 && m.focusContent {
-				return m.updateVehicleSection(msg)
-			}
-	
-			// Route input to finances section when active
-			if m.menuCursor == 2 && m.focusContent {
-				return m.updateFinances(msg)
-			}
-	
-			// Route input to settings when active
-			if m.menuCursor == 3 && m.focusContent {
-				return m.updateSettings(msg)
+			if m.focusContent {
+				item := m.menuItems[m.menuCursor]
+				if item == t(m.lang, "menu.vehicles") {
+					return m.updateVehicleSection(msg)
+				} else if item == t(m.lang, "menu.finances") {
+					return m.updateFinances(msg)
+				} else if item == t(m.lang, "menu.settings") {
+					return m.updateSettings(msg)
+				}
 			}
 		}
 
@@ -435,14 +431,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "tab", "enter", "right":
 			if !m.focusContent {
-				isLogout := false
-				if m.isAdmin && m.menuCursor == 1 {
-					isLogout = true
-				} else if !m.isAdmin && m.menuCursor == 4 {
-					isLogout = true
-				}
-
-				if isLogout {
+				item := m.menuItems[m.menuCursor]
+				if item == t(m.lang, "menu.logout") {
 					m.isLoggedIn = false
 					m.isAdmin = false
 					m.menuCursor = 0
@@ -511,14 +501,14 @@ func (m *model) View() tea.View {
 			contentStr = m.renderAdminUsersView(s)
 		}
 	} else {
-		switch m.menuCursor {
-		case 0:
+		item := m.menuItems[m.menuCursor]
+		if item == t(m.lang, "menu.home") {
 			contentStr = m.renderHome(s)
-		case 1:
+		} else if item == t(m.lang, "menu.vehicles") {
 			contentStr = m.renderVehiclesView(s)
-		case 2:
+		} else if item == t(m.lang, "menu.finances") {
 			contentStr = m.renderFinancesView(s)
-		case 3:
+		} else if item == t(m.lang, "menu.settings") {
 			contentStr = m.renderSettingsView(s)
 		}
 	}
@@ -649,13 +639,13 @@ func (m *model) updateMenuLabels() {
 			t(m.lang, "menu.users"),
 			t(m.lang, "menu.logout"),
 		}
-		return
+	} else {
+		m.menuItems = []string{
+			t(m.lang, "menu.home"),
+			t(m.lang, "menu.vehicles"),
+			t(m.lang, "menu.finances"),
+			t(m.lang, "menu.settings"),
+			t(m.lang, "menu.logout"),
+		}
 	}
-	
-	m.menuItems = append([]string(nil), defaultMenuItems...)
-	m.menuItems[0] = t(m.lang, "menu.home")
-	m.menuItems[1] = t(m.lang, "menu.vehicles")
-	m.menuItems[2] = t(m.lang, "menu.finances")
-	m.menuItems[3] = t(m.lang, "menu.settings")
-	m.menuItems[4] = t(m.lang, "menu.logout")
 }
