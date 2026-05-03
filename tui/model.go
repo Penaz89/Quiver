@@ -652,16 +652,7 @@ func (m *model) View() tea.View {
 	return v
 }
 
-// ─── Views ───────────────────────────────────────────────────────────
-
-func (m *model) renderHome(s *styles) string {
-	welcome := s.info.Render(fmt.Sprintf(
-		t(m.lang, "home.welcome"),
-		s.highlight.Render(m.user),
-	))
-
-	return welcome
-}
+// renderHome is now in home.go
 
 func (m *model) renderWeatherView(s *styles) string {
 	weatherBox := s.dim.Render("Loading weather...")

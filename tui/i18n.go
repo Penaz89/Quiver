@@ -36,11 +36,18 @@ var translations = map[string]map[string]string{
 
 	// ── Home view ────────────────────────────────────────────
 	"home.welcome":      {"en": "Welcome back, %s!", "it": "Bentornato, %s!"},
-	"home.terminal":     {"en": "Terminal:", "it": "Terminale:"},
-	"home.window":       {"en": "Window:", "it": "Finestra:"},
-	"home.background":   {"en": "Background:", "it": "Sfondo:"},
-	"home.colorProfile": {"en": "Color Profile:", "it": "Profilo Colore:"},
-	"home.dataDir":      {"en": "Data Directory:", "it": "Cartella Dati:"},
+	"home.finances":     {"en": "FIXED EXPENSES SUMMARY", "it": "RESOCONTO SPESE FISSE"},
+	"home.annual":       {"en": "Annual:", "it": "Annuale:"},
+	"home.monthly":      {"en": "Monthly:", "it": "Mensile:"},
+	"home.deadlines":    {"en": "UPCOMING DEADLINES", "it": "PROSSIME SCADENZE"},
+	"home.noDeadlines":  {"en": "No upcoming deadlines.", "it": "Nessuna scadenza in vista."},
+	"home.recentNotes":  {"en": "RECENT NOTES", "it": "ULTIME NOTE"},
+	"home.noNotes":      {"en": "No journal entries yet.", "it": "Nessuna nota nel diario."},
+	"home.recentTasks":  {"en": "RECENT TASKS", "it": "ULTIME ATTIVITÀ"},
+	"home.noTasks":      {"en": "No tasks found.", "it": "Nessuna attività presente."},
+	"home.tagNTC":       {"en": "NTC", "it": "Revisione"},
+	"home.tagTax":       {"en": "Tax", "it": "Bollo"},
+	"home.tagIns":       {"en": "Ins.", "it": "RCA"},
 
 	// ── Vehicles section ─────────────────────────────────────
 	"vehicles.title":          {"en": "Vehicles", "it": "Veicoli"},
