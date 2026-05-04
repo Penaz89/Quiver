@@ -1,0 +1,12 @@
+services:
+  quiver:
+    image: ghcr.io/penaz89/quiver:1.0.0
+    container_name: quiver
+    ports:
+      - "2222:2222"
+    volumes:
+      - quiver_data:/data
+    restart: unless-stopped
+
+volumes:
+  quiver_data:
