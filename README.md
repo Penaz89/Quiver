@@ -13,13 +13,13 @@ An advanced SSH-accessible Terminal User Interface (TUI) application built with 
 ## Features
 
 - **Multi-user Authentication**: Secure login system with bcrypt encryption. Each user's data is isolated in their own personal directory. Includes account creation and secure logout functionalities.
-- **Admin Control Panel**: A special `admin` user is generated automatically on the first run. The admin has access to an exclusive menu to list, add, edit, and securely delete users.
+- **Admin Control Panel**: A special `admin` user is generated automatically on the first run (the default password is `admin`, valid only for the first login, after which you will be forced to change it). The admin has access to an exclusive menu to list, add, edit, and securely delete users.
 - **Dynamic Home Dashboard**: A fully responsive landing page summarizing your financial totals, upcoming deadlines (drawn from Tasks, Vehicles, and Insurances), your latest Journal notes, and your most recently added Tasks.
 - **Real-Time Chat**: Integrated chat interface allowing users within the same Quiver instance to communicate in real-time, featuring a clean, responsive layout.
 - **GTD Task Management**: A Kanban-style "Getting Things Done" workflow. Track tasks across columns (`TODO`, `DOING`, `DONE`) with priority markers, projects, and deadlines.
 - **Habit Tracker**: Track daily habits in a "Don't Break The Chain" style, visualizing progress with a GitHub-style ASCII heatmap.
 - **Journal**: A personal plain-text daily journal featuring date-based navigation and automated Markdown export capabilities.
-- **Financial & Vehicle Tracking**: Advanced modules for calculating personal finances (rent/mortgage, holidays, subscriptions) to give you accurate monthly and annual burn rates. Includes comprehensive vehicle management for tracking maintenance ("Tagliando"), road tax, and insurance deadlines.
+- **Financial & Vehicle Tracking**: Advanced modules for calculating personal finances (rent/mortgage, holidays, subscriptions) to give you accurate monthly and annual burn rates. Includes comprehensive vehicle management for tracking maintenance, road tax, and insurance deadlines.
 - **Live Weather**: Integrated weather widget utilizing `wttr.in`.
 - **Theming System**: Dynamically switchable color palettes accessible from Settings. Includes beautiful built-in themes like *Catppuccin*, *Nord*, *Gruvbox*, *Kanagawa*, *Everforest*, and an 80s *Retro Green*. Fully supports custom user-made themes loaded via JSON files.
 - **Localization (i18n)**: Full support for both English and Italian languages, changeable seamlessly from the Settings menu.
@@ -77,7 +77,7 @@ volumes:
 1. Navigate to **Stacks** -> **Add stack**.
 2. Paste the `docker-compose.yml` above.
 3. Click **Deploy the stack**.
-4. Connect via terminal: `ssh localhost -p 2222` (replace localhost with your server's IP).
+4. Connect via terminal: `ssh localhost -p 2222` (replace localhost with your server's IP). **Note:** The SSH connection does not require a password. If prompted, just press enter; authentication is handled internally by the Quiver TUI.
 
 ### 2. Docker CLI
 
@@ -107,7 +107,7 @@ go mod tidy
 # Run the SSH server locally
 QUIVER_DATA_DIR=./data go run .
 
-# In another terminal window, connect via SSH
+# In another terminal window, connect via SSH (no SSH password required)
 ssh localhost -p 2222
 ```
 
