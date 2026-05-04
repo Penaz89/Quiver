@@ -220,6 +220,8 @@ var translations = map[string]map[string]string{
 	"settings.saved":       {"en": "Settings saved!", "it": "Impostazioni salvate!"},
 	"settings.weatherLoc":  {"en": "Weather", "it": "Meteo"},
 	"settings.location":    {"en": "Location", "it": "Località"},
+	"settings.theme":       {"en": "Theme", "it": "Tema"},
+	"settings.currentTheme": {"en": "Current:", "it": "Attuale:"},
 	// ── Help bar ─────────────────────────────────────────────
 	"help.navigate":       {"en": "navigate", "it": "naviga"},
 	"help.enter":          {"en": "enter", "it": "entra"},

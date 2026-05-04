@@ -21,6 +21,7 @@ An advanced SSH-accessible Terminal User Interface (TUI) application built with 
 - **Journal**: A personal plain-text daily journal featuring date-based navigation and automated Markdown export capabilities.
 - **Financial & Vehicle Tracking**: Advanced modules for calculating personal finances (rent/mortgage, holidays, subscriptions) to give you accurate monthly and annual burn rates. Includes comprehensive vehicle management for tracking maintenance ("Tagliando"), road tax, and insurance deadlines.
 - **Live Weather**: Integrated weather widget utilizing `wttr.in`.
+- **Theming System**: Dynamically switchable color palettes accessible from Settings. Includes beautiful built-in themes like *Catppuccin*, *Nord*, *Gruvbox*, *Kanagawa*, *Everforest*, and an 80s *Retro Green*. Fully supports custom user-made themes loaded via JSON files.
 - **Localization (i18n)**: Full support for both English and Italian languages, changeable seamlessly from the Settings menu.
 - **Modern ASCII Branding**: Cohesive and readable visual identity using "Slant" ASCII fonts, optimized for constrained terminal layouts.
 - **Stateless & Portable**: Fully Dockerized architecture. Destroy and recreate the container at will; just mount a volume to persist user data, settings, and SSH host keys.
@@ -126,6 +127,7 @@ The mapped `/data` volume will generate the following structure automatically:
 - `host_key_ed25519`: The secure SSH host key. Persisting this prevents SSH clients from throwing warnings if you recreate the container.
 - `admin_auth.json`: Secure bcrypt credentials for the default admin user.
 - `{username}/`: Dedicated folders containing all JSON-based data stores (habits, journal, tasks, finances, etc.) for that specific user.
+- `themes/`: Directory for placing custom `.json` theme definitions to be loaded dynamically.
 
 ### Backing Up Data
 

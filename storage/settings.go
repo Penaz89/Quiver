@@ -26,6 +26,7 @@ import (
 type Settings struct {
 	Language   string `json:"language"`    // "en" or "it"
 	WeatherLoc string `json:"weather_loc"` // e.g. "Rome"
+	Theme      string `json:"theme"`       // e.g. "default", "catppuccin", "nord"
 }
 
 // DefaultSettings returns settings with default values.
@@ -33,6 +34,7 @@ func DefaultSettings() Settings {
 	return Settings{
 		Language:   "it",
 		WeatherLoc: "Rome",
+		Theme:      "default",
 	}
 }
 
@@ -54,6 +56,9 @@ func LoadSettings(dataDir string) Settings {
 	}
 	if s.Language == "" {
 		s.Language = "en"
+	}
+	if s.Theme == "" {
+		s.Theme = "default"
 	}
 	return s
 }

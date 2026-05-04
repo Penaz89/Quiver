@@ -41,6 +41,7 @@ const (
 	sSectionMenu setSection = iota
 	sSectionLang
 	sSectionWeather
+	sSectionTheme
 )
 
 // ─── Settings update ─────────────────────────────────────────────────
@@ -53,7 +54,7 @@ func (m *model) updateSettings(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.settingsMenuCursor--
 			}
 		case "down", "j":
-			if m.settingsMenuCursor < 1 { // 2 items
+			if m.settingsMenuCursor < 2 { // 3 items
 				m.settingsMenuCursor++
 			}
 		case "enter", "right":
@@ -113,6 +114,27 @@ func (m *model) updateSettings(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.settings.WeatherLoc += key
 			}
 		}
+	case sSectionTheme:
+		themes := storage.GetAvailableThemes(m.dataDir)
+		switch key {
+		case "up", "shift+tab":
+			if m.settingsCursor > 0 {
+				m.settingsCursor--
+			}
+		case "down", "tab":
+			if m.settingsCursor < len(themes)-1 {
+				m.settingsCursor++
+			}
+		case "enter":
+			selected := themes[m.settingsCursor]
+			if selected != m.settings.Theme {
+				m.settings.Theme = selected
+				m.theme = storage.LoadTheme(m.dataDir, selected)
+				_ = storage.SaveSettings(m.dataDir, m.settings)
+			}
+		case "esc", "left":
+			m.settingsSection = sSectionMenu
+		}
 	}
 	return m, nil
 }
@@ -129,7 +151,7 @@ func (m *model) renderSettingsView(s *styles) string {
 	title := s.title.Render(t(m.lang, "settings.title"))
 	desc := s.subtitle.Render(t(m.lang, "settings.subtitle"))
 
-	labels := []string{strings.ToUpper(t(m.lang, "settings.language")), strings.ToUpper(t(m.lang, "settings.weatherLoc"))}
+	labels := []string{strings.ToUpper(t(m.lang, "settings.language")), strings.ToUpper(t(m.lang, "settings.weatherLoc")), strings.ToUpper(t(m.lang, "settings.theme"))}
 	var lines []string
 	for i, l := range labels {
 		if m.settingsSection == sSectionMenu && m.settingsMenuCursor == i {
@@ -154,6 +176,8 @@ func (m *model) renderSettingsView(s *styles) string {
 		col3 = m.renderSettingsLang(s)
 	case sSectionWeather:
 		col3 = m.renderSettingsWeather(s)
+	case sSectionTheme:
+		col3 = m.renderSettingsTheme(s)
 	}
 
 	col2Height := lipgloss.Height(col2)
@@ -226,6 +250,41 @@ func (m *model) renderSettingsWeather(s *styles) string {
 		t(m.lang, "action.save"), t(m.lang, "help.goBack")))
 
 	return weatherTitle + "\n\n" + weatherInput + help
+}
+
+func (m *model) renderSettingsTheme(s *styles) string {
+	themeTitle := s.info.Render("  " + strings.ToUpper(t(m.lang, "settings.theme")))
+	currentName := storage.GetThemeName(m.dataDir, m.settings.Theme)
+	current := s.dim.Render(fmt.Sprintf("  %s ", t(m.lang, "settings.currentTheme"))) +
+		s.highlight.Render(currentName)
+
+	themes := storage.GetAvailableThemes(m.dataDir)
+	var options []string
+	for i, opt := range themes {
+		displayName := storage.GetThemeName(m.dataDir, opt)
+		label := fmt.Sprintf("  %s", displayName)
+		if i == m.settingsCursor {
+			row := s.menuSelected.Width(0).Render("  ▸ " + label)
+			if opt == m.settings.Theme {
+				check := lipgloss.NewStyle().Foreground(lipgloss.Color(m.theme.Status)).Render(" ✓")
+				row += check
+			}
+			options = append(options, row)
+		} else {
+			row := s.menuNormal.Width(0).Render("    " + label)
+			if opt == m.settings.Theme {
+				check := lipgloss.NewStyle().Foreground(lipgloss.Color(m.theme.Status)).Render(" ✓")
+				row += check
+			}
+			options = append(options, row)
+		}
+	}
+
+	optList := strings.Join(options, "\n")
+	help := s.dim.Render(fmt.Sprintf("\n\n↑/↓: %s  Enter: %s  ←: %s",
+		t(m.lang, "help.navigate"), t(m.lang, "action.save"), t(m.lang, "help.goBack")))
+
+	return themeTitle + "\n" + current + "\n\n" + optList + help
 }
 
 // langDisplayName returns the full display name for a language code.

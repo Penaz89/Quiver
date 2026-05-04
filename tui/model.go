@@ -114,6 +114,7 @@ type model struct {
 	version      string
 	lang         string // "en" or "it"
 	settings     storage.Settings
+	theme        storage.ThemeColors
 	vp           viewport.Model
 
 	// Admin state
@@ -246,6 +247,7 @@ type styles struct {
 	infoBox        lipgloss.Style
 	status         lipgloss.Style
 	helpBar        lipgloss.Style
+	fieldBg        lipgloss.Style
 }
 
 // sidebarWidth returns the sidebar width for the given terminal width.
@@ -259,7 +261,7 @@ func sidebarWidth(termWidth int) int {
 	return 26 // normal
 }
 
-func newStyles(width, height int) *styles {
+func newStyles(width, height int, theme storage.ThemeColors) *styles {
 	sw := sidebarWidth(width)
 
 	// Content panel fills the remaining space
@@ -282,7 +284,7 @@ func newStyles(width, height int) *styles {
 			Width(sw).
 			Height(contentHeight).
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("63")).
+			BorderForeground(lipgloss.Color(theme.Border)).
 			Padding(1, 1)
 	}
 
@@ -292,57 +294,60 @@ func newStyles(width, height int) *styles {
 			Width(contentWidth).
 			Height(contentHeight).
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("63")).
+			BorderForeground(lipgloss.Color(theme.Border)).
 			Padding(1, 2),
 		contentFocused: lipgloss.NewStyle().
 			Width(contentWidth).
 			Height(contentHeight).
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("205")).
+			BorderForeground(lipgloss.Color(theme.BorderFocus)).
 			Padding(1, 2),
 		logo: lipgloss.NewStyle().
 			Bold(true).
-			Foreground(lipgloss.Color("205")),
+			Foreground(lipgloss.Color(theme.Logo)),
 		version: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("241")).
+			Foreground(lipgloss.Color(theme.Version)).
 			Italic(true),
 		menuNormal: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("252")).
+			Foreground(lipgloss.Color(theme.MenuNormal)).
 			PaddingLeft(1),
 		menuSelected: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("255")).
-			Background(lipgloss.Color("63")).
+			Foreground(lipgloss.Color(theme.MenuSelectedFg)).
+			Background(lipgloss.Color(theme.MenuSelectedBg)).
 			Bold(true).
 			PaddingLeft(1),
 		menuActiveDim: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("252")).
-			Background(lipgloss.Color("237")).
+			Foreground(lipgloss.Color(theme.MenuActiveDimFg)).
+			Background(lipgloss.Color(theme.MenuActiveDimBg)).
 			Bold(true).
 			PaddingLeft(1),
 		title: lipgloss.NewStyle().
 			Bold(true).
-			Foreground(lipgloss.Color("205")).
+			Foreground(lipgloss.Color(theme.Title)).
 			MarginBottom(1),
 		subtitle: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("141")).
+			Foreground(lipgloss.Color(theme.Subtitle)).
 			Italic(true).
 			MarginBottom(1),
 		info: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("252")),
+			Foreground(lipgloss.Color(theme.Info)),
 		highlight: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("212")).
+			Foreground(lipgloss.Color(theme.Highlight)).
 			Bold(true),
 		dim: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("241")),
+			Foreground(lipgloss.Color(theme.Dim)),
 		infoBox: lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("63")).
+			BorderForeground(lipgloss.Color(theme.Border)).
 			Padding(1, 2).
 			MarginTop(1),
 		status: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("42")),
+			Foreground(lipgloss.Color(theme.Status)),
 		helpBar: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("241")),
+			Foreground(lipgloss.Color(theme.HelpBar)),
+		fieldBg: lipgloss.NewStyle().
+			Foreground(lipgloss.Color(theme.Info)).
+			Background(lipgloss.Color(theme.FieldBg)),
 	}
 }
 
@@ -416,6 +421,11 @@ func (m *model) loadUserData() {
 	if m.settings.Language != "" {
 		m.lang = m.settings.Language
 	}
+	if m.settings.Theme == "" {
+		m.settings.Theme = "default"
+	}
+	m.theme = storage.LoadTheme(m.dataDir, m.settings.Theme)
+
 	m.updateMenuLabels()
 }
 
@@ -597,7 +607,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *model) View() tea.View {
-	s := newStyles(m.width, m.height)
+	s := newStyles(m.width, m.height, m.theme)
 
 	if !m.isLoggedIn {
 		if m.isChangingPassword {
