@@ -20,11 +20,10 @@ An advanced SSH-accessible Terminal User Interface (TUI) application built with 
 - **Habit Tracker**: Track daily habits in a "Don't Break The Chain" style, visualizing progress with a GitHub-style ASCII heatmap.
 - **Journal**: A personal plain-text daily journal featuring date-based navigation and automated Markdown export capabilities.
 - **Advanced Financial Tracking**: A comprehensive module to track housing, holidays, subscriptions, and **salaries**. Includes dynamic visual comparisons (bar charts for gross/net/taxes) and an automatic "Salary Impact" projection that calculates how fixed expenses weigh on your estimated annual net income.
-- **Vehicle Management**: Detailed vehicle tracking including maintenance ("Tagliando"), road tax, and insurance deadlines, automatically synchronized with the Home Dashboard.
+- **Vehicle Management**: Detailed vehicle tracking including service costs, road tax, and insurance deadlines, automatically synchronized with the Home Dashboard.
 - **Live Weather**: Integrated weather widget utilizing `wttr.in`.
 - **Theming & UI**: Dynamically switchable color palettes accessible from Settings (includes *Catppuccin*, *Nord*, *Gruvbox*, etc.). The UI features smart focus dimming and fully theme-aware structural borders for an optimal, distraction-free user experience.
 - **Localization (i18n)**: Full support for both English and Italian languages, changeable seamlessly from the Settings menu.
-- **Modern ASCII Branding**: Cohesive and readable visual identity using "Slant" ASCII fonts, optimized for constrained terminal layouts.
 - **Stateless & Portable**: Fully Dockerized architecture. Destroy and recreate the container at will; just mount a volume to persist user data, settings, and SSH host keys.
 
 ## Architecture
