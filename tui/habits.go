@@ -117,7 +117,11 @@ func (m *model) renderHabitsView(s *styles) string {
 		}
 
 		if i == m.habitCursor {
-			listLines = append(listLines, s.menuSelected.Width(0).Render(fmt.Sprintf("  ▸ [%s] %s", status, h.Name)))
+			if m.focusContent {
+				listLines = append(listLines, s.menuSelected.Width(0).Render(fmt.Sprintf("  ▸ [%s] %s", status, h.Name)))
+			} else {
+				listLines = append(listLines, s.menuActiveDim.Width(0).Render(fmt.Sprintf("  ▸ [%s] %s", status, h.Name)))
+			}
 		} else {
 			listLines = append(listLines, s.menuNormal.Width(0).Render(fmt.Sprintf("    [%s] %s", status, h.Name)))
 		}

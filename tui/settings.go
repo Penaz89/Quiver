@@ -155,7 +155,11 @@ func (m *model) renderSettingsView(s *styles) string {
 	var lines []string
 	for i, l := range labels {
 		if m.settingsSection == sSectionMenu && m.settingsMenuCursor == i {
-			lines = append(lines, s.menuSelected.Width(submenuWidth).Render(l))
+			if m.focusContent {
+				lines = append(lines, s.menuSelected.Width(submenuWidth).Render(l))
+			} else {
+				lines = append(lines, s.menuActiveDim.Width(submenuWidth).Render(l))
+			}
 		} else if m.settingsSection == setSection(i+1) {
 			lines = append(lines, s.menuActiveDim.Width(submenuWidth).Render(l))
 		} else {
@@ -203,6 +207,7 @@ func (m *model) renderSettingsView(s *styles) string {
 }
 
 func (m *model) renderSettingsLang(s *styles) string {
+	isActive := m.settingsSection != sSectionMenu
 	langTitle := s.info.Render("  " + strings.ToUpper(t(m.lang, "settings.language")))
 	current := s.dim.Render(fmt.Sprintf("  %s ", t(m.lang, "settings.currentLang"))) +
 		s.highlight.Render(langDisplayName(m.lang))
@@ -211,7 +216,12 @@ func (m *model) renderSettingsLang(s *styles) string {
 	for i, opt := range langOptions {
 		label := fmt.Sprintf("  %s  %s", opt.flag, langDisplayName(opt.code))
 		if i == m.settingsCursor {
-			row := s.menuSelected.Width(0).Render("  ▸ " + label)
+			var row string
+			if isActive {
+				row = s.menuSelected.Width(0).Render("  ▸ " + label)
+			} else {
+				row = s.menuActiveDim.Width(0).Render("  ▸ " + label)
+			}
 			if opt.code == m.lang {
 				check := lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Render(" ✓")
 				row += check
@@ -235,6 +245,7 @@ func (m *model) renderSettingsLang(s *styles) string {
 }
 
 func (m *model) renderSettingsWeather(s *styles) string {
+	isActive := m.settingsSection != sSectionMenu
 	weatherTitle := s.info.Render("  " + strings.ToUpper(t(m.lang, "settings.weatherLoc")))
 	
 	locVal := m.settings.WeatherLoc
@@ -242,9 +253,17 @@ func (m *model) renderSettingsWeather(s *styles) string {
 		locVal = s.dim.Render("...")
 	}
 
-	cursor := s.highlight.Render("_")
+	cursor := ""
+	if isActive {
+		cursor = s.highlight.Render("_")
+	}
 	fieldStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Background(lipgloss.Color("236"))
-	weatherInput := s.menuSelected.Width(0).Render(fmt.Sprintf("  ▸ %s: %s", t(m.lang, "settings.location"), fieldStyle.Render(locVal)+cursor))
+	var weatherInput string
+	if isActive {
+		weatherInput = s.menuSelected.Width(0).Render(fmt.Sprintf("  ▸ %s: %s", t(m.lang, "settings.location"), fieldStyle.Render(locVal)+cursor))
+	} else {
+		weatherInput = s.menuActiveDim.Width(0).Render(fmt.Sprintf("  ▸ %s: %s", t(m.lang, "settings.location"), fieldStyle.Render(locVal)+cursor))
+	}
 
 	help := s.dim.Render(fmt.Sprintf("\n\nEnter: %s  Esc/←: %s",
 		t(m.lang, "action.save"), t(m.lang, "help.goBack")))
@@ -253,6 +272,7 @@ func (m *model) renderSettingsWeather(s *styles) string {
 }
 
 func (m *model) renderSettingsTheme(s *styles) string {
+	isActive := m.settingsSection != sSectionMenu
 	themeTitle := s.info.Render("  " + strings.ToUpper(t(m.lang, "settings.theme")))
 	currentName := storage.GetThemeName(m.dataDir, m.settings.Theme)
 	current := s.dim.Render(fmt.Sprintf("  %s ", t(m.lang, "settings.currentTheme"))) +
@@ -264,7 +284,12 @@ func (m *model) renderSettingsTheme(s *styles) string {
 		displayName := storage.GetThemeName(m.dataDir, opt)
 		label := fmt.Sprintf("  %s", displayName)
 		if i == m.settingsCursor {
-			row := s.menuSelected.Width(0).Render("  ▸ " + label)
+			var row string
+			if isActive {
+				row = s.menuSelected.Width(0).Render("  ▸ " + label)
+			} else {
+				row = s.menuActiveDim.Width(0).Render("  ▸ " + label)
+			}
 			if opt == m.settings.Theme {
 				check := lipgloss.NewStyle().Foreground(lipgloss.Color(m.theme.Status)).Render(" ✓")
 				row += check

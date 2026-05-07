@@ -707,7 +707,11 @@ func (m *model) View() tea.View {
 		var menuLines []string
 		for i, item := range m.menuItems {
 			if i == m.menuCursor {
-				menuLines = append(menuLines, s.menuSelected.Width(sw-4).Render(item))
+				if m.focusContent {
+					menuLines = append(menuLines, s.menuActiveDim.Width(sw-4).Render(item))
+				} else {
+					menuLines = append(menuLines, s.menuSelected.Width(sw-4).Render(item))
+				}
 			} else {
 				menuLines = append(menuLines, s.menuNormal.Width(sw-4).Render(item))
 			}

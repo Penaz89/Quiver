@@ -322,7 +322,11 @@ func (m *model) renderVaultView(s *styles) string {
 		sec := m.vaultSecrets[idx]
 		row := fmt.Sprintf("%-*s │ %-*s", maxTitle, sec.Title, maxUser, sec.Username)
 		if i == m.vaultCursor {
-			lines = append(lines, s.menuSelected.Render("> "+row))
+			if m.focusContent {
+				lines = append(lines, s.menuSelected.Render("> "+row))
+			} else {
+				lines = append(lines, s.menuActiveDim.Render("> "+row))
+			}
 		} else {
 			lines = append(lines, s.info.Render("  "+row))
 		}

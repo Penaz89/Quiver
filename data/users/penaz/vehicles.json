@@ -10,5 +10,17 @@
     "ntc_cost": "",
     "service": "0001-01-01T00:00:00Z",
     "service_cost": ""
+  },
+  {
+    "brand": "Hyundai",
+    "model": "iX20",
+    "license_plate": "FR003JX",
+    "owner": "Zappi",
+    "road_tax": "0001-01-01T00:00:00Z",
+    "road_tax_cost": "",
+    "ntc": "0001-01-01T00:00:00Z",
+    "ntc_cost": "",
+    "service": "0001-01-01T00:00:00Z",
+    "service_cost": ""
   }
 ]

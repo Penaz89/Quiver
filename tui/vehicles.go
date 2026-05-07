@@ -396,7 +396,11 @@ func (m *model) renderVehiclesView(s *styles) string {
 	for i, section := range sections {
 		if i == m.vehicleSectionCursor {
 			if m.vehicleSection == vSectionMenu {
-				lines = append(lines, s.menuSelected.Width(submenuWidth).Render(section))
+				if m.focusContent {
+					lines = append(lines, s.menuSelected.Width(submenuWidth).Render(section))
+				} else {
+					lines = append(lines, s.menuActiveDim.Width(submenuWidth).Render(section))
+				}
 			} else {
 				lines = append(lines, s.menuActiveDim.Width(submenuWidth).Render(section))
 			}
@@ -617,6 +621,7 @@ func (m *model) renderVehicleMgmt(s *styles) string {
 }
 
 func (m *model) renderVehicleList(s *styles) string {
+	isActive := m.vehicleSection != vSectionMenu
 	title := s.title.Render(t(m.lang, "vehicles.management"))
 
 	if len(m.vehicles) == 0 {
@@ -640,7 +645,11 @@ func (m *model) renderVehicleList(s *styles) string {
 			truncate(v.Owner, 13),
 		)
 		if i == m.vehicleCursor {
-			row = s.menuSelected.Width(0).Render(row)
+			if isActive {
+				row = s.menuSelected.Width(0).Render(row)
+			} else {
+				row = s.menuActiveDim.Width(0).Render(row)
+			}
 		} else {
 			row = s.info.Render(row)
 		}
@@ -711,6 +720,7 @@ func (m *model) renderVehicleDeleteConfirm(s *styles) string {
 
 // renderSingleFieldSection renders Insurance/RoadTax/NTC section.
 func (m *model) renderSingleFieldSection(s *styles, sectionName string) string {
+	isActive := m.vehicleSection != vSectionMenu
 	title := s.title.Render(sectionName)
 
 	if m.vehicleView == vViewEdit {
@@ -766,7 +776,11 @@ func (m *model) renderSingleFieldSection(s *styles, sectionName string) string {
 			dateStr,
 		)
 		if i == m.vehicleCursor {
-			row = s.menuSelected.Width(0).Render(row)
+			if isActive {
+				row = s.menuSelected.Width(0).Render(row)
+			} else {
+				row = s.menuActiveDim.Width(0).Render(row)
+			}
 		} else {
 			row = s.info.Render(row)
 		}

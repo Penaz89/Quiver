@@ -116,7 +116,11 @@ func (m *model) renderFinancesView(s *styles) string {
 	var lines []string
 	for i, l := range labels {
 		if m.finSection == fSectionMenu && m.finMenuCursor == i {
-			lines = append(lines, s.menuSelected.Width(submenuWidth).Render(l))
+			if m.focusContent {
+				lines = append(lines, s.menuSelected.Width(submenuWidth).Render(l))
+			} else {
+				lines = append(lines, s.menuActiveDim.Width(submenuWidth).Render(l))
+			}
 		} else if m.finSection == finSection(i+1) {
 			lines = append(lines, s.menuActiveDim.Width(submenuWidth).Render(l))
 		} else {
@@ -595,6 +599,7 @@ func (m *model) renderHousing(s *styles) string {
 }
 
 func (m *model) renderHouseList(s *styles) string {
+	isActive := m.finSection != fSectionMenu
 	title := s.title.Render(t(m.lang, "finances.housing"))
 	if len(m.housing) == 0 {
 		empty := s.dim.Render(t(m.lang, "housing.noRecords"))
@@ -630,7 +635,11 @@ func (m *model) renderHouseList(s *styles) string {
 			truncate(cost, 13),
 		)
 		if i == m.houseCursor {
-			row = s.menuSelected.Width(0).Render(row)
+			if isActive {
+				row = s.menuSelected.Width(0).Render(row)
+			} else {
+				row = s.menuActiveDim.Width(0).Render(row)
+			}
 		} else {
 			row = s.info.Render(row)
 		}
@@ -869,6 +878,7 @@ func (m *model) renderHolidays(s *styles) string {
 }
 
 func (m *model) renderHoliList(s *styles) string {
+	isActive := m.finSection != fSectionMenu
 	title := s.title.Render(t(m.lang, "finances.holidays"))
 	if len(m.holidays) == 0 {
 		empty := s.dim.Render(t(m.lang, "holidays.noRecords"))
@@ -903,7 +913,11 @@ func (m *model) renderHoliList(s *styles) string {
 			totCost,
 		)
 		if i == m.holiCursor {
-			row = s.menuSelected.Width(0).Render(row)
+			if isActive {
+				row = s.menuSelected.Width(0).Render(row)
+			} else {
+				row = s.menuActiveDim.Width(0).Render(row)
+			}
 		} else {
 			row = s.info.Render(row)
 		}
@@ -1159,6 +1173,7 @@ func (m *model) renderSubscriptions(s *styles) string {
 }
 
 func (m *model) renderSubList(s *styles) string {
+	isActive := m.finSection != fSectionMenu
 	title := s.title.Render(t(m.lang, "finances.subscriptions"))
 	if len(m.subs) == 0 {
 		empty := s.dim.Render(t(m.lang, "subscriptions.noRecords"))
@@ -1194,7 +1209,11 @@ func (m *model) renderSubList(s *styles) string {
 			truncate(cost, 13),
 		)
 		if i == m.subCursor {
-			row = s.menuSelected.Width(0).Render(row)
+			if isActive {
+				row = s.menuSelected.Width(0).Render(row)
+			} else {
+				row = s.menuActiveDim.Width(0).Render(row)
+			}
 		} else {
 			row = s.info.Render(row)
 		}

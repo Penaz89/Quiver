@@ -280,6 +280,7 @@ func (m *model) renderInsuranceView(s *styles) string {
 }
 
 func (m *model) renderInsuranceList(s *styles) string {
+	isActive := m.vehicleSection != vSectionMenu
 	title := s.title.Render(t(m.lang, "insurance.title"))
 
 	if len(m.insurances) == 0 {
@@ -321,7 +322,11 @@ func (m *model) renderInsuranceList(s *styles) string {
 			ins.ExpireDate.Format("02/01/2006"),
 		)
 		if i == m.insuranceCursor {
-			row = s.menuSelected.Width(0).Render(row)
+			if isActive {
+				row = s.menuSelected.Width(0).Render(row)
+			} else {
+				row = s.menuActiveDim.Width(0).Render(row)
+			}
 		} else {
 			row = s.info.Render(row)
 		}
