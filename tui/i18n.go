@@ -49,6 +49,7 @@ var translations = map[string]map[string]string{
 	"home.tagNTC":       {"en": "NTC", "it": "Revisione"},
 	"home.tagTax":       {"en": "Tax", "it": "Bollo"},
 	"home.tagIns":       {"en": "Ins.", "it": "RCA"},
+	"home.tagService":   {"en": "Serv.", "it": "Tagliando"},
 
 	// ── Vehicles section ─────────────────────────────────────
 	"vehicles.title":          {"en": "Vehicles", "it": "Veicoli"},

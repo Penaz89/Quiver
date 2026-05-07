@@ -471,10 +471,10 @@ func (m *model) renderVehicleStats(s *styles) (string, string) {
 	}
 
 	// Count populated fields
-	var taxed, inspected int
-	var nextRoadTaxDate, nextNTCDate time.Time
-	var nextRoadTax, nextNTC string
-	var nextRTVehicle, nextNTCVehicle string
+	var taxed, inspected, serviced int
+	var nextRoadTaxDate, nextNTCDate, nextServiceDate time.Time
+	var nextRoadTax, nextNTC, nextService string
+	var nextRTVehicle, nextNTCVehicle, nextServiceVehicle string
 
 	// Insurance stats from separate insurance records
 	insuredPlates := make(map[string]bool)
@@ -516,6 +516,14 @@ func (m *model) renderVehicleStats(s *styles) (string, string) {
 				nextNTCVehicle = vName
 			}
 		}
+		if !v.Service.IsZero() {
+			serviced++
+			if nextServiceDate.IsZero() || v.Service.Before(nextServiceDate) {
+				nextServiceDate = v.Service
+				nextService = v.Service.Format("02/01/2006")
+				nextServiceVehicle = vName
+			}
+		}
 	}
 
 	// Summary line
@@ -537,8 +545,12 @@ func (m *model) renderVehicleStats(s *styles) (string, string) {
 		s.dim.Render(t(m.lang, "vehicles.ntc")+":"),
 		renderCoverage(s, inspected, total),
 	)
+	serviceLine := fmt.Sprintf("  %s  %s",
+		s.dim.Render(t(m.lang, "vehicles.service")+":"),
+		renderCoverage(s, serviced, total),
+	)
 
-	leftStats := statsTitle + "\n\n" + totalLine + "\n\n" + insLine + "\n" + taxLine + "\n" + ntcLine
+	leftStats := statsTitle + "\n\n" + totalLine + "\n\n" + insLine + "\n" + taxLine + "\n" + ntcLine + "\n" + serviceLine
 
 	// Next expiry section (Right side)
 	var expiries []string
@@ -564,6 +576,14 @@ func (m *model) renderVehicleStats(s *styles) (string, string) {
 			s.info.Render(nextNTC),
 			s.dim.Render("("+nextNTCVehicle+")"),
 			formatDaysRemaining(m.lang, s, nextNTCDate),
+		))
+	}
+	if nextService != "" {
+		expiries = append(expiries, fmt.Sprintf("%s\n%s %s %s",
+			s.dim.Render(t(m.lang, "vehicles.service")+":"),
+			s.info.Render(nextService),
+			s.dim.Render("("+nextServiceVehicle+")"),
+			formatDaysRemaining(m.lang, s, nextServiceDate),
 		))
 	}
 

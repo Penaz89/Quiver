@@ -119,6 +119,9 @@ func (m *model) renderHome(s *styles) string {
 		if !v.RoadTax.IsZero() && v.RoadTax.After(now.AddDate(0, 0, -1)) && v.RoadTax.Before(twoMonths) {
 			upcoming = append(upcoming, fmt.Sprintf("%s - %s %s", v.RoadTax.Format("02/01/2006"), t(m.lang, "home.tagTax"), v.LicensePlate))
 		}
+		if !v.Service.IsZero() && v.Service.After(now.AddDate(0, 0, -1)) && v.Service.Before(twoMonths) {
+			upcoming = append(upcoming, fmt.Sprintf("%s - %s %s", v.Service.Format("02/01/2006"), t(m.lang, "home.tagService"), v.LicensePlate))
+		}
 	}
 	
 	for _, ins := range m.insurances {
