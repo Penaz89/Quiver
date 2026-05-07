@@ -198,7 +198,7 @@ func (m *model) renderSettingsView(s *styles) string {
 
 	col2Style := lipgloss.NewStyle().
 		Border(lipgloss.NormalBorder(), false, true, false, false).
-		BorderForeground(lipgloss.Color("63")).
+		BorderForeground(lipgloss.Color(m.theme.Border)).
 		PaddingRight(2).
 		MarginRight(2).
 		Height(maxHeight)

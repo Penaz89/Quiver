@@ -235,7 +235,7 @@ func (m *model) renderVaultView(s *styles) string {
 
 		box := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("63")).
+			BorderForeground(lipgloss.Color(m.theme.Border)).
 			Padding(1, 4).
 			Render(fmt.Sprintf("%s\n\n%s\n> %s█", prompt, errStr, pwdField))
 
