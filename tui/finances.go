@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -21,6 +22,7 @@ const (
 	fSectionHousing                         // Housing (Casa)
 	fSectionHolidays                        // Holidays (Vacanze)
 	fSectionSubscriptions                   // Subscriptions (Abbonamenti)
+	fSectionSalaries                        // Salaries (Stipendi)
 )
 
 const (
@@ -65,7 +67,7 @@ func (m *model) updateFinances(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.finMenuCursor--
 			}
 		case "down", "j":
-			if m.finMenuCursor < 4-1 { // 4 items
+			if m.finMenuCursor < 5-1 { // 5 items
 				m.finMenuCursor++
 			}
 		case "enter", "right":
@@ -87,6 +89,8 @@ func (m *model) updateFinances(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.updateHolidays(msg)
 	case fSectionSubscriptions:
 		return m.updateSubscriptions(msg)
+	case fSectionSalaries:
+		return m.updateSalaries(msg)
 	}
 	return m, nil
 }
@@ -112,7 +116,7 @@ func (m *model) renderFinancesView(s *styles) string {
 	title := s.title.Render(t(m.lang, "finances.title"))
 	desc := s.subtitle.Render(t(m.lang, "finances.subtitle"))
 
-	labels := []string{strings.ToUpper(t(m.lang, "finances.fixedExp")), t(m.lang, "finances.housing"), t(m.lang, "finances.holidays"), t(m.lang, "finances.subscriptions")}
+	labels := []string{strings.ToUpper(t(m.lang, "finances.fixedExp")), t(m.lang, "finances.housing"), t(m.lang, "finances.holidays"), t(m.lang, "finances.subscriptions"), t(m.lang, "finances.salaries")}
 	var lines []string
 	for i, l := range labels {
 		if m.finSection == fSectionMenu && m.finMenuCursor == i {
@@ -149,6 +153,8 @@ func (m *model) renderFinancesView(s *styles) string {
 		col3 = m.renderHolidays(s)
 	case fSectionSubscriptions:
 		col3 = m.renderSubscriptions(s)
+	case fSectionSalaries:
+		col3 = m.renderSalaries(s)
 	}
 
 	if m.finSection == fSectionMenu {
@@ -429,7 +435,55 @@ func (m *model) renderFixedExpenses(s *styles) string {
 	
 	grandBlock := grandDivider + "\n" + s.title.Render(grandStr) + "\n" + grandDivider
 
-	content := vehBlock + houseBlock + holiBlock + subBlock + "\n\n\n" + grandBlock
+	// --- IMPACT ON SALARY ---
+	var impactBlock string
+	currentYearStr := fmt.Sprintf("%d", time.Now().Year())
+	var totalNet float64
+	var monthsCount int
+	for _, sal := range m.salaries {
+		if sal.Year == currentYearStr {
+			totalNet += parseEuro(sal.Net)
+			monthsCount++
+		}
+	}
+	
+	if monthsCount > 0 {
+		avgNet := totalNet / float64(monthsCount)
+		projectedAnnual := avgNet * 12.0
+		impactPct := (grandTotalAnnual / projectedAnnual) * 100.0
+		
+		impactTitle := s.info.Render("  " + t(m.lang, "finances.salaryImpact"))
+		impactDivider := s.dim.Render("  " + strings.Repeat("─", 63))
+		
+		impactStr := fmt.Sprintf("  %-31s %-14s %-14s",
+			t(m.lang, "finances.projectedAnnual"),
+			"",
+			fmt.Sprintf("€ %.2f", projectedAnnual),
+		)
+		
+		impactStr2 := fmt.Sprintf("  %-31s %-14s %-14s",
+			t(m.lang, "finances.fixedAnnual"),
+			"",
+			fmt.Sprintf("€ %.2f", grandTotalAnnual),
+		)
+		
+		pctColor := s.highlight
+		if impactPct > 35 { 
+			pctColor = lipgloss.NewStyle().Foreground(lipgloss.Color("196")) // Red
+		} else if impactPct < 20 {
+			pctColor = lipgloss.NewStyle().Foreground(lipgloss.Color("42")) // Green
+		}
+		
+		impactStr3 := fmt.Sprintf("  %-31s %-14s %s",
+			t(m.lang, "finances.impactPct"),
+			"",
+			pctColor.Render(fmt.Sprintf("%.1f%%", impactPct)),
+		)
+		
+		impactBlock = "\n\n" + impactTitle + "\n" + impactDivider + "\n" + impactStr + "\n" + impactStr2 + "\n" + impactStr3 + "\n" + impactDivider
+	}
+
+	content := vehBlock + houseBlock + holiBlock + subBlock + "\n\n\n" + grandBlock + impactBlock
 	help := s.dim.Render(fmt.Sprintf("\n\n←: %s", t(m.lang, "help.goBack")))
 	
 	return title + "\n\n" + content + help

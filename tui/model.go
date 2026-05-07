@@ -172,6 +172,14 @@ type model struct {
 	subFormCur int
 	subEditIdx int
 
+	// Salaries state
+	salaries         []storage.Salary
+	salaryCursor     int
+	salaryForm       [4]string // Year, Month, Gross, Net
+	salaryFormCur    int
+	salaryEditIdx    int
+	salaryYearFilter string
+
 	// Settings state
 	settingsSection    setSection
 	settingsMenuCursor int
@@ -417,6 +425,7 @@ func (m *model) loadUserData() {
 	m.habits, _ = storage.LoadHabits(m.dataDir)
 	m.journal, _ = storage.LoadJournal(m.dataDir)
 	m.tasks, _ = storage.LoadTasks(m.dataDir)
+	m.salaries, _ = storage.LoadSalaries(m.dataDir)
 
 	if m.settings.Language != "" {
 		m.lang = m.settings.Language
