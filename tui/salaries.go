@@ -236,7 +236,8 @@ func (m *model) renderSalariesYearList(s *styles) string {
 	for i, y := range years {
 		row := fmt.Sprintf("  %s", y)
 		if i == m.salaryCursor {
-			if m.focusContent {
+			isActive := m.finSection != fSectionMenu && m.focusContent
+			if isActive {
 				lines = append(lines, s.menuSelected.Render(row))
 			} else {
 				lines = append(lines, s.menuActiveDim.Render(row))
@@ -344,7 +345,7 @@ func (m *model) renderSalariesMonthList(s *styles) string {
 	
 	var totalGross, totalNet float64
 	
-	headerStr := fmt.Sprintf("  %-10s %-13s %-13s %-13s %-10s", t(m.lang, "col.month"), t(m.lang, "col.gross"), t(m.lang, "col.net"), t(m.lang, "col.deductions"), t(m.lang, "col.taxes"))
+	headerStr := fmt.Sprintf("  %-13s %-13s %-13s %-13s %-10s", t(m.lang, "col.month"), t(m.lang, "col.gross"), t(m.lang, "col.net"), t(m.lang, "col.deductions"), t(m.lang, "col.taxes"))
 	header := s.subtitle.Render(headerStr)
 	divider := s.dim.Render("  " + strings.Repeat("─", 70))
 	
@@ -361,9 +362,11 @@ func (m *model) renderSalariesMonthList(s *styles) string {
 			taxPct = (taxes / gross) * 100
 		}
 		
-		row := fmt.Sprintf("  %-10s € %-11.2f € %-11.2f € %-11.2f %.1f%%", sal.Month, gross, net, taxes, taxPct)
+		monthLabel := fmt.Sprintf("%s - %s", sal.Month, truncate(t(m.lang, "month."+sal.Month), 6))
+		row := fmt.Sprintf("  %-13s € %-11.2f € %-11.2f € %-11.2f %.1f%%", monthLabel, gross, net, taxes, taxPct)
 		if i == m.salaryCursor {
-			if m.focusContent {
+			isActive := m.finSection != fSectionMenu && m.focusContent
+			if isActive {
 				lines = append(lines, s.menuSelected.Render(row))
 			} else {
 				lines = append(lines, s.menuActiveDim.Render(row))
@@ -383,7 +386,7 @@ func (m *model) renderSalariesMonthList(s *styles) string {
 	}
 	
 	sumTitle := s.info.Render("  " + t(m.lang, "salaries.annualSum") + " " + m.salaryYearFilter)
-	sumRow := fmt.Sprintf("  %-10s € %-11.2f € %-11.2f € %-11.2f %.1f%%", "TOT", totalGross, totalNet, totalTaxes, totalTaxPct)
+	sumRow := fmt.Sprintf("  %-13s € %-11.2f € %-11.2f € %-11.2f %.1f%%", "TOT", totalGross, totalNet, totalTaxes, totalTaxPct)
 	
 	summaryBlock := sumTitle + "\n" + sumRow
 	

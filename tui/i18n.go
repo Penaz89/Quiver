@@ -283,8 +283,20 @@ var translations = map[string]map[string]string{
 	"help.contentFocused": {"en": "content focused", "it": "contenuto attivo"},
 	"help.switchField":    {"en": "switch field", "it": "cambia campo"},
 	"help.select":         {"en": "select", "it": "seleziona"},
-}
 
+	"month.01": {"en": "JAN", "it": "GEN"},
+	"month.02": {"en": "FEB", "it": "FEB"},
+	"month.03": {"en": "MAR", "it": "MAR"},
+	"month.04": {"en": "APR", "it": "APR"},
+	"month.05": {"en": "MAY", "it": "MAG"},
+	"month.06": {"en": "JUN", "it": "GIU"},
+	"month.07": {"en": "JUL", "it": "LUG"},
+	"month.08": {"en": "AUG", "it": "AGO"},
+	"month.09": {"en": "SEP", "it": "SET"},
+	"month.10": {"en": "OCT", "it": "OTT"},
+	"month.11": {"en": "NOV", "it": "NOV"},
+	"month.12": {"en": "DEC", "it": "DIC"},
+}
 // t returns the translation for the given key and language.
 // Falls back to English if the language or key is not found.
 func t(lang, key string) string {

@@ -221,7 +221,20 @@ func (m *model) renderGoals(s *styles) string {
 
 		coloredBar := lipgloss.NewStyle().Foreground(lipgloss.Color(color)).Render(barStr)
 
-		row := fmt.Sprintf("%-20s | %s | %5.1f%% | €%.2f / €%.2f", g.Name, coloredBar, pct, current, target)
+		nameLine := g.Name
+		if i == m.goalCursor {
+			isActive := m.finSection != fSectionMenu && m.focusContent
+			if isActive {
+				nameLine = s.menuSelected.Render("▸ " + nameLine)
+			} else {
+				nameLine = s.menuActiveDim.Render("▸ " + nameLine)
+			}
+		} else {
+			nameLine = s.info.Render("  " + nameLine)
+		}
+
+		row := fmt.Sprintf("%s\n    %s  %5.1f%%\n    €%.2f / €%.2f", nameLine, coloredBar, pct, current, target)
+
 		if !g.Deadline.IsZero() {
 			row += " | " + g.Deadline.Format("02/01/2006")
 		}
@@ -256,11 +269,7 @@ func (m *model) renderGoals(s *styles) string {
 			}
 		}
 
-		if i == m.goalCursor {
-			items = append(items, s.highlight.Render("▸ "+row) + extraInfo)
-		} else {
-			items = append(items, "  "+row + extraInfo)
-		}
+		items = append(items, row + extraInfo)
 	}
 
 	content += strings.Join(items, "\n\n")

@@ -37,7 +37,7 @@ func (m *model) getDailyMonthsForYear(year string) []string {
 	for m := range monthSet {
 		months = append(months, m)
 	}
-	sort.Sort(sort.Reverse(sort.StringSlice(months)))
+	sort.Strings(months)
 	return months
 }
 
@@ -289,7 +289,8 @@ func (m *model) renderDailyYearList(s *styles) string {
 	for i, y := range years {
 		row := fmt.Sprintf("  %s", y)
 		if i == m.dailyCursor {
-			if m.focusContent {
+			isActive := m.finSection != fSectionMenu && m.focusContent
+			if isActive {
 				lines = append(lines, s.menuSelected.Render(row))
 			} else {
 				lines = append(lines, s.menuActiveDim.Render(row))
@@ -311,9 +312,10 @@ func (m *model) renderDailyMonthList(s *styles) string {
 
 	var lines []string
 	for i, mth := range months {
-		row := fmt.Sprintf("  %s", mth)
+		row := fmt.Sprintf("  %s - %s", mth, t(m.lang, "month."+mth))
 		if i == m.dailyCursor {
-			if m.focusContent {
+			isActive := m.finSection != fSectionMenu && m.focusContent
+			if isActive {
 				lines = append(lines, s.menuSelected.Render(row))
 			} else {
 				lines = append(lines, s.menuActiveDim.Render(row))
@@ -350,7 +352,8 @@ func (m *model) renderDailyExpenseList(s *styles) string {
 		)
 
 		if i == m.dailyCursor {
-			if m.focusContent {
+			isActive := m.finSection != fSectionMenu && m.focusContent
+			if isActive {
 				lines = append(lines, s.menuSelected.Width(0).Render(row))
 			} else {
 				lines = append(lines, s.menuActiveDim.Width(0).Render(row))

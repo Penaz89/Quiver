@@ -680,7 +680,7 @@ func (m *model) renderHousing(s *styles) string {
 }
 
 func (m *model) renderHouseList(s *styles) string {
-	isActive := m.finSection != fSectionMenu
+	isActive := m.finSection != fSectionMenu && m.focusContent
 	title := s.title.Render(t(m.lang, "finances.housing"))
 	if len(m.housing) == 0 {
 		empty := s.dim.Render(t(m.lang, "housing.noRecords"))
@@ -967,7 +967,7 @@ func (m *model) renderSubscriptions(s *styles) string {
 }
 
 func (m *model) renderSubList(s *styles) string {
-	isActive := m.finSection != fSectionMenu
+	isActive := m.finSection != fSectionMenu && m.focusContent
 	title := s.title.Render(t(m.lang, "finances.subscriptions"))
 	if len(m.subs) == 0 {
 		empty := s.dim.Render(t(m.lang, "subscriptions.noRecords"))
