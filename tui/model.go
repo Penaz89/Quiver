@@ -547,6 +547,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m.updateHabits(msg)
 				} else if item == t(m.lang, "menu.journal") {
 					return m.updateJournal(msg)
+				} else if item == t(m.lang, "menu.tasks") {
+					return m.updateTasks(msg)
 				} else if item == t(m.lang, "menu.weather") {
 					// weather view is static
 				} else if item == "CHAT" {
