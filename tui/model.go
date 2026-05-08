@@ -180,6 +180,13 @@ type model struct {
 	salaryEditIdx    int
 	salaryYearFilter string
 
+	// Goals state
+	goals       []storage.Goal
+	goalCursor  int
+	goalForm    [4]string // Name, Target, Current, Deadline
+	goalFormCur int
+	goalEditIdx int
+
 	// Settings state
 	settingsSection    setSection
 	settingsMenuCursor int
@@ -426,6 +433,7 @@ func (m *model) loadUserData() {
 	m.journal, _ = storage.LoadJournal(m.dataDir)
 	m.tasks, _ = storage.LoadTasks(m.dataDir)
 	m.salaries, _ = storage.LoadSalaries(m.dataDir)
+	m.goals, _ = storage.LoadGoals(m.dataDir)
 
 	if m.settings.Language != "" {
 		m.lang = m.settings.Language

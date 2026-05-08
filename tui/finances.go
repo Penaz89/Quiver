@@ -23,6 +23,8 @@ const (
 	fSectionHolidays                        // Holidays (Vacanze)
 	fSectionSubscriptions                   // Subscriptions (Abbonamenti)
 	fSectionSalaries                        // Salaries (Stipendi)
+	fSectionGoals                           // Goals (Obiettivi)
+	fSectionAnalytics                       // Analytics (Statistiche)
 )
 
 const (
@@ -67,7 +69,7 @@ func (m *model) updateFinances(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.finMenuCursor--
 			}
 		case "down", "j":
-			if m.finMenuCursor < 5-1 { // 5 items
+			if m.finMenuCursor < 7-1 { // 7 items
 				m.finMenuCursor++
 			}
 		case "enter", "right":
@@ -91,6 +93,10 @@ func (m *model) updateFinances(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.updateSubscriptions(msg)
 	case fSectionSalaries:
 		return m.updateSalaries(msg)
+	case fSectionGoals:
+		return m.updateGoals(msg)
+	case fSectionAnalytics:
+		return m.updateAnalytics(msg)
 	}
 	return m, nil
 }
@@ -116,7 +122,15 @@ func (m *model) renderFinancesView(s *styles) string {
 	title := s.title.Render(t(m.lang, "finances.title"))
 	desc := s.subtitle.Render(t(m.lang, "finances.subtitle"))
 
-	labels := []string{strings.ToUpper(t(m.lang, "finances.fixedExp")), t(m.lang, "finances.housing"), t(m.lang, "finances.holidays"), t(m.lang, "finances.subscriptions"), t(m.lang, "finances.salaries")}
+	labels := []string{
+		strings.ToUpper(t(m.lang, "finances.fixedExp")),
+		t(m.lang, "finances.housing"),
+		t(m.lang, "finances.holidays"),
+		t(m.lang, "finances.subscriptions"),
+		t(m.lang, "finances.salaries"),
+		t(m.lang, "finances.goals"),
+		t(m.lang, "finances.analytics"),
+	}
 	var lines []string
 	for i, l := range labels {
 		if m.finSection == fSectionMenu && m.finMenuCursor == i {
@@ -155,6 +169,10 @@ func (m *model) renderFinancesView(s *styles) string {
 		col3 = m.renderSubscriptions(s)
 	case fSectionSalaries:
 		col3 = m.renderSalaries(s)
+	case fSectionGoals:
+		col3 = m.renderGoals(s)
+	case fSectionAnalytics:
+		col3 = m.renderAnalytics(s)
 	}
 
 	if m.finSection == fSectionMenu {

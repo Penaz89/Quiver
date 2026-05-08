@@ -242,6 +242,21 @@ var translations = map[string]map[string]string{
 	"settings.location":    {"en": "Location", "it": "Località"},
 	"settings.theme":       {"en": "Theme", "it": "Tema"},
 	"settings.currentTheme": {"en": "Current:", "it": "Attuale:"},
+	// ── Finances extensions (Goals & Analytics) ──────────────
+	"finances.goals":       {"en": "Financial Goals", "it": "Obiettivi"},
+	"goals.noRecords":      {"en": "No financial goals set. Press 'n' to add one.", "it": "Nessun obiettivo impostato. Premi 'n' per aggiungerne uno."},
+	"field.goalName":       {"en": "Goal Name", "it": "Nome Obiettivo"},
+	"field.goalTarget":     {"en": "Target Amount (€)", "it": "Importo Target (€)"},
+	"field.goalCurrent":    {"en": "Current Saved (€)", "it": "Risparmio Attuale (€)"},
+	"field.goalDeadline":   {"en": "Deadline", "it": "Scadenza"},
+	"delete.confirmGoal":   {"en": "Delete this goal? (y/N)", "it": "Eliminare questo obiettivo? (s/N)"},
+	"finances.analytics":   {"en": "Analytics", "it": "Statistiche"},
+	"analytics.avgIncome":  {"en": "Avg Monthly Income:", "it": "Entrate Medie Mensili:"},
+	"analytics.avgExpense": {"en": "Avg Monthly Expense:", "it": "Uscite Medie Mensili:"},
+	"analytics.cashFlow":   {"en": "Monthly Cash Flow:", "it": "Flusso di Cassa Mensile:"},
+	"analytics.savingRate": {"en": "Saving Rate:", "it": "Tasso di Risparmio:"},
+	"analytics.ratioBar":   {"en": "Income vs Expense Ratio:", "it": "Rapporto Entrate/Uscite:"},
+
 	// ── Help bar ─────────────────────────────────────────────
 	"help.navigate":       {"en": "navigate", "it": "naviga"},
 	"help.enter":          {"en": "enter", "it": "entra"},
