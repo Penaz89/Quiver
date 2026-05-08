@@ -127,7 +127,7 @@ func (m *model) updateGoals(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case fViewDelete:
 		switch key {
-		case "y", "Y":
+		case "y", "Y", "s", "S":
 			idx := m.goalCursor
 			m.goals = append(m.goals[:idx], m.goals[idx+1:]...)
 			if m.goalCursor >= len(m.goals) && m.goalCursor > 0 {

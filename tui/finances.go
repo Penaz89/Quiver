@@ -19,11 +19,11 @@ type finSubView int
 const (
 	fSectionMenu          finSection = iota // sub-menu view
 	fSectionFixedExp                        // Fixed Expenses (Spese Fisse)
+	fSectionAnalytics                       // Analytics (Statistiche)
 	fSectionHousing                         // Housing (Casa)
 	fSectionSubscriptions                   // Subscriptions (Abbonamenti)
 	fSectionSalaries                        // Salaries (Stipendi)
 	fSectionGoals                           // Goals (Obiettivi)
-	fSectionAnalytics                       // Analytics (Statistiche)
 )
 
 const (
@@ -110,11 +110,11 @@ func (m *model) renderFinancesView(s *styles) string {
 
 	labels := []string{
 		strings.ToUpper(t(m.lang, "finances.fixedExp")),
+		t(m.lang, "finances.analytics"),
 		t(m.lang, "finances.housing"),
 		t(m.lang, "finances.subscriptions"),
 		t(m.lang, "finances.salaries"),
 		t(m.lang, "finances.goals"),
-		t(m.lang, "finances.analytics"),
 	}
 	var lines []string
 	for i, l := range labels {
@@ -130,7 +130,7 @@ func (m *model) renderFinancesView(s *styles) string {
 			lines = append(lines, s.menuNormal.Width(submenuWidth).Render(l))
 		}
 		
-		if i == 0 {
+		if i == 1 {
 			lines = append(lines, s.dim.Render(strings.Repeat("─", submenuWidth)))
 		}
 	}
