@@ -462,55 +462,7 @@ func (m *model) renderFixedExpenses(s *styles) string {
 	
 	grandBlock := grandDivider + "\n" + s.title.Render(grandStr) + "\n" + grandDivider
 
-	// --- IMPACT ON SALARY ---
-	var impactBlock string
-	currentYearStr := fmt.Sprintf("%d", time.Now().Year())
-	var totalNet float64
-	var monthsCount int
-	for _, sal := range m.salaries {
-		if sal.Year == currentYearStr {
-			totalNet += parseEuro(sal.Net)
-			monthsCount++
-		}
-	}
-	
-	if monthsCount > 0 {
-		avgNet := totalNet / float64(monthsCount)
-		projectedAnnual := avgNet * 12.0
-		impactPct := (grandTotalAnnual / projectedAnnual) * 100.0
-		
-		impactTitle := s.info.Render("  " + t(m.lang, "finances.salaryImpact"))
-		impactDivider := s.dim.Render("  " + strings.Repeat("─", 63))
-		
-		impactStr := fmt.Sprintf("  %-31s %-14s %-14s",
-			t(m.lang, "finances.projectedAnnual"),
-			"",
-			fmt.Sprintf("€ %.2f", projectedAnnual),
-		)
-		
-		impactStr2 := fmt.Sprintf("  %-31s %-14s %-14s",
-			t(m.lang, "finances.fixedAnnual"),
-			"",
-			fmt.Sprintf("€ %.2f", grandTotalAnnual),
-		)
-		
-		pctColor := s.highlight
-		if impactPct > 35 { 
-			pctColor = lipgloss.NewStyle().Foreground(lipgloss.Color("196")) // Red
-		} else if impactPct < 20 {
-			pctColor = lipgloss.NewStyle().Foreground(lipgloss.Color("42")) // Green
-		}
-		
-		impactStr3 := fmt.Sprintf("  %-31s %-14s %s",
-			t(m.lang, "finances.impactPct"),
-			"",
-			pctColor.Render(fmt.Sprintf("%.1f%%", impactPct)),
-		)
-		
-		impactBlock = "\n\n" + impactTitle + "\n" + impactDivider + "\n" + impactStr + "\n" + impactStr2 + "\n" + impactStr3 + "\n" + impactDivider
-	}
-
-	content := vehBlock + houseBlock + subBlock + goalBlock + "\n\n\n" + grandBlock + impactBlock
+	content := vehBlock + houseBlock + subBlock + goalBlock + "\n\n\n" + grandBlock
 	help := s.dim.Render(fmt.Sprintf("\n\n←: %s", t(m.lang, "help.goBack")))
 	
 	return title + "\n\n" + content + help
