@@ -158,8 +158,14 @@ type model struct {
 	houseFormCur int
 	houseEditIdx int
 
-
-
+	// Daily Expenses state
+	daily       []storage.DailyExpense
+	dailyCursor int
+	dailyForm   [4]string // Date, Category, Description, Amount
+	dailyFormCur int
+	dailyEditIdx int
+	dailyYearFilter string
+	dailyMonthFilter string
 	// Subscriptions state
 	subs       []storage.Subscription
 	subCursor  int
@@ -429,6 +435,7 @@ func (m *model) loadUserData() {
 	m.tasks, _ = storage.LoadTasks(m.dataDir)
 	m.salaries, _ = storage.LoadSalaries(m.dataDir)
 	m.goals, _ = storage.LoadGoals(m.dataDir)
+	m.daily, _ = storage.LoadDailyExpenses(m.dataDir)
 
 	if m.settings.Language != "" {
 		m.lang = m.settings.Language
@@ -582,6 +589,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.insurances = nil
 					m.subs = nil
 					m.housing = nil
+					m.daily = nil
 
 					m.vaultUnlocked = false
 					m.vaultExists = false

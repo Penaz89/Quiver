@@ -20,6 +20,7 @@ const (
 	fSectionMenu          finSection = iota // sub-menu view
 	fSectionFixedExp                        // Fixed Expenses (Spese Fisse)
 	fSectionAnalytics                       // Analytics (Statistiche)
+	fSectionDaily                           // Daily Expenses (Spese Quotidiane)
 	fSectionHousing                         // Housing (Casa)
 	fSectionSubscriptions                   // Subscriptions (Abbonamenti)
 	fSectionSalaries                        // Salaries (Stipendi)
@@ -31,6 +32,14 @@ const (
 	fViewAdd
 	fViewEdit
 	fViewDelete
+)
+
+const (
+	dailyFDate = iota
+	dailyFCategory
+	dailyFDescription
+	dailyFAmount
+	dailyFCount
 )
 
 const (
@@ -57,7 +66,7 @@ func (m *model) updateFinances(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.finMenuCursor--
 			}
 		case "down", "j":
-			if m.finMenuCursor < 6-1 { // 6 items
+			if m.finMenuCursor < 7-1 { // 7 items
 				m.finMenuCursor++
 			}
 		case "enter", "right":
@@ -73,6 +82,10 @@ func (m *model) updateFinances(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch m.finSection {
 	case fSectionFixedExp:
 		return m.updateFixedExpenses(msg)
+	case fSectionAnalytics:
+		return m.updateAnalytics(msg)
+	case fSectionDaily:
+		return m.updateDaily(msg)
 	case fSectionHousing:
 		return m.updateHousing(msg)
 	case fSectionSubscriptions:
@@ -81,8 +94,6 @@ func (m *model) updateFinances(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.updateSalaries(msg)
 	case fSectionGoals:
 		return m.updateGoals(msg)
-	case fSectionAnalytics:
-		return m.updateAnalytics(msg)
 	}
 	return m, nil
 }
@@ -111,6 +122,7 @@ func (m *model) renderFinancesView(s *styles) string {
 	labels := []string{
 		strings.ToUpper(t(m.lang, "finances.fixedExp")),
 		t(m.lang, "finances.analytics"),
+		t(m.lang, "finances.daily"),
 		t(m.lang, "finances.housing"),
 		t(m.lang, "finances.subscriptions"),
 		t(m.lang, "finances.salaries"),
@@ -146,6 +158,10 @@ func (m *model) renderFinancesView(s *styles) string {
 	switch targetSection {
 	case fSectionFixedExp:
 		col3 = m.renderFixedExpenses(s)
+	case fSectionAnalytics:
+		col3 = m.renderAnalytics(s)
+	case fSectionDaily:
+		col3 = m.renderDaily(s)
 	case fSectionHousing:
 		col3 = m.renderHousing(s)
 	case fSectionSubscriptions:
@@ -154,8 +170,6 @@ func (m *model) renderFinancesView(s *styles) string {
 		col3 = m.renderSalaries(s)
 	case fSectionGoals:
 		col3 = m.renderGoals(s)
-	case fSectionAnalytics:
-		col3 = m.renderAnalytics(s)
 	}
 
 	if m.finSection == fSectionMenu {

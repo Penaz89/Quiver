@@ -1,0 +1,20 @@
+[
+  {
+    "date": "2026-12-08T00:00:00Z",
+    "category": "CASA",
+    "description": "Spesa",
+    "amount": "100"
+  },
+  {
+    "date": "2026-12-06T00:00:00Z",
+    "category": "CASA",
+    "description": "Spesa",
+    "amount": "150"
+  },
+  {
+    "date": "2026-05-12T00:00:00Z",
+    "category": "CASA",
+    "description": "Stendino",
+    "amount": "80"
+  }
+]
