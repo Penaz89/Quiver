@@ -4,13 +4,15 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 type Goal struct {
-	Name     string `json:"name"`
-	Target   string `json:"target"`
-	Current  string `json:"current"`
-	Deadline string `json:"deadline"`
+	Name      string    `json:"name"`
+	Target    string    `json:"target"`
+	Current   string    `json:"current"`
+	Deadline  time.Time `json:"deadline"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 func goalsPath(dataDir string) string {

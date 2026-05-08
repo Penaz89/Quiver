@@ -158,12 +158,7 @@ type model struct {
 	houseFormCur int
 	houseEditIdx int
 
-	// Holidays state
-	holidays    []storage.Holiday
-	holiCursor  int
-	holiForm    [holiFCount]string
-	holiFormCur int
-	holiEditIdx int
+
 
 	// Subscriptions state
 	subs       []storage.Subscription
@@ -428,7 +423,7 @@ func (m *model) loadUserData() {
 	m.settings = storage.LoadSettings(m.dataDir)
 	m.subs, _ = storage.LoadSubscriptions(m.dataDir)
 	m.housing, _ = storage.LoadHousing(m.dataDir)
-	m.holidays, _ = storage.LoadHolidays(m.dataDir)
+
 	m.habits, _ = storage.LoadHabits(m.dataDir)
 	m.journal, _ = storage.LoadJournal(m.dataDir)
 	m.tasks, _ = storage.LoadTasks(m.dataDir)
@@ -587,7 +582,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.insurances = nil
 					m.subs = nil
 					m.housing = nil
-					m.holidays = nil
+
 					m.vaultUnlocked = false
 					m.vaultExists = false
 					m.vaultMasterPwd = ""

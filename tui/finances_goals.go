@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -32,7 +33,11 @@ func (m *model) updateGoals(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if len(m.goals) > 0 {
 				m.finView = fViewEdit
 				g := m.goals[m.goalCursor]
-				m.goalForm = [4]string{g.Name, g.Target, g.Current, g.Deadline}
+				deadlineStr := ""
+				if !g.Deadline.IsZero() {
+					deadlineStr = g.Deadline.Format("02/01/2006")
+				}
+				m.goalForm = [4]string{g.Name, g.Target, g.Current, deadlineStr}
 				m.goalFormCur = 0
 				m.goalEditIdx = m.goalCursor
 			}
@@ -55,18 +60,31 @@ func (m *model) updateGoals(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		case "enter":
 			if m.goalFormCur == 3 {
-				// save
+				deadlineStr := strings.TrimSpace(m.goalForm[3])
+				var deadline time.Time
+				if deadlineStr != "" {
+					d, err := time.Parse("02/01/2006", deadlineStr)
+					if err != nil {
+						return m, nil
+					}
+					deadline = d
+				}
 				g := storage.Goal{
 					Name:     strings.TrimSpace(m.goalForm[0]),
 					Target:   strings.TrimSpace(m.goalForm[1]),
 					Current:  strings.TrimSpace(m.goalForm[2]),
-					Deadline: strings.TrimSpace(m.goalForm[3]),
+					Deadline: deadline,
 				}
 				if g.Name != "" {
 					if m.finView == fViewAdd {
+						g.CreatedAt = time.Now()
 						m.goals = append(m.goals, g)
 						m.goalCursor = len(m.goals) - 1
 					} else {
+						g.CreatedAt = m.goals[m.goalEditIdx].CreatedAt
+						if g.CreatedAt.IsZero() {
+							g.CreatedAt = time.Now()
+						}
 						m.goals[m.goalEditIdx] = g
 					}
 					_ = storage.SaveGoals(m.dataDir, m.goals)
@@ -82,8 +100,28 @@ func (m *model) updateGoals(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "space":
 			m.goalForm[m.goalFormCur] += " "
 		default:
-			if len(key) == 1 {
-				m.goalForm[m.goalFormCur] += key
+			runes := []rune(key)
+			if len(runes) == 1 {
+				field := &m.goalForm[m.goalFormCur]
+				if m.goalFormCur == 3 {
+					if !strings.ContainsRune("0123456789", runes[0]) {
+						return m, nil
+					}
+					if len(*field) >= 10 {
+						return m, nil
+					}
+					*field += key
+					if len(*field) == 2 || len(*field) == 5 {
+						*field += "/"
+					}
+				} else if m.goalFormCur == 1 || m.goalFormCur == 2 {
+					if !strings.ContainsRune("0123456789.,", runes[0]) {
+						return m, nil
+					}
+					*field += key
+				} else {
+					*field += key
+				}
 			}
 		}
 
@@ -184,18 +222,48 @@ func (m *model) renderGoals(s *styles) string {
 		coloredBar := lipgloss.NewStyle().Foreground(lipgloss.Color(color)).Render(barStr)
 
 		row := fmt.Sprintf("%-20s | %s | %5.1f%% | €%.2f / €%.2f", g.Name, coloredBar, pct, current, target)
-		if g.Deadline != "" {
-			row += " | " + g.Deadline
+		if !g.Deadline.IsZero() {
+			row += " | " + g.Deadline.Format("02/01/2006")
+		}
+		
+		var extraInfo string
+		if !g.Deadline.IsZero() {
+			deadline := g.Deadline
+			now := time.Now()
+			
+			// Countdown
+			remainingDays := int(deadline.Sub(now).Hours() / 24)
+			
+			if remainingDays < 0 {
+				extraInfo = "\n    └ " + s.dim.Render(t(m.lang, "goals.expired"))
+			} else {
+				remainingMoney := target - current
+				if remainingMoney > 0 {
+					// Months remaining from today
+					remainingMonths := deadline.Sub(now).Hours() / (24 * 30.44)
+					if remainingMonths < 1 {
+						remainingMonths = 1
+					}
+					monthlyNeeded := remainingMoney / remainingMonths
+					
+					expiresStr := fmt.Sprintf(t(m.lang, "goals.expiresIn"), remainingDays)
+					saveStr := fmt.Sprintf(t(m.lang, "goals.savePerMonth"), monthlyNeeded)
+					extraInfo = fmt.Sprintf("\n    └ %s. %s", expiresStr, saveStr)
+				} else {
+					expiresStr := fmt.Sprintf(t(m.lang, "goals.expiresIn"), remainingDays)
+					extraInfo = fmt.Sprintf("\n    └ %s. %s", expiresStr, s.highlight.Render(t(m.lang, "goals.reached")))
+				}
+			}
 		}
 
 		if i == m.goalCursor {
-			items = append(items, s.highlight.Render("▸ "+row))
+			items = append(items, s.highlight.Render("▸ "+row) + extraInfo)
 		} else {
-			items = append(items, "  "+row)
+			items = append(items, "  "+row + extraInfo)
 		}
 	}
 
-	content += strings.Join(items, "\n")
+	content += strings.Join(items, "\n\n")
 	help := "\n\nn: new • enter: edit • d: delete • esc: back"
 	return title + "\n\n" + content + s.dim.Render(help)
 }

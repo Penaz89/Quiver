@@ -44,17 +44,6 @@ func (m *model) calculateTotalFinances() (float64, float64) {
 		}
 	}
 
-	// Holidays
-	for _, hol := range m.holidays {
-		var hTotal float64
-		hTotal += parseEuro(hol.FlightCost)
-		hTotal += parseEuro(hol.AccomCost)
-		hTotal += parseEuro(hol.CarCost)
-		hTotal += parseEuro(hol.InsCost)
-		annual += hTotal
-		monthly += hTotal / 12.0
-	}
-
 	// Subs
 	for _, sub := range m.subs {
 		cost := parseEuro(sub.Cost)
@@ -64,6 +53,22 @@ func (m *model) calculateTotalFinances() (float64, float64) {
 		} else {
 			annual += cost
 			monthly += cost / 12.0
+		}
+	}
+
+	// Goals
+	for _, g := range m.goals {
+		target := parseEuro(g.Target)
+		current := parseEuro(g.Current)
+		remainingMoney := target - current
+		if remainingMoney > 0 && !g.Deadline.IsZero() {
+			now := time.Now()
+			remainingMonths := g.Deadline.Sub(now).Hours() / (24 * 30.44)
+			if remainingMonths < 1 {
+				remainingMonths = 1
+			}
+			monthlyNeeded := remainingMoney / remainingMonths
+			monthly += monthlyNeeded
 		}
 	}
 

@@ -20,7 +20,6 @@ const (
 	fSectionMenu          finSection = iota // sub-menu view
 	fSectionFixedExp                        // Fixed Expenses (Spese Fisse)
 	fSectionHousing                         // Housing (Casa)
-	fSectionHolidays                        // Holidays (Vacanze)
 	fSectionSubscriptions                   // Subscriptions (Abbonamenti)
 	fSectionSalaries                        // Salaries (Stipendi)
 	fSectionGoals                           // Goals (Obiettivi)
@@ -41,18 +40,7 @@ const (
 	houseFCount
 )
 
-const (
-	holiFDestination = iota
-	holiFFlightDesc
-	holiFFlightCost
-	holiFAccomDesc
-	holiFAccomCost
-	holiFCarDesc
-	holiFCarCost
-	holiFInsDesc
-	holiFInsCost
-	holiFCount
-)
+
 
 const (
 	subFService = iota
@@ -69,7 +57,7 @@ func (m *model) updateFinances(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.finMenuCursor--
 			}
 		case "down", "j":
-			if m.finMenuCursor < 7-1 { // 7 items
+			if m.finMenuCursor < 6-1 { // 6 items
 				m.finMenuCursor++
 			}
 		case "enter", "right":
@@ -87,8 +75,6 @@ func (m *model) updateFinances(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.updateFixedExpenses(msg)
 	case fSectionHousing:
 		return m.updateHousing(msg)
-	case fSectionHolidays:
-		return m.updateHolidays(msg)
 	case fSectionSubscriptions:
 		return m.updateSubscriptions(msg)
 	case fSectionSalaries:
@@ -125,7 +111,6 @@ func (m *model) renderFinancesView(s *styles) string {
 	labels := []string{
 		strings.ToUpper(t(m.lang, "finances.fixedExp")),
 		t(m.lang, "finances.housing"),
-		t(m.lang, "finances.holidays"),
 		t(m.lang, "finances.subscriptions"),
 		t(m.lang, "finances.salaries"),
 		t(m.lang, "finances.goals"),
@@ -163,8 +148,6 @@ func (m *model) renderFinancesView(s *styles) string {
 		col3 = m.renderFixedExpenses(s)
 	case fSectionHousing:
 		col3 = m.renderHousing(s)
-	case fSectionHolidays:
-		col3 = m.renderHolidays(s)
 	case fSectionSubscriptions:
 		col3 = m.renderSubscriptions(s)
 	case fSectionSalaries:
@@ -338,56 +321,7 @@ func (m *model) renderFixedExpenses(s *styles) string {
 		houseBlock = "\n\n" + catHouseTitle + "\n" + dividerHouse + "\n" + headerHouse + "\n" + dividerHouse + "\n" + houseTable + "\n" + dividerHouse + "\n" + s.highlight.Render(houseSubtotalStr)
 	}
 
-	// --- CATEGORY: VACANZE ---
-	var holiBlock string
-	if len(m.holidays) > 0 {
-		catHoliTitle := s.info.Render("  " + strings.ToUpper(t(m.lang, "finances.holidays")))
-		
-		hdrHoli := fmt.Sprintf("  %-31s %-14s %-14s",
-			t(m.lang, "col.destination"), t(m.lang, "col.annual"), t(m.lang, "col.monthly"))
-		headerHoli := s.subtitle.Render(hdrHoli)
-		dividerHoli := s.dim.Render("  " + strings.Repeat("─", 63))
-		
-		var holiRows []string
-		var holiCatAnnual float64
-		var holiCatMonthly float64
 
-		for _, h := range m.holidays {
-			fCost := parseEuro(h.FlightCost)
-			aCost := parseEuro(h.AccomCost)
-			cCost := parseEuro(h.CarCost)
-			iCost := parseEuro(h.InsCost)
-
-			annualTotal := fCost + aCost + cCost + iCost
-			monthlyTotal := annualTotal / 12.0
-			
-			holiCatAnnual += annualTotal
-			holiCatMonthly += monthlyTotal
-
-			annStr := fmt.Sprintf("€ %.2f", annualTotal)
-			monStr := fmt.Sprintf("€ %.2f", monthlyTotal)
-			
-			row := fmt.Sprintf("  %-31s %-14s %-14s",
-				truncate(h.Destination, 30),
-				annStr,
-				monStr,
-			)
-			holiRows = append(holiRows, row)
-		}
-		
-		grandTotalAnnual += holiCatAnnual
-		grandTotalMonthly += holiCatMonthly
-
-		holiTable := strings.Join(holiRows, "\n")
-		
-		holiSubtotalStr := fmt.Sprintf("  %-31s %-14s %-14s",
-			t(m.lang, "finances.subtotal")+" "+t(m.lang, "finances.holidays"),
-			fmt.Sprintf("€ %.2f", holiCatAnnual),
-			fmt.Sprintf("€ %.2f", holiCatMonthly),
-		)
-		
-		holiBlock = "\n\n" + catHoliTitle + "\n" + dividerHoli + "\n" + headerHoli + "\n" + dividerHoli + "\n" + holiTable + "\n" + dividerHoli + "\n" + s.highlight.Render(holiSubtotalStr)
-	}
 
 	// --- CATEGORY: ABBONAMENTI ---
 	var subBlock string
@@ -441,6 +375,67 @@ func (m *model) renderFixedExpenses(s *styles) string {
 		)
 		
 		subBlock = "\n\n" + catSubTitle + "\n" + dividerSub + "\n" + headerSub + "\n" + dividerSub + "\n" + subTable + "\n" + dividerSub + "\n" + s.highlight.Render(subSubtotalStr)
+	}
+
+	// --- CATEGORY: GOALS ---
+	var goalBlock string
+	if len(m.goals) > 0 {
+		catGoalTitle := s.info.Render("  " + t(m.lang, "cat.goals"))
+		
+		hdrGoal := fmt.Sprintf("  %-31s %-14s %-14s",
+			t(m.lang, "finances.goals"), t(m.lang, "col.goal"), t(m.lang, "col.monthly"))
+		headerGoal := s.subtitle.Render(hdrGoal)
+		dividerGoal := s.dim.Render("  " + strings.Repeat("─", 63))
+		
+		var goalRows []string
+		var goalCatTotal float64
+		var goalCatMonthly float64
+
+		for _, g := range m.goals {
+			target := parseEuro(g.Target)
+			current := parseEuro(g.Current)
+			remainingMoney := target - current
+			var monthlyNeeded float64
+			
+			if remainingMoney > 0 && !g.Deadline.IsZero() {
+				now := time.Now()
+				remainingMonths := g.Deadline.Sub(now).Hours() / (24 * 30.44)
+				if remainingMonths < 1 {
+					remainingMonths = 1
+				}
+				monthlyNeeded = remainingMoney / remainingMonths
+			}
+
+			if monthlyNeeded > 0 {
+				goalCatTotal += remainingMoney
+				goalCatMonthly += monthlyNeeded
+
+				annStr := fmt.Sprintf("€ %.2f", remainingMoney)
+				monStr := fmt.Sprintf("€ %.2f", monthlyNeeded)
+				
+				row := fmt.Sprintf("  %-31s %-14s %-14s",
+					truncate(g.Name, 30),
+					annStr,
+					monStr,
+				)
+				goalRows = append(goalRows, row)
+			}
+		}
+		
+		if len(goalRows) > 0 {
+			// Do NOT add goalCatTotal to grandTotalAnnual because goals are not annual expenses
+			grandTotalMonthly += goalCatMonthly
+
+			goalTable := strings.Join(goalRows, "\n")
+			
+			goalSubtotalStr := fmt.Sprintf("  %-31s %-14s %-14s",
+				t(m.lang, "finances.subtotal")+" "+t(m.lang, "finances.goals"),
+				fmt.Sprintf("€ %.2f", goalCatTotal),
+				fmt.Sprintf("€ %.2f", goalCatMonthly),
+			)
+			
+			goalBlock = "\n\n" + catGoalTitle + "\n" + dividerGoal + "\n" + headerGoal + "\n" + dividerGoal + "\n" + goalTable + "\n" + dividerGoal + "\n" + s.highlight.Render(goalSubtotalStr)
+		}
 	}
 
 	// --- GRAND TOTAL ---
@@ -501,7 +496,7 @@ func (m *model) renderFixedExpenses(s *styles) string {
 		impactBlock = "\n\n" + impactTitle + "\n" + impactDivider + "\n" + impactStr + "\n" + impactStr2 + "\n" + impactStr3 + "\n" + impactDivider
 	}
 
-	content := vehBlock + houseBlock + holiBlock + subBlock + "\n\n\n" + grandBlock + impactBlock
+	content := vehBlock + houseBlock + subBlock + goalBlock + "\n\n\n" + grandBlock + impactBlock
 	help := s.dim.Render(fmt.Sprintf("\n\n←: %s", t(m.lang, "help.goBack")))
 	
 	return title + "\n\n" + content + help
@@ -793,293 +788,6 @@ func (m *model) renderHouseDelete(s *styles) string {
 }
 
 
-
-// ─── Holidays logic ──────────────────────────────────────────────────
-
-func (m *model) updateHolidays(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch m.finView {
-	case fViewAdd, fViewEdit:
-		return m.updateHoliForm(msg)
-	case fViewDelete:
-		return m.updateHoliDelete(msg)
-	default:
-		return m.updateHoliList(msg)
-	}
-}
-
-func (m *model) updateHoliList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "up", "k":
-		if m.holiCursor > 0 {
-			m.holiCursor--
-		}
-	case "down", "j":
-		if m.holiCursor < len(m.holidays)-1 {
-			m.holiCursor++
-		}
-	case "a":
-		m.finView = fViewAdd
-		m.holiForm = [holiFCount]string{}
-		m.holiFormCur = 0
-	case "e", "enter":
-		if len(m.holidays) > 0 {
-			m.finView = fViewEdit
-			m.holiEditIdx = m.holiCursor
-			h := m.holidays[m.holiCursor]
-			m.holiForm = [holiFCount]string{
-				h.Destination,
-				h.FlightDesc,
-				h.FlightCost,
-				h.AccomDesc,
-				h.AccomCost,
-				h.CarDesc,
-				h.CarCost,
-				h.InsDesc,
-				h.InsCost,
-			}
-			m.holiFormCur = 0
-		}
-	case "d", "x":
-		if len(m.holidays) > 0 {
-			m.finView = fViewDelete
-		}
-	case "esc", "left":
-		m.finSection = fSectionMenu
-	}
-	return m, nil
-}
-
-func (m *model) updateHoliForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	key := msg.String()
-	switch key {
-	case "tab", "down":
-		if m.holiFormCur < holiFCount-1 {
-			m.holiFormCur++
-		} else {
-			m.holiFormCur = 0
-		}
-	case "shift+tab", "up":
-		if m.holiFormCur > 0 {
-			m.holiFormCur--
-		} else {
-			m.holiFormCur = holiFCount - 1
-		}
-	case "left", "right":
-		// No toggle fields anymore
-	case " ":
-		m.holiForm[m.holiFormCur] += key
-	case "enter":
-		h := storage.Holiday{
-			Destination: strings.TrimSpace(m.holiForm[holiFDestination]),
-			FlightDesc:  strings.TrimSpace(m.holiForm[holiFFlightDesc]),
-			FlightCost:  strings.TrimSpace(m.holiForm[holiFFlightCost]),
-			AccomDesc:   strings.TrimSpace(m.holiForm[holiFAccomDesc]),
-			AccomCost:   strings.TrimSpace(m.holiForm[holiFAccomCost]),
-			CarDesc:     strings.TrimSpace(m.holiForm[holiFCarDesc]),
-			CarCost:     strings.TrimSpace(m.holiForm[holiFCarCost]),
-			InsDesc:     strings.TrimSpace(m.holiForm[holiFInsDesc]),
-			InsCost:     strings.TrimSpace(m.holiForm[holiFInsCost]),
-		}
-		if h.Destination == "" {
-			m.finView = fViewList
-			return m, nil
-		}
-		if m.finView == fViewAdd {
-			m.holidays = append(m.holidays, h)
-		} else {
-			m.holidays[m.holiEditIdx] = h
-		}
-		_ = storage.SaveHolidays(m.dataDir, m.holidays)
-		m.finView = fViewList
-	case "esc":
-		m.finView = fViewList
-	case "backspace":
-		field := &m.holiForm[m.holiFormCur]
-		if len(*field) > 0 {
-			runes := []rune(*field)
-			*field = string(runes[:len(runes)-1])
-		}
-	default:
-		if key == "space" {
-			key = " "
-		}
-		runes := []rune(key)
-		if len(runes) == 1 {
-			field := &m.holiForm[m.holiFormCur]
-			isCostField := m.holiFormCur == holiFFlightCost || m.holiFormCur == holiFAccomCost || m.holiFormCur == holiFCarCost || m.holiFormCur == holiFInsCost
-			if isCostField {
-				if strings.ContainsRune("0123456789.,", runes[0]) {
-					if len(*field) < 15 {
-						*field += key
-					}
-				}
-			} else {
-				*field += key
-			}
-		}
-	}
-	return m, nil
-}
-
-func (m *model) updateHoliDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "y", "Y", "s", "S":
-		m.holidays = append(m.holidays[:m.holiCursor], m.holidays[m.holiCursor+1:]...)
-		_ = storage.SaveHolidays(m.dataDir, m.holidays)
-		if m.holiCursor >= len(m.holidays) && m.holiCursor > 0 {
-			m.holiCursor--
-		}
-		m.finView = fViewList
-	case "n", "esc":
-		m.finView = fViewList
-	}
-	return m, nil
-}
-
-func (m *model) renderHolidays(s *styles) string {
-	switch m.finView {
-	case fViewAdd:
-		return m.renderHoliForm(s, t(m.lang, "action.add")+" "+t(m.lang, "finances.holidays"))
-	case fViewEdit:
-		return m.renderHoliForm(s, t(m.lang, "action.edit")+" "+t(m.lang, "finances.holidays"))
-	case fViewDelete:
-		return m.renderHoliDelete(s)
-	default:
-		return m.renderHoliList(s)
-	}
-}
-
-func (m *model) renderHoliList(s *styles) string {
-	isActive := m.finSection != fSectionMenu
-	title := s.title.Render(t(m.lang, "finances.holidays"))
-	if len(m.holidays) == 0 {
-		empty := s.dim.Render(t(m.lang, "holidays.noRecords"))
-		help := s.dim.Render(fmt.Sprintf("\n\na: %s  ←: %s", t(m.lang, "action.add"), t(m.lang, "help.goBack")))
-		return title + "\n\n" + empty + help
-	}
-
-	hdr := fmt.Sprintf("  %-3s %-20s %-12s %-12s %-12s",
-		t(m.lang, "col.num"), t(m.lang, "col.destination"), t(m.lang, "col.flight"), t(m.lang, "col.accom"), t(m.lang, "col.totalCost"))
-	header := s.subtitle.Render(hdr)
-	divider := s.dim.Render("  " + strings.Repeat("─", 63))
-
-	var rows []string
-	for i, h := range m.holidays {
-		fCost := parseEuro(h.FlightCost)
-		aCost := parseEuro(h.AccomCost)
-		cCost := parseEuro(h.CarCost)
-		iCost := parseEuro(h.InsCost)
-		totCost := fCost + aCost + cCost + iCost
-
-		fStr := h.FlightCost
-		if fStr == "" { fStr = "-" } else { fStr = "€ " + fStr }
-
-		aStr := h.AccomCost
-		if aStr == "" { aStr = "-" } else { aStr = "€ " + aStr }
-
-		row := fmt.Sprintf("  %-3d %-20s %-12s %-12s € %.2f",
-			i+1,
-			truncate(h.Destination, 19),
-			truncate(fStr, 11),
-			truncate(aStr, 11),
-			totCost,
-		)
-		if i == m.holiCursor {
-			if isActive {
-				row = s.menuSelected.Width(0).Render(row)
-			} else {
-				row = s.menuActiveDim.Width(0).Render(row)
-			}
-		} else {
-			row = s.info.Render(row)
-		}
-		rows = append(rows, row)
-	}
-
-	table := strings.Join(rows, "\n")
-	help := s.dim.Render(fmt.Sprintf("\n\na: %s  e: %s  d: %s  ←: %s",
-		t(m.lang, "action.add"), t(m.lang, "action.edit"), t(m.lang, "action.delete"), t(m.lang, "help.goBack")))
-
-	return title + "\n" + header + "\n" + divider + "\n" + table + help
-}
-
-func (m *model) renderHoliForm(s *styles, formTitle string) string {
-	title := s.title.Render(formTitle)
-
-	labels := []string{
-		t(m.lang, "field.destination"),
-		t(m.lang, "field.flightDesc"),
-		t(m.lang, "field.flightCost"),
-		t(m.lang, "field.accomDesc"),
-		t(m.lang, "field.accomCost"),
-		t(m.lang, "field.carDesc"),
-		t(m.lang, "field.carCost"),
-		t(m.lang, "field.insDesc"),
-		t(m.lang, "field.insCost"),
-	}
-
-	var fields []string
-	for i := 0; i < holiFCount; i++ {
-		label := s.dim.Render(fmt.Sprintf("  %-25s", labels[i]+":"))
-		val := m.holiForm[i]
-		
-		isCostField := i == holiFFlightCost || i == holiFAccomCost || i == holiFCarCost || i == holiFInsCost
-
-		var rendered string
-		if i == m.holiFormCur {
-			cursor := s.highlight.Render("_")
-			fieldStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Background(lipgloss.Color("236"))
-			
-			if isCostField {
-				if val == "" { val = s.dim.Render("0.00") }
-				rendered = label + " € " + fieldStyle.Render(val) + cursor
-			} else {
-				rendered = label + " " + fieldStyle.Render(val) + cursor
-			}
-		} else {
-			if isCostField {
-				if val == "" { val = s.dim.Render("0.00") }
-				rendered = label + " € " + s.info.Render(val)
-			} else {
-				rendered = label + " " + s.info.Render(val)
-			}
-		}
-		fields = append(fields, rendered)
-	}
-
-	form := strings.Join(fields, "\n")
-	help := s.dim.Render(fmt.Sprintf("\n\nTab/↑↓: %s  Enter: %s  Esc: %s",
-		t(m.lang, "help.switchField"), t(m.lang, "action.save"), t(m.lang, "action.cancel")))
-
-	return title + "\n\n" + form + help
-}
-
-func (m *model) renderHoliDelete(s *styles) string {
-	if m.holiCursor >= len(m.holidays) {
-		return m.renderHoliList(s)
-	}
-	h := m.holidays[m.holiCursor]
-
-	title := s.title.Render(t(m.lang, "action.delete") + " " + t(m.lang, "finances.holidays"))
-	warning := lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true).Render(t(m.lang, "delete.confirmInsurance"))
-
-	fCost := parseEuro(h.FlightCost)
-	aCost := parseEuro(h.AccomCost)
-	cCost := parseEuro(h.CarCost)
-	iCost := parseEuro(h.InsCost)
-	totCost := fCost + aCost + cCost + iCost
-
-	info := fmt.Sprintf(
-		"\n  %s %s\n  %s € %.2f",
-		s.dim.Render(t(m.lang, "field.destination")+":"), s.info.Render(h.Destination),
-		s.dim.Render(t(m.lang, "col.totalCost")+":"), totCost,
-	)
-
-	help := s.dim.Render(fmt.Sprintf("\n\ny: %s  n/Esc: %s",
-		t(m.lang, "action.delete"), t(m.lang, "action.cancel")))
-
-	return title + "\n\n" + warning + "\n" + info + help
-}
 
 // ─── Subscriptions logic ─────────────────────────────────────────────
 
