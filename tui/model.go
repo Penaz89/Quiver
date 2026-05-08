@@ -458,7 +458,7 @@ func fetchWeatherCmd(loc string) tea.Cmd {
 			return weatherMsg("No weather location set")
 		}
 
-		req, _ := http.NewRequest("GET", "https://wttr.in/"+loc+"?2Q", nil)
+		req, _ := http.NewRequest("GET", "https://wttr.in/"+loc+"?2Qn", nil)
 		req.Header.Set("User-Agent", "curl/7.68.0")
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
