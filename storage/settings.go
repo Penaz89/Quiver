@@ -24,17 +24,19 @@ import (
 
 // Settings holds user-configurable application settings.
 type Settings struct {
-	Language   string `json:"language"`    // "en" or "it"
-	WeatherLoc string `json:"weather_loc"` // e.g. "Rome"
-	Theme      string `json:"theme"`       // e.g. "default", "catppuccin", "nord"
+	Language         string `json:"language"`          // "en" or "it"
+	WeatherLoc       string `json:"weather_loc"`       // e.g. "Rome"
+	Theme            string `json:"theme"`             // e.g. "default", "catppuccin", "nord"
+	DefaultWorkspace string `json:"default_workspace"` // e.g. "Personal" or FamilyID
 }
 
 // DefaultSettings returns settings with default values.
 func DefaultSettings() Settings {
 	return Settings{
-		Language:   "it",
-		WeatherLoc: "Rome",
-		Theme:      "default",
+		Language:         "it",
+		WeatherLoc:       "Rome",
+		Theme:            "default",
+		DefaultWorkspace: "Personal",
 	}
 }
 
@@ -59,6 +61,9 @@ func LoadSettings(dataDir string) Settings {
 	}
 	if s.Theme == "" {
 		s.Theme = "default"
+	}
+	if s.DefaultWorkspace == "" {
+		s.DefaultWorkspace = "Personal"
 	}
 	return s
 }

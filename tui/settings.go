@@ -84,7 +84,7 @@ func (m *model) updateSettings(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if selected != m.lang {
 				m.lang = selected
 				m.settings.Language = selected
-				_ = storage.SaveSettings(m.dataDir, m.settings)
+				_ = storage.SaveSettings(m.personalDataDir, m.settings)
 				m.updateMenuLabels()
 			}
 		case "esc", "left":
@@ -93,11 +93,11 @@ func (m *model) updateSettings(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case sSectionWeather:
 		switch key {
 		case "esc", "left":
-			_ = storage.SaveSettings(m.dataDir, m.settings)
+			_ = storage.SaveSettings(m.personalDataDir, m.settings)
 			m.settingsSection = sSectionMenu
 			return m, fetchWeatherCmd(m.settings.WeatherLoc)
 		case "enter":
-			_ = storage.SaveSettings(m.dataDir, m.settings)
+			_ = storage.SaveSettings(m.personalDataDir, m.settings)
 			m.settingsSection = sSectionMenu
 			m.weatherData = "Loading weather..."
 			return m, fetchWeatherCmd(m.settings.WeatherLoc)
@@ -130,8 +130,8 @@ func (m *model) updateSettings(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			selected := themes[m.settingsCursor]
 			if selected != m.settings.Theme {
 				m.settings.Theme = selected
-				m.theme = storage.LoadTheme(m.dataDir, selected)
-				_ = storage.SaveSettings(m.dataDir, m.settings)
+				m.theme = storage.LoadTheme(m.personalDataDir, selected)
+				_ = storage.SaveSettings(m.personalDataDir, m.settings)
 			}
 		case "esc", "left":
 			m.settingsSection = sSectionMenu
@@ -224,6 +224,13 @@ func (m *model) updateSettings(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					m.familyInviteForm = ""
 					m.familyError = ""
 				}
+			case "s": // Set default
+				if m.settingsCursor == 0 {
+					m.settings.DefaultWorkspace = "Personal"
+				} else if m.settingsCursor > 0 && m.settingsCursor <= len(m.userFamilies) {
+					m.settings.DefaultWorkspace = m.userFamilies[m.settingsCursor-1].ID
+				}
+				_ = storage.SaveSettings(m.personalDataDir, m.settings)
 			case "delete":
 				if m.settingsCursor > 0 && m.settingsCursor <= len(m.userFamilies) {
 					familyID := m.userFamilies[m.settingsCursor-1].ID
@@ -469,18 +476,28 @@ func (m *model) renderSettingsWorkspace(s *styles) string {
 		contentLines = append(contentLines, s.dim.Render("  Your Workspaces:"))
 		
 		isActive := m.settingsSection == sSectionWorkspace
+		
+		getLabel := func(base string, isDefault bool) string {
+			if isDefault {
+				return base + lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Render(" (Default)")
+			}
+			return base
+		}
+
 		if m.settingsCursor == 0 {
+			label := getLabel("● Personal", m.settings.DefaultWorkspace == "Personal")
 			if isActive {
-				contentLines = append(contentLines, s.menuSelected.Width(0).Render("  ▸ ● Personal"))
+				contentLines = append(contentLines, s.menuSelected.Width(0).Render("  ▸ "+label))
 			} else {
-				contentLines = append(contentLines, s.menuActiveDim.Width(0).Render("  ▸ ● Personal"))
+				contentLines = append(contentLines, s.menuActiveDim.Width(0).Render("  ▸ "+label))
 			}
 		} else {
-			contentLines = append(contentLines, s.menuNormal.Width(0).Render("    ● Personal"))
+			label := getLabel("● Personal", m.settings.DefaultWorkspace == "Personal")
+			contentLines = append(contentLines, s.menuNormal.Width(0).Render("    "+label))
 		}
 		
 		for i, f := range m.userFamilies {
-			label := fmt.Sprintf("● Family: %s (%d members)", f.Name, len(f.Members))
+			label := getLabel(fmt.Sprintf("● Family: %s (%d members)", f.Name, len(f.Members)), m.settings.DefaultWorkspace == f.ID)
 			if m.settingsCursor == i+1 {
 				if isActive {
 					contentLines = append(contentLines, s.menuSelected.Width(0).Render("  ▸ "+label))
@@ -504,7 +521,7 @@ func (m *model) renderSettingsWorkspace(s *styles) string {
 	} else if m.familyIsInviting {
 		help = s.dim.Render(fmt.Sprintf("\n\nEnter: %s  Esc: %s", t(m.lang, "action.save"), t(m.lang, "help.cancel")))
 	} else {
-		help = s.dim.Render(fmt.Sprintf("\n\n↑/↓: %s  n/a: New  i: Invite  Del: Leave  ←: %s", t(m.lang, "help.navigate"), t(m.lang, "help.goBack")))
+		help = s.dim.Render(fmt.Sprintf("\n\n↑/↓: %s  n/a: New  i: Invite  Del: Leave  s: Set Default  ←: %s", t(m.lang, "help.navigate"), t(m.lang, "help.goBack")))
 	}
 
 	return title + "\n" + currentInfo + "\n\n" + content + help

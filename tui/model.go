@@ -432,9 +432,9 @@ func NewModel(s ssh.Session, dataDir, version string) (tea.Model, []tea.ProgramO
 }
 
 func (m *model) loadUserData() {
+	m.settings = storage.LoadSettings(m.personalDataDir)
 	m.vehicles, _ = storage.LoadVehicles(m.dataDir)
 	m.insurances, _ = storage.LoadInsurance(m.dataDir)
-	m.settings = storage.LoadSettings(m.dataDir)
 	m.subs, _ = storage.LoadSubscriptions(m.dataDir)
 	m.housing, _ = storage.LoadHousing(m.dataDir)
 
@@ -451,7 +451,7 @@ func (m *model) loadUserData() {
 	if m.settings.Theme == "" {
 		m.settings.Theme = "default"
 	}
-	m.theme = storage.LoadTheme(m.dataDir, m.settings.Theme)
+	m.theme = storage.LoadTheme(m.personalDataDir, m.settings.Theme)
 
 	m.userFamilies, _ = storage.GetUserFamilies(m.baseDataDir, m.user)
 

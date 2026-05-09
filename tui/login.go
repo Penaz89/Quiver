@@ -54,7 +54,28 @@ func (m *model) updateLogin(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.user = user // set the current app user to the authenticated user
 				m.dataDir = storage.GetUserDir(m.baseDataDir, user)
 				m.personalDataDir = m.dataDir
-				m.currentWorkspace = "Personal"
+				
+				// Read personal settings to determine default workspace
+				personalSettings := storage.LoadSettings(m.personalDataDir)
+				m.currentWorkspace = personalSettings.DefaultWorkspace
+				
+				// Ensure workspace exists, fallback to personal if not
+				if m.currentWorkspace != "Personal" {
+					families, _ := storage.GetUserFamilies(m.baseDataDir, user)
+					found := false
+					for _, f := range families {
+						if f.ID == m.currentWorkspace {
+							found = true
+							m.dataDir = storage.GetFamilyDir(m.baseDataDir, m.currentWorkspace)
+							break
+						}
+					}
+					if !found {
+						m.currentWorkspace = "Personal"
+						m.dataDir = m.personalDataDir
+					}
+				}
+				
 				registerSessionLogin(m.ctx, m.user)
 				if userRecord.Role == "admin" {
 					m.isAdmin = true
