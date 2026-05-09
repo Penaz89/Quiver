@@ -611,12 +611,12 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		case "up", "k":
 			if m.focusContent {
-				m.vp.LineUp(1)
+				m.vp.ScrollUp(1)
 				return m, nil
 			}
 		case "down", "j":
 			if m.focusContent {
-				m.vp.LineDown(1)
+				m.vp.ScrollDown(1)
 				return m, nil
 			}
 		}

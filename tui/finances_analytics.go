@@ -14,9 +14,9 @@ func (m *model) updateAnalytics(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "esc", "left":
 		m.finSection = fSectionMenu
 	case "up", "k":
-		m.vp.LineUp(1)
+		m.vp.ScrollUp(1)
 	case "down", "j":
-		m.vp.LineDown(1)
+		m.vp.ScrollDown(1)
 	}
 	return m, nil
 }
