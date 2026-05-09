@@ -521,7 +521,7 @@ func (m *model) renderSettingsWorkspace(s *styles) string {
 	} else if m.familyIsInviting {
 		help = s.dim.Render(fmt.Sprintf("\n\nEnter: %s  Esc: %s", t(m.lang, "action.save"), t(m.lang, "help.cancel")))
 	} else {
-		help = s.dim.Render(fmt.Sprintf("\n\n↑/↓: %s  n/a: New  i: Invite  Del: Leave  s: Set Default  ←: %s", t(m.lang, "help.navigate"), t(m.lang, "help.goBack")))
+		help = s.dim.Render(fmt.Sprintf("\n\n↑/↓: %s  %s  ←: %s", t(m.lang, "help.navigate"), t(m.lang, "settings.workspaceHelp"), t(m.lang, "help.goBack")))
 	}
 
 	return title + "\n" + currentInfo + "\n\n" + content + help

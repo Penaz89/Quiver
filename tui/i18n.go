@@ -32,8 +32,9 @@ var translations = map[string]map[string]string{
 	"menu.weather":  {"en": "WEATHER", "it": "METEO"},
 	"menu.vault":    {"en": "VAULT", "it": "VAULT"},
 	"menu.settings": {"en": "SETTINGS", "it": "IMPOSTAZIONI"},
-	"menu.users":    {"en": "USERS", "it": "UTENTI"},
-	"menu.logout":   {"en": "LOGOUT", "it": "LOGOUT"},
+	"menu.users":      {"en": "USERS", "it": "UTENTI"},
+	"menu.workspaces": {"en": "WORKSPACES", "it": "WORKSPACE"},
+	"menu.logout":     {"en": "LOGOUT", "it": "LOGOUT"},
 
 	// ── Home view ────────────────────────────────────────────
 	"home.welcome":     {"en": "Welcome back, %s!", "it": "Bentornato, %s!"},
@@ -255,6 +256,15 @@ var translations = map[string]map[string]string{
 	"settings.location":     {"en": "Location", "it": "Località"},
 	"settings.theme":        {"en": "Theme", "it": "Tema"},
 	"settings.currentTheme": {"en": "Current:", "it": "Attuale:"},
+	"settings.workspaces":   {"en": "Workspaces", "it": "Workspace"},
+	"settings.workspacesSubtitle": {"en": "  WORKSPACES / FAMILIES", "it": "  WORKSPACE / FAMIGLIE"},
+	"settings.currentWorkspace": {"en": "  Current Workspace: ", "it": "  Workspace Attuale: "},
+	"settings.createNewFamily": {"en": "  Create new family workspace:", "it": "  Crea un nuovo workspace famiglia:"},
+	"settings.inviteUser":      {"en": "  Invite user to family:", "it": "  Invita un utente nella famiglia:"},
+	"settings.yourWorkspaces":  {"en": "  Your Workspaces:", "it": "  I tuoi Workspace:"},
+	"settings.personal":        {"en": "● Personal", "it": "● Personale"},
+	"settings.familyLabel":     {"en": "● Family: %s (%d members)", "it": "● Famiglia: %s (%d membri)"},
+	"settings.workspaceHelp":   {"en": "n/a: New  i: Invite  Del: Leave  s: Set Default", "it": "n/a: Nuovo  i: Invita  Canc: Lascia  s: Imposta Default"},
 	// ── Finances extensions (Goals & Analytics) ──────────────
 	"finances.goals":       {"en": "Financial Goals", "it": "Obiettivi"},
 	"goals.noRecords":      {"en": "No financial goals set. Press 'n' to add one.", "it": "Nessun obiettivo impostato. Premi 'n' per aggiungerne uno."},
