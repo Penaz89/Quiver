@@ -85,9 +85,16 @@ func (m *model) updateAdminResetVault(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 	switch key {
 	case "y", "Y", "s", "S":
-		u := m.adminUsers[m.adminUserCursor]
-		dataDir := storage.GetUserDir(m.baseDataDir, u.Username)
-		storage.DeleteVault(dataDir)
+		if m.adminUserCursor < len(m.adminUsers) {
+			u := m.adminUsers[m.adminUserCursor]
+			dataDir := storage.GetUserDir(m.baseDataDir, u.Username)
+			storage.DeleteVault(dataDir)
+		} else {
+			idx := m.adminUserCursor - len(m.adminUsers)
+			f := m.adminFamilies[idx]
+			dataDir := storage.GetFamilyDir(m.baseDataDir, f.ID)
+			storage.DeleteVault(dataDir)
+		}
 		m.adminError = "Vault deleted successfully."
 		m.adminIsResettingVault = false
 	case "n", "N", "esc":
@@ -286,6 +293,15 @@ func (m *model) updateAdminVault(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.updateAdminResetVault(msg)
 	}
 	
+	if m.adminUsers == nil {
+		m.adminUsers, _ = storage.LoadUsers(m.baseDataDir)
+	}
+	if m.adminFamilies == nil {
+		m.adminFamilies, _ = storage.GetAllFamilies(m.baseDataDir)
+	}
+	
+	maxCursor := len(m.adminUsers) + len(m.adminFamilies) - 1
+	
 	key := msg.String()
 	switch key {
 	case "up", "k":
@@ -293,11 +309,11 @@ func (m *model) updateAdminVault(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.adminUserCursor--
 		}
 	case "down", "j":
-		if len(m.adminUsers) > 0 && m.adminUserCursor < len(m.adminUsers)-1 {
+		if maxCursor >= 0 && m.adminUserCursor < maxCursor {
 			m.adminUserCursor++
 		}
 	case "enter", "v", "V":
-		if len(m.adminUsers) > 0 {
+		if maxCursor >= 0 {
 			m.adminIsResettingVault = true
 			m.adminError = ""
 		}
@@ -312,6 +328,10 @@ func (m *model) renderAdminVaultView(s *styles) string {
 		m.adminUsers, _ = storage.LoadUsers(m.baseDataDir)
 	}
 
+	if m.adminFamilies == nil {
+		m.adminFamilies, _ = storage.GetAllFamilies(m.baseDataDir)
+	}
+
 	if m.adminIsResettingVault {
 		return m.renderAdminResetVault(s)
 	}
@@ -320,31 +340,59 @@ func (m *model) renderAdminVaultView(s *styles) string {
 	subtitle := s.subtitle.Render("Reset encrypted vaults")
 	
 	var list string
-	if len(m.adminUsers) == 0 {
-		list = s.dim.Render("No users found.")
+	maxCursor := len(m.adminUsers) + len(m.adminFamilies) - 1
+	if maxCursor < 0 {
+		list = s.dim.Render("No users or families found.")
 	} else {
-		for i, u := range m.adminUsers {
-			cursor := "  "
-			rowStyle := s.info
-			if i == m.adminUserCursor {
-				cursor = s.highlight.Render("> ")
-				rowStyle = s.highlight
-			}
-			
-			roleTag := ""
-			if u.Role == "admin" {
-				roleTag = lipgloss.NewStyle().Foreground(lipgloss.Color("208")).Render(" [ADMIN]")
-			}
-			
-			dataDir := storage.GetUserDir(m.baseDataDir, u.Username)
-			vaultStatus := ""
-			if storage.VaultExists(dataDir) {
-				vaultStatus = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Render(" (Vault Active)")
-			} else if u.Role == "admin" {
-				vaultStatus = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(" (No Vault)")
-			}
+		if len(m.adminUsers) > 0 {
+			list += s.dim.Render("--- USERS ---") + "\n"
+			for i, u := range m.adminUsers {
+				cursor := "  "
+				rowStyle := s.info
+				if i == m.adminUserCursor {
+					cursor = s.highlight.Render("> ")
+					rowStyle = s.highlight
+				}
+				
+				roleTag := ""
+				if u.Role == "admin" {
+					roleTag = lipgloss.NewStyle().Foreground(lipgloss.Color("208")).Render(" [ADMIN]")
+				}
+				
+				dataDir := storage.GetUserDir(m.baseDataDir, u.Username)
+				vaultStatus := ""
+				if storage.VaultExists(dataDir) {
+					vaultStatus = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Render(" (Vault Active)")
+				} else if u.Role == "admin" {
+					vaultStatus = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(" (No Vault)")
+				}
 
-			list += fmt.Sprintf("%s%s%s%s\n", cursor, rowStyle.Render(u.Username), roleTag, vaultStatus)
+				list += fmt.Sprintf("%s%s%s%s\n", cursor, rowStyle.Render(u.Username), roleTag, vaultStatus)
+			}
+		}
+		
+		if len(m.adminFamilies) > 0 {
+			if len(m.adminUsers) > 0 {
+				list += "\n"
+			}
+			list += s.dim.Render("--- FAMILIES ---") + "\n"
+			for j, f := range m.adminFamilies {
+				i := j + len(m.adminUsers)
+				cursor := "  "
+				rowStyle := s.info
+				if i == m.adminUserCursor {
+					cursor = s.highlight.Render("> ")
+					rowStyle = s.highlight
+				}
+				
+				dataDir := storage.GetFamilyDir(m.baseDataDir, f.ID)
+				vaultStatus := ""
+				if storage.VaultExists(dataDir) {
+					vaultStatus = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Render(" (Vault Active)")
+				}
+				
+				list += fmt.Sprintf("%s%s%s\n", cursor, rowStyle.Render(f.Name), vaultStatus)
+			}
 		}
 	}
 
@@ -383,12 +431,18 @@ func (m *model) renderAdminDelete(s *styles) string {
 func (m *model) renderAdminResetVault(s *styles) string {
 	title := s.title.Render("RESET VAULT")
 	
-	u := m.adminUsers[m.adminUserCursor]
+	targetName := ""
+	if m.adminUserCursor < len(m.adminUsers) {
+		targetName = "user " + m.adminUsers[m.adminUserCursor].Username
+	} else {
+		idx := m.adminUserCursor - len(m.adminUsers)
+		targetName = "family " + m.adminFamilies[idx].Name
+	}
 	
 	msgStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("252"))
-	userStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
+	targetStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
 	
-	msg := msgStyle.Render("Are you sure you want to reset the vault for user ") + userStyle.Render(u.Username) + msgStyle.Render("?")
+	msg := msgStyle.Render("Are you sure you want to reset the vault for ") + targetStyle.Render(targetName) + msgStyle.Render("?")
 	warning := lipgloss.NewStyle().Foreground(lipgloss.Color("208")).Render("\nThis action will delete all their encrypted secrets permanently.")
 	
 	prompt := lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Bold(true).Render("\n\nPress (Y) to confirm or (N) to cancel.")
