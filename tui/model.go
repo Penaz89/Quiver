@@ -131,6 +131,14 @@ type model struct {
 	adminIsResettingVault bool
 	adminError            string
 
+	adminFamilies         []storage.Family
+	adminFamilyCursor     int
+	adminFamilyIsEditing  bool
+	adminFamilyIsInviting bool
+	adminFamilyIsDeleting bool
+	adminFamilyForm       string
+	adminFamilyError      string
+
 	// Vehicle state
 	vehicles             []storage.Vehicle
 	vehicleSection       vehicleSection
@@ -586,10 +594,13 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if m.isAdmin {
 			if m.focusContent {
-				if m.menuCursor == 0 {
+				item := m.menuItems[m.menuCursor]
+				if item == t(m.lang, "menu.users") {
 					return m.updateAdminUsers(msg)
-				} else if m.menuCursor == 1 {
+				} else if item == t(m.lang, "menu.vault") {
 					return m.updateAdminVault(msg)
+				} else if item == "WORKSPACES" {
+					return m.updateAdminWorkspaces(msg)
 				}
 			}
 		} else {
@@ -703,11 +714,13 @@ func (m *model) View() tea.View {
 	// ── Content area ─────────────────────────────────────────
 	var contentStr string
 	if m.isAdmin {
-		switch m.menuCursor {
-		case 0:
+		item := m.menuItems[m.menuCursor]
+		if item == t(m.lang, "menu.users") {
 			contentStr = m.renderAdminUsersView(s)
-		case 1:
+		} else if item == t(m.lang, "menu.vault") {
 			contentStr = m.renderAdminVaultView(s)
+		} else if item == "WORKSPACES" {
+			contentStr = m.renderAdminWorkspacesView(s)
 		}
 	} else {
 		item := m.menuItems[m.menuCursor]
@@ -889,6 +902,7 @@ func (m *model) updateMenuLabels() {
 		m.menuItems = []string{
 			t(m.lang, "menu.users"),
 			t(m.lang, "menu.vault"),
+			"WORKSPACES",
 			t(m.lang, "menu.logout"),
 		}
 	} else {

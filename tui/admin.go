@@ -397,3 +397,248 @@ func (m *model) renderAdminResetVault(s *styles) string {
 	
 	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, content)
 }
+
+func (m *model) updateAdminWorkspaces(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.adminFamilies == nil {
+		m.adminFamilies, _ = storage.GetAllFamilies(m.baseDataDir)
+	}
+
+	if m.adminFamilyIsEditing || m.adminFamilyIsInviting {
+		return m.updateAdminWorkspaceForm(msg)
+	}
+	if m.adminFamilyIsDeleting {
+		return m.updateAdminWorkspaceDelete(msg)
+	}
+
+	key := msg.String()
+	switch key {
+	case "up", "k":
+		if m.adminFamilyCursor > 0 {
+			m.adminFamilyCursor--
+		}
+	case "down", "j":
+		if len(m.adminFamilies) > 0 && m.adminFamilyCursor < len(m.adminFamilies)-1 {
+			m.adminFamilyCursor++
+		}
+	case "e": // rename
+		if len(m.adminFamilies) > 0 {
+			m.adminFamilyIsEditing = true
+			m.adminFamilyForm = m.adminFamilies[m.adminFamilyCursor].Name
+			m.adminFamilyError = ""
+		}
+	case "i": // invite member
+		if len(m.adminFamilies) > 0 {
+			m.adminFamilyIsInviting = true
+			m.adminFamilyForm = ""
+			m.adminFamilyError = ""
+		}
+	case "d", "delete", "backspace": // remove member or delete
+		if len(m.adminFamilies) > 0 {
+			m.adminFamilyIsDeleting = true
+			m.adminFamilyForm = ""
+			m.adminFamilyError = ""
+		}
+	case "esc":
+		m.focusContent = false
+	}
+	return m, nil
+}
+
+func (m *model) updateAdminWorkspaceForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	key := msg.String()
+	switch key {
+	case "esc":
+		m.adminFamilyIsEditing = false
+		m.adminFamilyIsInviting = false
+		m.adminFamilyError = ""
+	case "enter":
+		val := strings.TrimSpace(m.adminFamilyForm)
+		if val == "" {
+			m.adminFamilyError = "Field cannot be empty."
+			return m, nil
+		}
+		
+		f := m.adminFamilies[m.adminFamilyCursor]
+
+		if m.adminFamilyIsEditing {
+			err := storage.RenameFamily(m.baseDataDir, f.ID, val)
+			if err != nil {
+				m.adminFamilyError = "Error: " + err.Error()
+			} else {
+				m.adminFamilyIsEditing = false
+				m.adminFamilies, _ = storage.GetAllFamilies(m.baseDataDir)
+				m.adminFamilyError = "Workspace renamed successfully."
+			}
+		} else if m.adminFamilyIsInviting {
+			err := storage.AddMemberToFamily(m.baseDataDir, f.ID, val)
+			if err != nil {
+				m.adminFamilyError = "Error: " + err.Error()
+			} else {
+				m.adminFamilyIsInviting = false
+				m.adminFamilies, _ = storage.GetAllFamilies(m.baseDataDir)
+				m.adminFamilyError = "User added successfully."
+			}
+		}
+	case "backspace":
+		if len(m.adminFamilyForm) > 0 {
+			runes := []rune(m.adminFamilyForm)
+			m.adminFamilyForm = string(runes[:len(runes)-1])
+		}
+	default:
+		if key == "space" {
+			key = " "
+		}
+		runes := []rune(key)
+		if len(runes) == 1 && unicode.IsPrint(runes[0]) {
+			m.adminFamilyForm += key
+		}
+	}
+	return m, nil
+}
+
+func (m *model) updateAdminWorkspaceDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	key := msg.String()
+	switch key {
+	case "esc":
+		m.adminFamilyIsDeleting = false
+		m.adminFamilyError = ""
+	case "enter":
+		val := strings.TrimSpace(m.adminFamilyForm)
+		if val == "" {
+			m.adminFamilyError = "Type a username to remove, or 'ALL' to delete family."
+			return m, nil
+		}
+		f := m.adminFamilies[m.adminFamilyCursor]
+		if val == "ALL" {
+			// To delete a family, we remove all members one by one.
+			for _, mem := range f.Members {
+				_ = storage.RemoveMemberFromFamily(m.baseDataDir, f.ID, mem)
+			}
+			m.adminFamilies, _ = storage.GetAllFamilies(m.baseDataDir)
+			m.adminFamilyIsDeleting = false
+			m.adminFamilyError = "Workspace deleted successfully."
+			if m.adminFamilyCursor >= len(m.adminFamilies) {
+				m.adminFamilyCursor = len(m.adminFamilies) - 1
+			}
+			if m.adminFamilyCursor < 0 { m.adminFamilyCursor = 0 }
+		} else {
+			err := storage.RemoveMemberFromFamily(m.baseDataDir, f.ID, val)
+			if err != nil {
+				m.adminFamilyError = "Error: " + err.Error()
+			} else {
+				m.adminFamilies, _ = storage.GetAllFamilies(m.baseDataDir)
+				m.adminFamilyIsDeleting = false
+				m.adminFamilyError = "Member removed successfully."
+				if m.adminFamilyCursor >= len(m.adminFamilies) {
+					m.adminFamilyCursor = len(m.adminFamilies) - 1
+				}
+				if m.adminFamilyCursor < 0 { m.adminFamilyCursor = 0 }
+			}
+		}
+	case "backspace":
+		if len(m.adminFamilyForm) > 0 {
+			runes := []rune(m.adminFamilyForm)
+			m.adminFamilyForm = string(runes[:len(runes)-1])
+		}
+	default:
+		if key == "space" {
+			key = " "
+		}
+		runes := []rune(key)
+		if len(runes) == 1 && unicode.IsPrint(runes[0]) {
+			m.adminFamilyForm += key
+		}
+	}
+	
+	return m, nil
+}
+
+func (m *model) renderAdminWorkspacesView(s *styles) string {
+	if m.adminFamilies == nil {
+		m.adminFamilies, _ = storage.GetAllFamilies(m.baseDataDir)
+	}
+
+	title := s.title.Render("WORKSPACES MANAGEMENT")
+	
+	if m.adminFamilyIsEditing || m.adminFamilyIsInviting {
+		return m.renderAdminWorkspaceForm(s, title)
+	}
+	if m.adminFamilyIsDeleting {
+		return m.renderAdminWorkspaceDelete(s, title)
+	}
+
+	var list string
+	if len(m.adminFamilies) == 0 {
+		list = s.dim.Render("No family workspaces found.")
+	} else {
+		for i, f := range m.adminFamilies {
+			cursor := "  "
+			rowStyle := s.info
+			if i == m.adminFamilyCursor {
+				cursor = s.highlight.Render("> ")
+				rowStyle = s.highlight
+			}
+			
+			idTag := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(fmt.Sprintf(" [%s]", f.ID))
+			membersTag := s.dim.Render(fmt.Sprintf("\n    Members: %s", strings.Join(f.Members, ", ")))
+
+			list += fmt.Sprintf("%s%s%s%s\n", cursor, rowStyle.Render(f.Name), idTag, membersTag)
+		}
+	}
+
+	content := title + "\n\n" + list
+	
+	if m.adminFamilyError != "" {
+		errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
+		if strings.HasSuffix(m.adminFamilyError, "successfully.") {
+			errStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("42"))
+		}
+		content += "\n\n" + errStyle.Render(m.adminFamilyError)
+	}
+
+	help := s.dim.Render("\n\ne: Rename • i: Invite User • d: Remove User/Delete • Esc: Back")
+	return content + help
+}
+
+func (m *model) renderAdminWorkspaceForm(s *styles, title string) string {
+	subtitle := "RENAME WORKSPACE"
+	label := "New Name:"
+	if m.adminFamilyIsInviting {
+		subtitle = "INVITE USER"
+		label = "Username:"
+	}
+	
+	subtitleStr := s.subtitle.Render(subtitle)
+	
+	inputStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Background(lipgloss.Color("236")).PaddingLeft(1)
+	
+	val := inputStyle.Render(m.adminFamilyForm + s.highlight.Render("_"))
+	form := fmt.Sprintf("  %s %s", s.dim.Render(label), val)
+
+	content := title + "\n" + subtitleStr + "\n\n" + form
+	
+	if m.adminFamilyError != "" {
+		content += "\n\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Render(m.adminFamilyError)
+	}
+
+	help := s.dim.Render("\n\nEnter: Save • Esc: Cancel")
+	return content + help
+}
+
+func (m *model) renderAdminWorkspaceDelete(s *styles, title string) string {
+	subtitle := s.subtitle.Render("REMOVE MEMBER OR DELETE")
+	
+	inputStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Background(lipgloss.Color("236")).PaddingLeft(1)
+	
+	val := inputStyle.Render(m.adminFamilyForm + s.highlight.Render("_"))
+	form := fmt.Sprintf("  %s %s", s.dim.Render("Username to remove (or 'ALL' to delete workspace):"), val)
+
+	content := title + "\n" + subtitle + "\n\n" + form
+	
+	if m.adminFamilyError != "" {
+		content += "\n\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Render(m.adminFamilyError)
+	}
+
+	help := s.dim.Render("\n\nEnter: Confirm • Esc: Cancel")
+	return content + help
+}

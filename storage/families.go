@@ -175,3 +175,31 @@ func RemoveMemberFromFamily(dataDir, familyID, username string) error {
 
 	return SaveFamilies(dataDir, newFamilies)
 }
+
+// GetAllFamilies returns all families in the registry.
+func GetAllFamilies(dataDir string) ([]Family, error) {
+	return LoadFamilies(dataDir)
+}
+
+// RenameFamily renames a family.
+func RenameFamily(dataDir, familyID, newName string) error {
+	families, err := LoadFamilies(dataDir)
+	if err != nil {
+		return err
+	}
+	
+	found := false
+	for i, f := range families {
+		if f.ID == familyID {
+			families[i].Name = newName
+			found = true
+			break
+		}
+	}
+	
+	if !found {
+		return os.ErrNotExist
+	}
+	
+	return SaveFamilies(dataDir, families)
+}
