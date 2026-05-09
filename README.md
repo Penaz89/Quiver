@@ -13,6 +13,7 @@ An advanced SSH-accessible Terminal User Interface (TUI) application built with 
 ## Features
 
 - **Multi-user Authentication**: Secure login system with bcrypt encryption. Each user's data is isolated in their own personal directory. Includes account creation and secure logout functionalities.
+- **Family Workspaces & Author Tracking**: Create shared workspaces to collaborate with other users on the server. Easily switch between personal and family contexts using `Ctrl+W`. All shared entries (Salaries, Tasks, Daily Expenses) automatically track and display the username of the creator.
 - **Admin Control Panel**: A special `admin` user is generated automatically on the first run (the default password is `admin`, valid only for the first login, after which you will be forced to change it). The admin has access to an exclusive menu to list, add, edit, and securely delete users.
 - **Dynamic Home Dashboard**: A fully responsive landing page summarizing your financial totals, upcoming deadlines (drawn from Tasks, Vehicles, and Insurances), your latest Journal notes, and your most recently added Tasks.
 - **Real-Time Chat**: Integrated chat interface allowing users within the same Quiver instance to communicate in real-time, featuring a clean, responsive layout.
@@ -125,8 +126,10 @@ The application requires minimal configuration, handled entirely via environment
 
 The mapped `/data` volume will generate the following structure automatically:
 - `host_key_ed25519`: The secure SSH host key. Persisting this prevents SSH clients from throwing warnings if you recreate the container.
-- `admin_auth.json`: Secure bcrypt credentials for the default admin user.
-- `{username}/`: Dedicated folders containing all JSON-based data stores (habits, journal, tasks, finances, etc.) for that specific user.
+- `users.json`: The global registry of all registered users and their encrypted passwords.
+- `families.json`: The registry of all shared family workspaces and their members.
+- `users/{username}/`: Dedicated folders containing all personal JSON-based data stores (habits, journal, tasks, finances, etc.) for that specific user.
+- `families/{familyID}/`: Dedicated folders containing all shared JSON-based data stores for family workspaces.
 - `themes/`: Directory for placing custom `.json` theme definitions to be loaded dynamically.
 
 ### Backing Up Data
