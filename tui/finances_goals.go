@@ -207,7 +207,6 @@ func (m *model) renderGoals(s *styles) string {
 			empty = 0
 		}
 
-		barStr := strings.Repeat("█", filled) + strings.Repeat("░", empty)
 		var color string
 		if pct < 33 {
 			color = "196" // red
@@ -219,7 +218,9 @@ func (m *model) renderGoals(s *styles) string {
 			color = "42" // green
 		}
 
-		coloredBar := lipgloss.NewStyle().Foreground(lipgloss.Color(color)).Render(barStr)
+		filledStr := lipgloss.NewStyle().Foreground(lipgloss.Color(color)).Bold(true).Render(strings.Repeat("━", filled))
+		emptyStr := lipgloss.NewStyle().Foreground(lipgloss.Color("238")).Render(strings.Repeat("─", empty))
+		coloredBar := filledStr + emptyStr
 
 		nameLine := g.Name
 		if i == m.goalCursor {

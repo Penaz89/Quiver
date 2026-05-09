@@ -102,6 +102,8 @@ func (m *model) updateTasks(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.taskColumn > 0 {
 			m.taskColumn--
 			m.taskCursor = 0
+		} else {
+			m.focusContent = false
 		}
 	case "l", "right":
 		if m.taskColumn < 2 {
@@ -218,7 +220,11 @@ func (m *model) renderTasksView(s *styles) string {
 
 	sw := sidebarWidth(m.width)
 	contentW := m.width - sw - 8
-	colW := contentW / 3
+	vpWidth := contentW - 4
+	if vpWidth < 10 {
+		vpWidth = 10
+	}
+	colW := vpWidth / 3
 	if colW < 20 {
 		colW = 20 // minimum column width
 	}
@@ -269,7 +275,7 @@ func (m *model) renderTasksView(s *styles) string {
 			// Check if selected
 			boxStyle := lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
-				Width(colW - 2).
+				Width(colW - 6).
 				Padding(0, 1)
 				
 			if m.taskColumn == i && m.taskCursor == j {
@@ -284,8 +290,8 @@ func (m *model) renderTasksView(s *styles) string {
 		colContent := colHeader + "\n\n" + strings.Join(taskStrs, "\n")
 		
 		cols[i] = lipgloss.NewStyle().
-			Width(colW).
-			PaddingRight(2).
+			Width(colW - 2).
+			MarginRight(2).
 			Render(colContent)
 	}
 
