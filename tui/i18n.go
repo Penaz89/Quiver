@@ -37,7 +37,7 @@ var translations = map[string]map[string]string{
 
 	// ── Home view ────────────────────────────────────────────
 	"home.welcome":      {"en": "Welcome back, %s!", "it": "Bentornato, %s!"},
-	"home.finances":     {"en": "FIXED EXPENSES SUMMARY", "it": "RESOCONTO SPESE FISSE"},
+	"home.finances":     {"en": "RECURRING EXPENSES SUMMARY", "it": "RESOCONTO SPESE RICORRENTI"},
 	"home.annual":       {"en": "Annual:", "it": "Annuale:"},
 	"home.monthly":      {"en": "Monthly:", "it": "Mensile:"},
 	"home.deadlines":    {"en": "UPCOMING DEADLINES", "it": "PROSSIME SCADENZE"},
@@ -133,7 +133,7 @@ var translations = map[string]map[string]string{
 	"subscriptions.noRecords":{"en": "No subscriptions yet.", "it": "Nessun abbonamento."},
 	"finances.salaryImpact": {"en": "SALARY IMPACT", "it": "IMPATTO SULLO STIPENDIO"},
 	"finances.projectedAnnual": {"en": "Projected Annual Net", "it": "Netto Annuale Stimato"},
-	"finances.fixedAnnual": {"en": "Total Fixed Expenses", "it": "Totale Spese Fisse"},
+	"finances.fixedAnnual": {"en": "Total Recurring Expenses", "it": "Totale Spese Ricorrenti"},
 	"finances.impactPct": {"en": "Impact Percentage", "it": "Incidenza Percentuale"},
 	"finances.daily":       {"en": "Daily Expenses", "it": "Spese Variabili"},
 	"daily.noRecords":      {"en": "No daily expenses yet.", "it": "Nessuna spesa variabile."},
