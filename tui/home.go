@@ -56,6 +56,20 @@ func (m *model) calculateTotalFinances() (float64, float64) {
 		}
 	}
 
+
+	// Daily Expenses (Current Month)
+	now := time.Now()
+	var dailyMonthly float64
+	for _, exp := range m.daily {
+		if !exp.Date.IsZero() && exp.Date.Year() == now.Year() && exp.Date.Month() == now.Month() {
+			dailyMonthly += parseEuro(exp.Amount)
+		}
+	}
+	if dailyMonthly > 0 {
+		monthly += dailyMonthly
+		annual += dailyMonthly * 12.0
+	}
+
 	// Goals
 	for _, g := range m.goals {
 		target := parseEuro(g.Target)
