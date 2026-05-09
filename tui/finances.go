@@ -208,78 +208,75 @@ func parseEuro(s string) float64 {
 
 func (m *model) renderFixedExpenses(s *styles) string {
 	title := s.title.Render(t(m.lang, "finances.fixedExp"))
-	if len(m.vehicles) == 0 {
-		empty := s.dim.Render(t(m.lang, "vehicles.noVehicles"))
-		help := s.dim.Render(fmt.Sprintf("\n\n←: %s", t(m.lang, "help.goBack")))
-		return title + "\n\n" + empty + help
-	}
-
 	var grandTotalAnnual float64
 	var grandTotalMonthly float64
 
 	// --- CATEGORY: VEICOLI ---
-	catVehTitle := s.info.Render("  " + t(m.lang, "cat.vehicles"))
-	
-	hdrVeh := fmt.Sprintf("  %-14s %-16s %-14s %-14s",
-		t(m.lang, "col.plate"), t(m.lang, "col.model"), t(m.lang, "col.annual"), t(m.lang, "col.monthly"))
-	headerVeh := s.subtitle.Render(hdrVeh)
-	dividerVeh := s.dim.Render("  " + strings.Repeat("─", 63))
-	
-	var vehRows []string
-	var vehCatAnnual float64
-	var vehCatMonthly float64
+	var vehBlock string
+	if len(m.vehicles) > 0 {
+		catVehTitle := s.info.Render("  " + t(m.lang, "cat.vehicles"))
+		
+		hdrVeh := fmt.Sprintf("  %-14s %-16s %-14s %-14s",
+			t(m.lang, "col.plate"), t(m.lang, "col.model"), t(m.lang, "col.annual"), t(m.lang, "col.monthly"))
+		headerVeh := s.subtitle.Render(hdrVeh)
+		dividerVeh := s.dim.Render("  " + strings.Repeat("─", 63))
+		
+		var vehRows []string
+		var vehCatAnnual float64
+		var vehCatMonthly float64
 
-	for _, v := range m.vehicles {
-		var annualTotal float64
+		for _, v := range m.vehicles {
+			var annualTotal float64
 
-		// Bollo
-		annualTotal += parseEuro(v.RoadTaxCost)
-		// Revisione
-		annualTotal += parseEuro(v.NTCCost) / 2.0
-		// Tagliando
-		annualTotal += parseEuro(v.ServiceCost)
+			// Bollo
+			annualTotal += parseEuro(v.RoadTaxCost)
+			// Revisione
+			annualTotal += parseEuro(v.NTCCost) / 2.0
+			// Tagliando
+			annualTotal += parseEuro(v.ServiceCost)
 
-		// Insurance
-		for _, ins := range m.insurances {
-			if ins.LicensePlate == v.LicensePlate {
-				cost := parseEuro(ins.TotalCost)
-				if ins.Type == "type.semiannual" {
-					annualTotal += cost * 2.0
-				} else {
-					annualTotal += cost
+			// Insurance
+			for _, ins := range m.insurances {
+				if ins.LicensePlate == v.LicensePlate {
+					cost := parseEuro(ins.TotalCost)
+					if ins.Type == "type.semiannual" {
+						annualTotal += cost * 2.0
+					} else {
+						annualTotal += cost
+					}
 				}
 			}
+
+			monthlyTotal := annualTotal / 12.0
+			
+			vehCatAnnual += annualTotal
+			vehCatMonthly += monthlyTotal
+
+			annStr := fmt.Sprintf("€ %.2f", annualTotal)
+			monStr := fmt.Sprintf("€ %.2f", monthlyTotal)
+			
+			row := fmt.Sprintf("  %-14s %-16s %-14s %-14s",
+				truncate(v.LicensePlate, 13),
+				truncate(v.Brand+" "+v.Model, 15),
+				annStr,
+				monStr,
+			)
+			vehRows = append(vehRows, row)
 		}
-
-		monthlyTotal := annualTotal / 12.0
 		
-		vehCatAnnual += annualTotal
-		vehCatMonthly += monthlyTotal
+		grandTotalAnnual += vehCatAnnual
+		grandTotalMonthly += vehCatMonthly
 
-		annStr := fmt.Sprintf("€ %.2f", annualTotal)
-		monStr := fmt.Sprintf("€ %.2f", monthlyTotal)
+		vehTable := strings.Join(vehRows, "\n")
 		
-		row := fmt.Sprintf("  %-14s %-16s %-14s %-14s",
-			truncate(v.LicensePlate, 13),
-			truncate(v.Brand+" "+v.Model, 15),
-			annStr,
-			monStr,
+		subtotalStr := fmt.Sprintf("  %-31s %-14s %-14s",
+			t(m.lang, "finances.subtotal")+" "+t(m.lang, "cat.vehicles"),
+			fmt.Sprintf("€ %.2f", vehCatAnnual),
+			fmt.Sprintf("€ %.2f", vehCatMonthly),
 		)
-		vehRows = append(vehRows, row)
+		
+		vehBlock = catVehTitle + "\n" + dividerVeh + "\n" + headerVeh + "\n" + dividerVeh + "\n" + vehTable + "\n" + dividerVeh + "\n" + s.highlight.Render(subtotalStr) + "\n"
 	}
-	
-	grandTotalAnnual += vehCatAnnual
-	grandTotalMonthly += vehCatMonthly
-
-	vehTable := strings.Join(vehRows, "\n")
-	
-	subtotalStr := fmt.Sprintf("  %-31s %-14s %-14s",
-		t(m.lang, "finances.subtotal")+" "+t(m.lang, "cat.vehicles"),
-		fmt.Sprintf("€ %.2f", vehCatAnnual),
-		fmt.Sprintf("€ %.2f", vehCatMonthly),
-	)
-	
-	vehBlock := catVehTitle + "\n" + dividerVeh + "\n" + headerVeh + "\n" + dividerVeh + "\n" + vehTable + "\n" + dividerVeh + "\n" + s.highlight.Render(subtotalStr)
 
 	// --- CATEGORY: CASA ---
 	var houseBlock string
