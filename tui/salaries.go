@@ -304,13 +304,18 @@ func (m *model) renderSalariesStats(s *styles) string {
 		}
 		taxLen := int((taxPct / 100.0) * float64(barWidth))
 
-		grossBar := strings.Repeat("█", grossLen) + strings.Repeat(" ", barWidth-grossLen)
-		netBar := strings.Repeat("█", netLen) + strings.Repeat(" ", barWidth-netLen)
-		taxBar := strings.Repeat("█", taxLen) + strings.Repeat(" ", barWidth-taxLen)
+		grossBar := strings.Repeat("━", grossLen)
+		grossEmpty := strings.Repeat("─", barWidth-grossLen)
+		netBar := strings.Repeat("━", netLen)
+		netEmpty := strings.Repeat("─", barWidth-netLen)
+		taxBar := strings.Repeat("━", taxLen)
+		taxEmpty := strings.Repeat("─", barWidth-taxLen)
 
-		grossColor := lipgloss.NewStyle().Foreground(lipgloss.Color("39")).Render(grossBar)
-		netColor := lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Render(netBar)
-		taxColor := lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Render(taxBar)
+		emptyStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("238"))
+
+		grossColor := lipgloss.NewStyle().Foreground(lipgloss.Color("39")).Bold(true).Render(grossBar) + emptyStyle.Render(grossEmpty)
+		netColor := lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Bold(true).Render(netBar) + emptyStyle.Render(netEmpty)
+		taxColor := lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true).Render(taxBar) + emptyStyle.Render(taxEmpty)
 		
 		lblGross := t(m.lang, "col.gross")
 		lblNet := t(m.lang, "col.net")

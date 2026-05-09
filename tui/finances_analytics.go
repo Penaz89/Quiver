@@ -30,16 +30,98 @@ func renderBar(ratio float64, barLen int, color string) string {
 	if empty < 0 {
 		empty = 0
 	}
-	filledStr := lipgloss.NewStyle().Foreground(lipgloss.Color(color)).Render(strings.Repeat("█", filled))
-	emptyStr := lipgloss.NewStyle().Foreground(lipgloss.Color("238")).Render(strings.Repeat("░", empty))
+	filledStr := lipgloss.NewStyle().Foreground(lipgloss.Color(color)).Bold(true).Render(strings.Repeat("━", filled))
+	emptyStr := lipgloss.NewStyle().Foreground(lipgloss.Color("238")).Render(strings.Repeat("─", empty))
 	return filledStr + emptyStr
 }
 
 func (m *model) renderAnalytics(s *styles) string {
 	title := s.title.Render(t(m.lang, "finances.analytics"))
 
-	barLen := 30
-	labelW := 26
+	// ── Dynamically compute barLen & labelW based on available width ──
+	sw := sidebarWidth(m.width)
+	contentW := m.width - sw - 6 // content panel (borders + padding)
+	if sw == 0 {
+		contentW = m.width - 4
+	}
+	vpWidth := contentW - 4
+
+	// col2 width is the max of title, subtitle, and submenu strings
+	titleStr := s.title.Render(t(m.lang, "finances.title"))
+	descStr := s.subtitle.Render(t(m.lang, "finances.subtitle"))
+	col2W := lipgloss.Width(titleStr)
+	if lipgloss.Width(descStr) > col2W {
+		col2W = lipgloss.Width(descStr)
+	}
+	submenuW := sw - 4
+	if submenuW < 10 {
+		submenuW = 10
+	}
+	if submenuW > col2W {
+		col2W = submenuW
+	}
+
+	// Subtract col2 width + paddingRight(2) + marginRight(2) + right border(1) + safety margin(3)
+	col3W := vpWidth - col2W - 8
+	if col3W < 30 {
+		col3W = 30
+	}
+
+	maxLabel := 0
+	labelsList := []string{
+		t(m.lang, "analytics.avgIncome"),
+		t(m.lang, "analytics.avgExpense"),
+		t(m.lang, "analytics.cashFlow"),
+		t(m.lang, "analytics.savingRate"),
+		t(m.lang, "finances.projectedAnnual"),
+		t(m.lang, "finances.fixedAnnual"),
+		t(m.lang, "finances.impactPct"),
+	}
+	for _, l := range labelsList {
+		w := lipgloss.Width(l)
+		if w > maxLabel {
+			maxLabel = w
+		}
+	}
+	maxLabel += 2 // Padding
+
+	isCompact := false
+	if col3W < maxLabel+30 {
+		isCompact = true
+	}
+
+	var labelW, barLen, divLen int
+	var fmtRow string
+
+	if isCompact {
+		labelW = col3W - 4
+		barLen = col3W - 18
+		if barLen < 8 {
+			barLen = 8
+		}
+		if barLen > 40 {
+			barLen = 40
+		}
+		divLen = col3W - 4
+		if divLen < 1 {
+			divLen = 1
+		}
+		fmtRow = "  %s\n  %s  %s\n"
+	} else {
+		labelW = maxLabel
+		barLen = col3W - labelW - 18
+		if barLen < 8 {
+			barLen = 8
+		}
+		if barLen > 40 {
+			barLen = 40
+		}
+		divLen = labelW + barLen + 16
+		if divLen < 1 {
+			divLen = 1
+		}
+		fmtRow = fmt.Sprintf("  %%-%ds  %%s  %%s\n", labelW)
+	}
 
 	// ── Compute data ────────────────────────────────────────
 	annualExp, monthlyExp := m.calculateTotalFinances()
@@ -64,7 +146,7 @@ func (m *model) renderAnalytics(s *styles) string {
 
 	// ── Section 1: Monthly Balance ──────────────────────────
 	sec1Title := s.subtitle.Render("  " + t(m.lang, "analytics.ratioBar"))
-	sec1Div := s.dim.Render("  " + strings.Repeat("─", labelW+barLen+18))
+	sec1Div := s.dim.Render("  " + strings.Repeat("─", divLen))
 
 	incomeBar := renderBar(1.0, barLen, "39")  // cyan = income reference
 	expRatio := 0.0
@@ -82,12 +164,10 @@ func (m *model) renderAnalytics(s *styles) string {
 	}
 	saveBar := renderBar(saveRatio, barLen, saveColor)
 
-	fmtRow := fmt.Sprintf("  %%-%ds  %%s  %%s\n", labelW)
-
 	sec1 := sec1Title + "\n" + sec1Div + "\n\n"
 	sec1 += fmt.Sprintf(fmtRow, t(m.lang, "analytics.avgIncome"), incomeBar, s.info.Render(fmt.Sprintf("€ %.2f", avgMonthlyNet)))
 	sec1 += fmt.Sprintf(fmtRow, t(m.lang, "analytics.avgExpense"), expBar, s.info.Render(fmt.Sprintf("€ %.2f", monthlyExp)))
-	sec1 += "  " + s.dim.Render(strings.Repeat("·", labelW+barLen+16)) + "\n"
+	sec1 += "  " + s.dim.Render(strings.Repeat("·", divLen)) + "\n"
 
 	// Cash flow value colored
 	cfColor := lipgloss.NewStyle().Foreground(lipgloss.Color("42"))
@@ -120,7 +200,7 @@ func (m *model) renderAnalytics(s *styles) string {
 		}
 
 		sec2Title := s.subtitle.Render("  " + t(m.lang, "finances.salaryImpact"))
-		sec2Div := s.dim.Render("  " + strings.Repeat("─", labelW+barLen+18))
+		sec2Div := s.dim.Render("  " + strings.Repeat("─", divLen))
 
 		netBar := renderBar(1.0, barLen, "75") // light blue = net reference
 		fixRatio := 0.0
@@ -137,7 +217,7 @@ func (m *model) renderAnalytics(s *styles) string {
 		sec2 = "\n\n" + sec2Title + "\n" + sec2Div + "\n\n"
 		sec2 += fmt.Sprintf(fmtRow, t(m.lang, "finances.projectedAnnual"), netBar, s.info.Render(fmt.Sprintf("€ %.2f", projectedAnnual)))
 		sec2 += fmt.Sprintf(fmtRow, t(m.lang, "finances.fixedAnnual"), fixBar, s.info.Render(fmt.Sprintf("€ %.2f", annualExp)))
-		sec2 += "  " + s.dim.Render(strings.Repeat("·", labelW+barLen+16)) + "\n"
+		sec2 += "  " + s.dim.Render(strings.Repeat("·", divLen)) + "\n"
 		sec2 += fmt.Sprintf(fmtRow, t(m.lang, "finances.impactPct"), impBar, pctStyle.Render(fmt.Sprintf("%.1f%%", impactPct)))
 	}
 
