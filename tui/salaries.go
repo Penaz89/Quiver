@@ -117,10 +117,11 @@ func (m *model) updateSalaries(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "enter":
 			if m.salaryForm[0] != "" && m.salaryForm[1] != "" && m.salaryForm[2] != "" && m.salaryForm[3] != "" {
 				newSal := storage.Salary{
-					Year:  m.salaryForm[0],
-					Month: m.salaryForm[1],
-					Gross: m.salaryForm[2],
-					Net:   m.salaryForm[3],
+					Year:   m.salaryForm[0],
+					Month:  m.salaryForm[1],
+					Gross:  m.salaryForm[2],
+					Net:    m.salaryForm[3],
+					Author: m.user,
 				}
 				if m.finView == fViewAdd {
 					m.salaries = append(m.salaries, newSal)
@@ -350,9 +351,9 @@ func (m *model) renderSalariesMonthList(s *styles) string {
 	
 	var totalGross, totalNet float64
 	
-	headerStr := fmt.Sprintf("  %-13s %-13s %-13s %-13s %-10s", t(m.lang, "col.month"), t(m.lang, "col.gross"), t(m.lang, "col.net"), t(m.lang, "col.deductions"), t(m.lang, "col.taxes"))
+	headerStr := fmt.Sprintf("  %-13s %-13s %-13s %-13s %-8s %s", t(m.lang, "col.month"), t(m.lang, "col.gross"), t(m.lang, "col.net"), t(m.lang, "col.deductions"), t(m.lang, "col.taxes"), "AUTORE")
 	header := s.subtitle.Render(headerStr)
-	divider := s.dim.Render("  " + strings.Repeat("─", 70))
+	divider := s.dim.Render("  " + strings.Repeat("─", 80))
 	
 	var lines []string
 	for i, sal := range salaries {
@@ -367,8 +368,13 @@ func (m *model) renderSalariesMonthList(s *styles) string {
 			taxPct = (taxes / gross) * 100
 		}
 		
+		authorStr := ""
+		if sal.Author != "" {
+			authorStr = s.dim.Render("[" + sal.Author + "]")
+		}
+		
 		monthLabel := fmt.Sprintf("%s - %s", sal.Month, truncate(t(m.lang, "month."+sal.Month), 6))
-		row := fmt.Sprintf("  %-13s € %-11.2f € %-11.2f € %-11.2f %.1f%%", monthLabel, gross, net, taxes, taxPct)
+		row := fmt.Sprintf("  %-13s € %-11.2f € %-11.2f € %-11.2f %-8.1f%% %s", monthLabel, gross, net, taxes, taxPct, authorStr)
 		if i == m.salaryCursor {
 			isActive := m.finSection != fSectionMenu && m.focusContent
 			if isActive {
@@ -382,7 +388,7 @@ func (m *model) renderSalariesMonthList(s *styles) string {
 	}
 	
 	// Annual summary
-	sumDivider := s.dim.Render("  " + strings.Repeat("=", 70))
+	sumDivider := s.dim.Render("  " + strings.Repeat("=", 80))
 	
 	totalTaxes := totalGross - totalNet
 	totalTaxPct := 0.0

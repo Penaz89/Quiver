@@ -58,6 +58,7 @@ func (m *model) updateTasks(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					Project:  strings.TrimSpace(m.taskFormFields[1]),
 					Priority: strings.TrimSpace(m.taskFormFields[2]),
 					Deadline: strings.TrimSpace(m.taskFormFields[3]),
+					Author:   m.user,
 				}
 				if t.Title != "" {
 					if m.taskIsAdding {
@@ -258,6 +259,10 @@ func (m *model) renderTasksView(s *styles) string {
 			}
 			
 			meta := ""
+			if tsk.Author != "" {
+				meta += s.dim.Render("[" + tsk.Author + "] ")
+			}
+			
 			if tsk.Priority != "" {
 				pCol := "240"
 				if tsk.Priority == "H" || tsk.Priority == "A" { pCol = "196" }

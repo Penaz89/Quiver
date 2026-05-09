@@ -12,6 +12,7 @@ type DailyExpense struct {
 	Category    string    `json:"category"`
 	Description string    `json:"description"`
 	Amount      string    `json:"amount"`
+	Author      string    `json:"author,omitempty"`
 }
 
 func LoadDailyExpenses(dataDir string) ([]DailyExpense, error) {

@@ -197,6 +197,7 @@ func (m *model) updateDailyForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			Category:    cat,
 			Description: desc,
 			Amount:      amt,
+			Author:      m.user,
 		}
 
 		if m.finView == fViewAdd {
@@ -332,9 +333,9 @@ func (m *model) renderDailyMonthList(s *styles) string {
 func (m *model) renderDailyExpenseList(s *styles) string {
 	expenses := m.getDailyForMonth(m.dailyYearFilter, m.dailyMonthFilter)
 	
-	headerStr := fmt.Sprintf("  %-12s %-15s %-20s %-10s", t(m.lang, "col.date"), t(m.lang, "col.category"), t(m.lang, "col.description"), t(m.lang, "col.amount"))
+	headerStr := fmt.Sprintf("  %-12s %-15s %-20s %-10s %s", t(m.lang, "col.date"), t(m.lang, "col.category"), t(m.lang, "col.description"), t(m.lang, "col.amount"), "AUTORE")
 	header := s.subtitle.Render(headerStr)
-	divider := s.dim.Render("  " + strings.Repeat("─", 65))
+	divider := s.dim.Render("  " + strings.Repeat("─", 80))
 	
 	var lines []string
 	var totalAmount float64
@@ -344,11 +345,17 @@ func (m *model) renderDailyExpenseList(s *styles) string {
 		amtStr := "€ " + d.Amount
 		totalAmount += parseEuro(d.Amount)
 		
-		row := fmt.Sprintf("  %-12s %-15s %-20s %-10s",
+		authorStr := ""
+		if d.Author != "" {
+			authorStr = s.dim.Render("[" + d.Author + "]")
+		}
+		
+		row := fmt.Sprintf("  %-12s %-15s %-20s %-10s %s",
 			dateStr,
 			truncate(d.Category, 14),
 			truncate(d.Description, 19),
 			amtStr,
+			authorStr,
 		)
 
 		if i == m.dailyCursor {
@@ -363,7 +370,7 @@ func (m *model) renderDailyExpenseList(s *styles) string {
 		}
 	}
 
-	sumDivider := s.dim.Render("  " + strings.Repeat("=", 65))
+	sumDivider := s.dim.Render("  " + strings.Repeat("=", 80))
 	sumTitle := s.info.Render("  " + t(m.lang, "finances.monthlyTotal") + " " + m.dailyMonthFilter + "/" + m.dailyYearFilter)
 	sumRow := fmt.Sprintf("  %-12s %-15s %-20s € %.2f", "TOT", "", "", totalAmount)
 	summaryBlock := sumTitle + "\n" + s.highlight.Render(sumRow)

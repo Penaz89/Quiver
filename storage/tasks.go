@@ -22,6 +22,7 @@ type Task struct {
 	Priority string `json:"priority"` // H, M, L
 	Deadline string `json:"deadline"`
 	Status   string `json:"status"`   // TODO, DOING, DONE
+	Author   string `json:"author,omitempty"`
 }
 
 func taskPath(dataDir string) string {

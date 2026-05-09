@@ -24,10 +24,11 @@ import (
 
 // Salary represents an income entry.
 type Salary struct {
-	Year  string `json:"year"`
-	Month string `json:"month"`
-	Gross string `json:"gross"`
-	Net   string `json:"net"`
+	Year   string `json:"year"`
+	Month  string `json:"month"`
+	Gross  string `json:"gross"`
+	Net    string `json:"net"`
+	Author string `json:"author,omitempty"`
 }
 
 func salaryPath(dataDir string) string {

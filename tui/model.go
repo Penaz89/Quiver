@@ -111,6 +111,9 @@ type model struct {
 	menuCursor   int
 	focusContent bool
 	dataDir      string
+	personalDataDir string
+	currentWorkspace string
+	userFamilies []storage.Family
 	version      string
 	lang         string // "en" or "it"
 	settings     storage.Settings
@@ -192,6 +195,11 @@ type model struct {
 	settingsSection    setSection
 	settingsMenuCursor int
 	settingsCursor     int
+	familyForm         string
+	familyIsAdding     bool
+	familyIsInviting   bool
+	familyInviteForm   string
+	familyError        string
 
 	// Habits state
 	habits          []storage.Habit
@@ -445,7 +453,40 @@ func (m *model) loadUserData() {
 	}
 	m.theme = storage.LoadTheme(m.dataDir, m.settings.Theme)
 
+	m.userFamilies, _ = storage.GetUserFamilies(m.baseDataDir, m.user)
+
 	m.updateMenuLabels()
+}
+
+func (m *model) switchWorkspace() {
+	if len(m.userFamilies) == 0 {
+		return // No families to switch to
+	}
+	
+	// Determine next workspace
+	if m.currentWorkspace == "Personal" {
+		m.currentWorkspace = m.userFamilies[0].ID
+		m.dataDir = storage.GetFamilyDir(m.baseDataDir, m.userFamilies[0].ID)
+	} else {
+		// Find current family index
+		idx := -1
+		for i, f := range m.userFamilies {
+			if f.ID == m.currentWorkspace {
+				idx = i
+				break
+			}
+		}
+		
+		if idx == -1 || idx == len(m.userFamilies)-1 {
+			m.currentWorkspace = "Personal"
+			m.dataDir = m.personalDataDir
+		} else {
+			m.currentWorkspace = m.userFamilies[idx+1].ID
+			m.dataDir = storage.GetFamilyDir(m.baseDataDir, m.userFamilies[idx+1].ID)
+		}
+	}
+	
+	m.loadUserData()
 }
 
 // ─── Bubble Tea interface ────────────────────────────────────────────
@@ -522,6 +563,11 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Always allow ctrl+c
 		if msg.String() == "ctrl+c" {
 			return m, tea.Quit
+		}
+		
+		if msg.String() == "ctrl+w" && m.isLoggedIn {
+			m.switchWorkspace()
+			return m, nil
 		}
 
 		if !m.isLoggedIn {
@@ -755,11 +801,27 @@ func (m *model) View() tea.View {
 			activeUsers = []string{m.user} // Fallback
 		}
 
+		var workspaceName string
+		if m.currentWorkspace == "Personal" {
+			workspaceName = "Personal"
+		} else {
+			for _, f := range m.userFamilies {
+				if f.ID == m.currentWorkspace {
+					workspaceName = "Family: " + f.Name
+					break
+				}
+			}
+		}
+		
 		var userLines []string
 		for _, u := range activeUsers {
 			userLines = append(userLines, s.status.Render("● ")+s.info.Render(u))
 		}
 		userLine := strings.Join(userLines, "\n")
+		
+		if workspaceName != "" {
+			userLine += "\n\n" + s.dim.Render("Workspace: ") + s.highlight.Render(workspaceName)
+		}
 
 		sidebarContent := logoLine + "\n" + versionLine + "\n" + sep + "\n\n" + menu + "\n\n" + sep + "\n" + userLine
 		sidebar := s.sidebar.Render(sidebarContent)
@@ -778,9 +840,9 @@ func (m *model) View() tea.View {
 	if sw == 0 {
 		helpText = fmt.Sprintf("  ↑/↓ %s • q %s", t(m.lang, "help.navigate"), t(m.lang, "help.quit"))
 	} else if m.focusContent {
-		helpText = fmt.Sprintf("  ←: %s • PgUp/PgDn: %s • %s", t(m.lang, "help.goBack"), "scroll", t(m.lang, "help.contentFocused"))
+		helpText = fmt.Sprintf("  ←: %s • PgUp/PgDn: %s • ctrl+w: workspace • %s", t(m.lang, "help.goBack"), "scroll", t(m.lang, "help.contentFocused"))
 	} else {
-		helpText = fmt.Sprintf("  ↑/↓ %s • →: %s • q %s", t(m.lang, "help.navigate"), t(m.lang, "help.enter"), t(m.lang, "help.quit"))
+		helpText = fmt.Sprintf("  ↑/↓ %s • →: %s • ctrl+w: workspace • q %s", t(m.lang, "help.navigate"), t(m.lang, "help.enter"), t(m.lang, "help.quit"))
 	}
 	help := s.helpBar.Render(helpText)
 

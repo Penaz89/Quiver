@@ -42,6 +42,7 @@ const (
 	sSectionLang
 	sSectionWeather
 	sSectionTheme
+	sSectionWorkspace
 )
 
 // ─── Settings update ─────────────────────────────────────────────────
@@ -54,7 +55,7 @@ func (m *model) updateSettings(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.settingsMenuCursor--
 			}
 		case "down", "j":
-			if m.settingsMenuCursor < 2 { // 3 items
+			if m.settingsMenuCursor < 3 { // 4 items
 				m.settingsMenuCursor++
 			}
 		case "enter", "right":
@@ -135,6 +136,111 @@ func (m *model) updateSettings(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "esc", "left":
 			m.settingsSection = sSectionMenu
 		}
+	case sSectionWorkspace:
+		if m.familyIsAdding {
+			switch key {
+			case "esc":
+				m.familyIsAdding = false
+				m.familyForm = ""
+				m.familyError = ""
+			case "enter":
+				if strings.TrimSpace(m.familyForm) != "" {
+					_, err := storage.CreateFamily(m.baseDataDir, m.familyForm, m.user)
+					if err != nil {
+						m.familyError = "Error creating family: " + err.Error()
+					} else {
+						m.familyIsAdding = false
+						m.familyForm = ""
+						m.familyError = ""
+						m.userFamilies, _ = storage.GetUserFamilies(m.baseDataDir, m.user)
+					}
+				}
+			case "backspace":
+				if len(m.familyForm) > 0 {
+					runes := []rune(m.familyForm)
+					m.familyForm = string(runes[:len(runes)-1])
+				}
+			default:
+				if key == "space" {
+					key = " "
+				}
+				runes := []rune(key)
+				if len(runes) == 1 {
+					m.familyForm += key
+				}
+			}
+		} else if m.familyIsInviting {
+			switch key {
+			case "esc":
+				m.familyIsInviting = false
+				m.familyInviteForm = ""
+				m.familyError = ""
+			case "enter":
+				if strings.TrimSpace(m.familyInviteForm) != "" && m.settingsCursor > 0 && m.settingsCursor <= len(m.userFamilies) {
+					familyID := m.userFamilies[m.settingsCursor-1].ID
+					err := storage.AddMemberToFamily(m.baseDataDir, familyID, m.familyInviteForm)
+					if err != nil {
+						m.familyError = "Error adding user: " + err.Error()
+					} else {
+						m.familyIsInviting = false
+						m.familyInviteForm = ""
+						m.familyError = ""
+						m.userFamilies, _ = storage.GetUserFamilies(m.baseDataDir, m.user)
+					}
+				}
+			case "backspace":
+				if len(m.familyInviteForm) > 0 {
+					runes := []rune(m.familyInviteForm)
+					m.familyInviteForm = string(runes[:len(runes)-1])
+				}
+			default:
+				if key == "space" {
+					key = " "
+				}
+				runes := []rune(key)
+				if len(runes) == 1 {
+					m.familyInviteForm += key
+				}
+			}
+		} else {
+			switch key {
+			case "esc", "left":
+				m.settingsSection = sSectionMenu
+			case "up", "k":
+				if m.settingsCursor > 0 {
+					m.settingsCursor--
+				}
+			case "down", "j":
+				if m.settingsCursor < len(m.userFamilies) {
+					m.settingsCursor++
+				}
+			case "n", "a":
+				m.familyIsAdding = true
+				m.familyForm = ""
+				m.familyError = ""
+			case "i":
+				if m.settingsCursor > 0 && m.settingsCursor <= len(m.userFamilies) {
+					m.familyIsInviting = true
+					m.familyInviteForm = ""
+					m.familyError = ""
+				}
+			case "delete":
+				if m.settingsCursor > 0 && m.settingsCursor <= len(m.userFamilies) {
+					familyID := m.userFamilies[m.settingsCursor-1].ID
+					_ = storage.RemoveMemberFromFamily(m.baseDataDir, familyID, m.user)
+					m.userFamilies, _ = storage.GetUserFamilies(m.baseDataDir, m.user)
+					// If we just left the current workspace, switch back to personal
+					if m.currentWorkspace == familyID {
+						m.currentWorkspace = "Personal"
+						m.dataDir = m.personalDataDir
+						m.loadUserData()
+					}
+					if m.settingsCursor > len(m.userFamilies) {
+						m.settingsCursor = len(m.userFamilies)
+					}
+				}
+			}
+		}
 	}
 	return m, nil
 }
@@ -151,7 +257,7 @@ func (m *model) renderSettingsView(s *styles) string {
 	title := s.title.Render(t(m.lang, "settings.title"))
 	desc := s.subtitle.Render(t(m.lang, "settings.subtitle"))
 
-	labels := []string{strings.ToUpper(t(m.lang, "settings.language")), strings.ToUpper(t(m.lang, "settings.weatherLoc")), strings.ToUpper(t(m.lang, "settings.theme"))}
+	labels := []string{strings.ToUpper(t(m.lang, "settings.language")), strings.ToUpper(t(m.lang, "settings.weatherLoc")), strings.ToUpper(t(m.lang, "settings.theme")), "WORKSPACES"}
 	var lines []string
 	for i, l := range labels {
 		if m.settingsSection == sSectionMenu && m.settingsMenuCursor == i {
@@ -182,6 +288,8 @@ func (m *model) renderSettingsView(s *styles) string {
 		col3 = m.renderSettingsWeather(s)
 	case sSectionTheme:
 		col3 = m.renderSettingsTheme(s)
+	case sSectionWorkspace:
+		col3 = m.renderSettingsWorkspace(s)
 	}
 
 	col2Height := lipgloss.Height(col2)
@@ -322,4 +430,82 @@ func langDisplayName(code string) string {
 	default:
 		return code
 	}
+}
+
+func (m *model) renderSettingsWorkspace(s *styles) string {
+	title := s.info.Render("  WORKSPACES / FAMILIES")
+	
+	var currentName string
+	if m.currentWorkspace == "Personal" {
+		currentName = "Personal"
+	} else {
+		for _, f := range m.userFamilies {
+			if f.ID == m.currentWorkspace {
+				currentName = "Family: " + f.Name
+				break
+			}
+		}
+	}
+	currentInfo := s.dim.Render("  Current Workspace: ") + s.highlight.Render(currentName)
+	
+	var contentLines []string
+	if m.familyIsAdding {
+		contentLines = append(contentLines, s.dim.Render("  Create new family workspace:"))
+		cursor := s.highlight.Render("_")
+		fieldStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Background(lipgloss.Color("236"))
+		contentLines = append(contentLines, s.menuSelected.Width(0).Render(fmt.Sprintf("  ▸ Name: %s", fieldStyle.Render(m.familyForm)+cursor)))
+		if m.familyError != "" {
+			contentLines = append(contentLines, s.status.Foreground(lipgloss.Color("196")).Render("  "+m.familyError))
+		}
+	} else if m.familyIsInviting {
+		contentLines = append(contentLines, s.dim.Render("  Invite user to family:"))
+		cursor := s.highlight.Render("_")
+		fieldStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Background(lipgloss.Color("236"))
+		contentLines = append(contentLines, s.menuSelected.Width(0).Render(fmt.Sprintf("  ▸ Username: %s", fieldStyle.Render(m.familyInviteForm)+cursor)))
+		if m.familyError != "" {
+			contentLines = append(contentLines, s.status.Foreground(lipgloss.Color("196")).Render("  "+m.familyError))
+		}
+	} else {
+		contentLines = append(contentLines, s.dim.Render("  Your Workspaces:"))
+		
+		isActive := m.settingsSection == sSectionWorkspace
+		if m.settingsCursor == 0 {
+			if isActive {
+				contentLines = append(contentLines, s.menuSelected.Width(0).Render("  ▸ ● Personal"))
+			} else {
+				contentLines = append(contentLines, s.menuActiveDim.Width(0).Render("  ▸ ● Personal"))
+			}
+		} else {
+			contentLines = append(contentLines, s.menuNormal.Width(0).Render("    ● Personal"))
+		}
+		
+		for i, f := range m.userFamilies {
+			label := fmt.Sprintf("● Family: %s (%d members)", f.Name, len(f.Members))
+			if m.settingsCursor == i+1 {
+				if isActive {
+					contentLines = append(contentLines, s.menuSelected.Width(0).Render("  ▸ "+label))
+				} else {
+					contentLines = append(contentLines, s.menuActiveDim.Width(0).Render("  ▸ "+label))
+				}
+			} else {
+				contentLines = append(contentLines, s.menuNormal.Width(0).Render("    "+label))
+			}
+		}
+		if m.familyError != "" {
+			contentLines = append(contentLines, "\n"+s.status.Foreground(lipgloss.Color("196")).Render("  "+m.familyError))
+		}
+	}
+
+	content := strings.Join(contentLines, "\n")
+	
+	var help string
+	if m.familyIsAdding {
+		help = s.dim.Render(fmt.Sprintf("\n\nEnter: %s  Esc: %s", t(m.lang, "action.save"), t(m.lang, "help.cancel")))
+	} else if m.familyIsInviting {
+		help = s.dim.Render(fmt.Sprintf("\n\nEnter: %s  Esc: %s", t(m.lang, "action.save"), t(m.lang, "help.cancel")))
+	} else {
+		help = s.dim.Render(fmt.Sprintf("\n\n↑/↓: %s  n/a: New  i: Invite  Del: Leave  ←: %s", t(m.lang, "help.navigate"), t(m.lang, "help.goBack")))
+	}
+
+	return title + "\n" + currentInfo + "\n\n" + content + help
 }
