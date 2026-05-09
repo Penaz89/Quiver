@@ -264,7 +264,7 @@ func (m *model) renderSettingsView(s *styles) string {
 	title := s.title.Render(t(m.lang, "settings.title"))
 	desc := s.subtitle.Render(t(m.lang, "settings.subtitle"))
 
-	labels := []string{strings.ToUpper(t(m.lang, "settings.language")), strings.ToUpper(t(m.lang, "settings.weatherLoc")), strings.ToUpper(t(m.lang, "settings.theme")), "WORKSPACES"}
+	labels := []string{strings.ToUpper(t(m.lang, "settings.language")), strings.ToUpper(t(m.lang, "settings.weatherLoc")), strings.ToUpper(t(m.lang, "settings.theme")), strings.ToUpper(t(m.lang, "settings.workspaces"))}
 	var lines []string
 	for i, l := range labels {
 		if m.settingsSection == sSectionMenu && m.settingsMenuCursor == i {
@@ -440,7 +440,7 @@ func langDisplayName(code string) string {
 }
 
 func (m *model) renderSettingsWorkspace(s *styles) string {
-	title := s.info.Render("  WORKSPACES / FAMILIES")
+	title := s.info.Render(t(m.lang, "settings.workspacesSubtitle"))
 	
 	var currentName string
 	if m.currentWorkspace == "Personal" {
@@ -453,11 +453,11 @@ func (m *model) renderSettingsWorkspace(s *styles) string {
 			}
 		}
 	}
-	currentInfo := s.dim.Render("  Current Workspace: ") + s.highlight.Render(currentName)
+	currentInfo := s.dim.Render(t(m.lang, "settings.currentWorkspace")) + s.highlight.Render(currentName)
 	
 	var contentLines []string
 	if m.familyIsAdding {
-		contentLines = append(contentLines, s.dim.Render("  Create new family workspace:"))
+		contentLines = append(contentLines, s.dim.Render(t(m.lang, "settings.createNewFamily")))
 		cursor := s.highlight.Render("_")
 		fieldStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Background(lipgloss.Color("236"))
 		contentLines = append(contentLines, s.menuSelected.Width(0).Render(fmt.Sprintf("  ▸ Name: %s", fieldStyle.Render(m.familyForm)+cursor)))
@@ -465,7 +465,7 @@ func (m *model) renderSettingsWorkspace(s *styles) string {
 			contentLines = append(contentLines, s.status.Foreground(lipgloss.Color("196")).Render("  "+m.familyError))
 		}
 	} else if m.familyIsInviting {
-		contentLines = append(contentLines, s.dim.Render("  Invite user to family:"))
+		contentLines = append(contentLines, s.dim.Render(t(m.lang, "settings.inviteUser")))
 		cursor := s.highlight.Render("_")
 		fieldStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Background(lipgloss.Color("236"))
 		contentLines = append(contentLines, s.menuSelected.Width(0).Render(fmt.Sprintf("  ▸ Username: %s", fieldStyle.Render(m.familyInviteForm)+cursor)))
@@ -473,7 +473,7 @@ func (m *model) renderSettingsWorkspace(s *styles) string {
 			contentLines = append(contentLines, s.status.Foreground(lipgloss.Color("196")).Render("  "+m.familyError))
 		}
 	} else {
-		contentLines = append(contentLines, s.dim.Render("  Your Workspaces:"))
+		contentLines = append(contentLines, s.dim.Render(t(m.lang, "settings.yourWorkspaces")))
 		
 		isActive := m.settingsSection == sSectionWorkspace
 		
@@ -485,19 +485,19 @@ func (m *model) renderSettingsWorkspace(s *styles) string {
 		}
 
 		if m.settingsCursor == 0 {
-			label := getLabel("● Personal", m.settings.DefaultWorkspace == "Personal")
+			label := getLabel(t(m.lang, "settings.personal"), m.settings.DefaultWorkspace == "Personal")
 			if isActive {
 				contentLines = append(contentLines, s.menuSelected.Width(0).Render("  ▸ "+label))
 			} else {
 				contentLines = append(contentLines, s.menuActiveDim.Width(0).Render("  ▸ "+label))
 			}
 		} else {
-			label := getLabel("● Personal", m.settings.DefaultWorkspace == "Personal")
+			label := getLabel(t(m.lang, "settings.personal"), m.settings.DefaultWorkspace == "Personal")
 			contentLines = append(contentLines, s.menuNormal.Width(0).Render("    "+label))
 		}
 		
 		for i, f := range m.userFamilies {
-			label := getLabel(fmt.Sprintf("● Family: %s (%d members)", f.Name, len(f.Members)), m.settings.DefaultWorkspace == f.ID)
+			label := getLabel(fmt.Sprintf(t(m.lang, "settings.familyLabel"), f.Name, len(f.Members)), m.settings.DefaultWorkspace == f.ID)
 			if m.settingsCursor == i+1 {
 				if isActive {
 					contentLines = append(contentLines, s.menuSelected.Width(0).Render("  ▸ "+label))

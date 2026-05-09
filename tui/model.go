@@ -599,7 +599,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m.updateAdminUsers(msg)
 				} else if item == t(m.lang, "menu.vault") {
 					return m.updateAdminVault(msg)
-				} else if item == "WORKSPACES" {
+				} else if item == t(m.lang, "menu.workspaces") {
 					return m.updateAdminWorkspaces(msg)
 				}
 			}
@@ -719,7 +719,7 @@ func (m *model) View() tea.View {
 			contentStr = m.renderAdminUsersView(s)
 		} else if item == t(m.lang, "menu.vault") {
 			contentStr = m.renderAdminVaultView(s)
-		} else if item == "WORKSPACES" {
+		} else if item == t(m.lang, "menu.workspaces") {
 			contentStr = m.renderAdminWorkspacesView(s)
 		}
 	} else {
@@ -902,7 +902,7 @@ func (m *model) updateMenuLabels() {
 		m.menuItems = []string{
 			t(m.lang, "menu.users"),
 			t(m.lang, "menu.vault"),
-			"WORKSPACES",
+			t(m.lang, "menu.workspaces"),
 			t(m.lang, "menu.logout"),
 		}
 	} else {
