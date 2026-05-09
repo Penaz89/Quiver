@@ -340,7 +340,7 @@ func (m *model) renderAdminVaultView(s *styles) string {
 			vaultStatus := ""
 			if storage.VaultExists(dataDir) {
 				vaultStatus = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Render(" (Vault Active)")
-			} else {
+			} else if u.Role == "admin" {
 				vaultStatus = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(" (No Vault)")
 			}
 
