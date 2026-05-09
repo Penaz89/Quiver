@@ -53,7 +53,7 @@ func (m *model) updateAdminUsers(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.adminError = ""
 			}
 		}
-	case "esc":
+	case "esc", "left", "h":
 		m.focusContent = false
 	}
 	return m, nil
@@ -317,7 +317,7 @@ func (m *model) updateAdminVault(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.adminIsResettingVault = true
 			m.adminError = ""
 		}
-	case "esc":
+	case "esc", "left", "h":
 		m.focusContent = false
 	}
 	return m, nil
@@ -492,7 +492,7 @@ func (m *model) updateAdminWorkspaces(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.adminFamilyForm = ""
 			m.adminFamilyError = ""
 		}
-	case "esc":
+	case "esc", "left", "h":
 		m.focusContent = false
 	}
 	return m, nil
