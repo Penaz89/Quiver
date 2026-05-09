@@ -391,6 +391,46 @@ func (m *model) renderFixedExpenses(s *styles) string {
 		subBlock = "\n\n" + catSubTitle + "\n" + dividerSub + "\n" + headerSub + "\n" + dividerSub + "\n" + subTable + "\n" + dividerSub + "\n" + s.highlight.Render(subSubtotalStr)
 	}
 
+	// --- CATEGORY: SPESE GIORNALIERE ---
+	var dailyBlock string
+	if len(m.daily) > 0 {
+		now := time.Now()
+		var monthlyTotal float64
+		for _, exp := range m.daily {
+			if !exp.Date.IsZero() && exp.Date.Year() == now.Year() && exp.Date.Month() == now.Month() {
+				monthlyTotal += parseEuro(exp.Amount)
+			}
+		}
+		
+		if monthlyTotal > 0 {
+			catDailyTitle := s.info.Render("  " + strings.ToUpper(t(m.lang, "finances.daily")))
+			
+			hdrDaily := fmt.Sprintf("  %-31s %-14s %-14s",
+				t(m.lang, "finances.daily"), t(m.lang, "col.annual"), t(m.lang, "col.monthly"))
+			headerDaily := s.subtitle.Render(hdrDaily)
+			dividerDaily := s.dim.Render("  " + strings.Repeat("─", 63))
+			
+			annualTotal := monthlyTotal * 12.0
+			grandTotalAnnual += annualTotal
+			grandTotalMonthly += monthlyTotal
+			
+			monthKey := fmt.Sprintf("month.%02d", now.Month())
+			row := fmt.Sprintf("  %-31s %-14s %-14s",
+				truncate(t(m.lang, monthKey) + " " + fmt.Sprintf("%d", now.Year()), 30),
+				fmt.Sprintf("€ %.2f", annualTotal),
+				fmt.Sprintf("€ %.2f", monthlyTotal),
+			)
+			
+			dailySubtotalStr := fmt.Sprintf("  %-31s %-14s %-14s",
+				t(m.lang, "finances.subtotal")+" "+t(m.lang, "finances.daily"),
+				fmt.Sprintf("€ %.2f", annualTotal),
+				fmt.Sprintf("€ %.2f", monthlyTotal),
+			)
+			
+			dailyBlock = "\n\n" + catDailyTitle + "\n" + dividerDaily + "\n" + headerDaily + "\n" + dividerDaily + "\n" + row + "\n" + dividerDaily + "\n" + s.highlight.Render(dailySubtotalStr)
+		}
+	}
+
 	// --- CATEGORY: GOALS ---
 	var goalBlock string
 	if len(m.goals) > 0 {
@@ -462,7 +502,7 @@ func (m *model) renderFixedExpenses(s *styles) string {
 	
 	grandBlock := grandDivider + "\n" + s.title.Render(grandStr) + "\n" + grandDivider
 
-	content := vehBlock + houseBlock + subBlock + goalBlock + "\n\n\n" + grandBlock
+	content := vehBlock + houseBlock + subBlock + dailyBlock + goalBlock + "\n\n\n" + grandBlock
 	help := s.dim.Render(fmt.Sprintf("\n\n←: %s", t(m.lang, "help.goBack")))
 	
 	return title + "\n\n" + content + help

@@ -225,7 +225,57 @@ func (m *model) renderAnalytics(s *styles) string {
 		sec2 += fmt.Sprintf(fmtRow, t(m.lang, "finances.impactPct"), impBar, pctStyle.Render(fmt.Sprintf("%.1f%%", impactPct)))
 	}
 
+	// ── Section 3: Monthly Daily Expenses (Current Year) ────────
+	var sec3 string
+	monthlyDailyExp := make([]float64, 12)
+	maxMonthlyExp := 0.0
+	hasDailyExp := false
+	
+	for _, exp := range m.daily {
+		if !exp.Date.IsZero() {
+			if fmt.Sprintf("%d", exp.Date.Year()) == currentYearStr {
+				monthIdx := int(exp.Date.Month()) - 1
+				monthlyDailyExp[monthIdx] += parseEuro(exp.Amount)
+				hasDailyExp = true
+			}
+		}
+	}
+	
+	for _, amt := range monthlyDailyExp {
+		if amt > maxMonthlyExp {
+			maxMonthlyExp = amt
+		}
+	}
+	
+	if hasDailyExp {
+		sec3Title := s.subtitle.Render("  " + t(m.lang, "finances.daily") + " (" + currentYearStr + ")")
+		sec3Div := s.dim.Render("  " + strings.Repeat("─", divLen))
+		sec3 = "\n\n" + sec3Title + "\n" + sec3Div + "\n\n"
+		
+		for i := 0; i < 12; i++ {
+			amt := monthlyDailyExp[i]
+			ratio := 0.0
+			if maxMonthlyExp > 0 {
+				ratio = amt / maxMonthlyExp
+			}
+			bar := renderBar(ratio, barLen, "135") // Purple for daily expenses
+			monthKey := fmt.Sprintf("month.%02d", i+1)
+			monthName := t(m.lang, monthKey)
+			
+			sec3 += fmt.Sprintf(fmtRow, monthName, bar, s.info.Render(fmt.Sprintf("€ %.2f", amt)))
+		}
+		
+		totalDailyExp := 0.0
+		for _, amt := range monthlyDailyExp {
+			totalDailyExp += amt
+		}
+		
+		sec3 += "  " + s.dim.Render(strings.Repeat("·", divLen)) + "\n"
+		totalStr := s.highlight.Render(fmt.Sprintf("€ %.2f", totalDailyExp))
+		sec3 += fmt.Sprintf(fmtRow, t(m.lang, "daily.annualTotal"), s.dim.Render(strings.Repeat(" ", barLen)), totalStr)
+	}
+
 	help := s.dim.Render("\n\n←: " + t(m.lang, "help.goBack"))
 
-	return title + "\n\n" + sec1 + sec2 + help
+	return title + "\n\n" + sec1 + sec2 + sec3 + help
 }

@@ -12,5 +12,12 @@
     "description": "Cena compleanno",
     "amount": "110",
     "author": "penaz"
+  },
+  {
+    "date": "2026-05-10T00:00:00Z",
+    "category": "CASA",
+    "description": "Spesa Martinelli",
+    "amount": "150",
+    "author": "penaz"
   }
 ]

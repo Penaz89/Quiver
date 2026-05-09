@@ -137,6 +137,7 @@ var translations = map[string]map[string]string{
 	"finances.impactPct": {"en": "Impact Percentage", "it": "Incidenza Percentuale"},
 	"finances.daily":       {"en": "Daily Expenses", "it": "Spese Giornaliere"},
 	"daily.noRecords":      {"en": "No daily expenses yet.", "it": "Nessuna spesa giornaliera."},
+	"daily.annualTotal":    {"en": "Total Annual:", "it": "Totale Annuo:"},
 	"finances.salaries":    {"en": "Salaries", "it": "Stipendi"},
 	"salaries.noRecords":   {"en": "No salaries tracked yet.", "it": "Nessuno stipendio tracciato."},
 	"salaries.annualSum":   {"en": "Annual Summary", "it": "Resoconto Annuale"},
