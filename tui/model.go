@@ -573,7 +573,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 		
-		if msg.String() == "ctrl+w" && m.isLoggedIn {
+		if msg.String() == "ctrl+e" && m.isLoggedIn {
 			m.switchWorkspace()
 			return m, nil
 		}
@@ -853,9 +853,9 @@ func (m *model) View() tea.View {
 	if sw == 0 {
 		helpText = fmt.Sprintf("  ↑/↓ %s • q %s", t(m.lang, "help.navigate"), t(m.lang, "help.quit"))
 	} else if m.focusContent {
-		helpText = fmt.Sprintf("  ←: %s • PgUp/PgDn: %s • ctrl+w: workspace • %s", t(m.lang, "help.goBack"), "scroll", t(m.lang, "help.contentFocused"))
+		helpText = fmt.Sprintf("  ←: %s • PgUp/PgDn: %s • ctrl+e: workspace • %s", t(m.lang, "help.goBack"), "scroll", t(m.lang, "help.contentFocused"))
 	} else {
-		helpText = fmt.Sprintf("  ↑/↓ %s • →: %s • ctrl+w: workspace • q %s", t(m.lang, "help.navigate"), t(m.lang, "help.enter"), t(m.lang, "help.quit"))
+		helpText = fmt.Sprintf("  ↑/↓ %s • →: %s • ctrl+e: workspace • q %s", t(m.lang, "help.navigate"), t(m.lang, "help.enter"), t(m.lang, "help.quit"))
 	}
 	help := s.helpBar.Render(helpText)
 
