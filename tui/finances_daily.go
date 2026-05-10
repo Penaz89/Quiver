@@ -440,9 +440,9 @@ func (m *model) renderDailyMonthList(s *styles) string {
 func (m *model) renderDailyExpenseList(s *styles) string {
 	expenses := m.getDailyForMonth(m.dailyYearFilter, m.dailyMonthFilter)
 	
-	headerStr := fmt.Sprintf("  %-12s %-15s %-20s %-15s %-10s %s", t(m.lang, "col.date"), t(m.lang, "col.category"), t(m.lang, "col.description"), t(m.lang, "col.account"), t(m.lang, "col.amount"), "AUTORE")
+	headerStr := fmt.Sprintf("  %-10s %-12s %-15s %-12s %-9s %s", t(m.lang, "col.date"), truncate(t(m.lang, "col.category"), 11), truncate(t(m.lang, "col.description"), 14), truncate(t(m.lang, "col.account"), 11), truncate(t(m.lang, "col.amount"), 8), "AUTORE")
 	header := s.subtitle.Render(headerStr)
-	divider := s.dim.Render("  " + strings.Repeat("─", 95))
+	divider := s.dim.Render("  " + strings.Repeat("─", 72))
 	
 	var lines []string
 	var totalAmount float64
@@ -457,12 +457,12 @@ func (m *model) renderDailyExpenseList(s *styles) string {
 			authorStr = s.dim.Render("[" + d.Author + "]")
 		}
 		
-		row := fmt.Sprintf("  %-12s %-15s %-20s %-15s %-10s %s",
-			dateStr,
-			truncate(d.Category, 14),
-			truncate(d.Description, 19),
-			truncate(d.Account, 14),
-			amtStr,
+		row := fmt.Sprintf("  %-10s %-12s %-15s %-12s %-9s %s",
+			dateStr[:10], // "dd/mm/yyyy" is 10 chars
+			truncate(d.Category, 11),
+			truncate(d.Description, 14),
+			truncate(d.Account, 11),
+			truncate(amtStr, 8),
 			authorStr,
 		)
 
@@ -478,9 +478,9 @@ func (m *model) renderDailyExpenseList(s *styles) string {
 		}
 	}
 
-	sumDivider := s.dim.Render("  " + strings.Repeat("=", 95))
+	sumDivider := s.dim.Render("  " + strings.Repeat("=", 72))
 	sumTitle := s.info.Render("  " + t(m.lang, "finances.monthlyTotal") + " " + m.dailyMonthFilter + "/" + m.dailyYearFilter)
-	sumRow := fmt.Sprintf("  %-12s %-15s %-20s %-15s € %.2f", "TOT", "", "", "", totalAmount)
+	sumRow := fmt.Sprintf("  %-10s %-12s %-15s %-12s € %.2f", "TOT", "", "", "", totalAmount)
 	summaryBlock := sumTitle + "\n" + s.highlight.Render(sumRow)
 
 	help := s.dim.Render(fmt.Sprintf("a: %s  e: %s  d: %s  ←: %s",

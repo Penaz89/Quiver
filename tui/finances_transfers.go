@@ -302,10 +302,10 @@ func (m *model) renderTransfersList(s *styles) string {
 		return title + "\n\n" + empty + help
 	}
 
-	headerStr := fmt.Sprintf("  %-12s %-15s %-15s %-10s %-20s",
-		t(m.lang, "col.date"), t(m.lang, "col.fromAccount"), t(m.lang, "col.toAccount"), t(m.lang, "col.amount"), t(m.lang, "field.description"))
+	headerStr := fmt.Sprintf("  %-10s %-12s %-12s %-9s %-15s",
+		t(m.lang, "col.date"), truncate(t(m.lang, "col.fromAccount"), 11), truncate(t(m.lang, "col.toAccount"), 11), truncate(t(m.lang, "col.amount"), 8), truncate(t(m.lang, "field.description"), 14))
 	header := s.subtitle.Render(headerStr)
-	divider := s.dim.Render("  " + strings.Repeat("─", 80))
+	divider := s.dim.Render("  " + strings.Repeat("─", 65))
 
 	var rows []string
 
@@ -317,8 +317,8 @@ func (m *model) renderTransfersList(s *styles) string {
 		if tRec.Frequency == "type.monthly" {
 			desc = "↺ " + desc
 		}
-		row := fmt.Sprintf("  %-12s %-15s %-15s %-10s %-20s",
-			dateStr, truncate(tRec.FromAccount, 14), truncate(tRec.ToAccount, 14), amtStr, truncate(desc, 19))
+		row := fmt.Sprintf("  %-10s %-12s %-12s %-9s %-15s",
+			dateStr[:10], truncate(tRec.FromAccount, 11), truncate(tRec.ToAccount, 11), truncate(amtStr, 8), truncate(desc, 14))
 
 		if i == m.trCursor {
 			if isActive {

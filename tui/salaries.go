@@ -418,9 +418,9 @@ func (m *model) renderSalariesMonthList(s *styles) string {
 	
 	var totalGross, totalNet float64
 	
-	headerStr := fmt.Sprintf("  %-13s %-13s %-13s %-13s %-8s %-15s %s", t(m.lang, "col.month"), t(m.lang, "col.gross"), t(m.lang, "col.net"), t(m.lang, "col.deductions"), t(m.lang, "col.taxes"), t(m.lang, "col.account"), "AUTORE")
+	headerStr := fmt.Sprintf("  %-10s %-11s %-11s %-11s %-7s %-12s %s", t(m.lang, "col.month"), truncate(t(m.lang, "col.gross"), 10), truncate(t(m.lang, "col.net"), 10), truncate(t(m.lang, "col.deductions"), 10), truncate(t(m.lang, "col.taxes"), 6), truncate(t(m.lang, "col.account"), 11), "AUTORE")
 	header := s.subtitle.Render(headerStr)
-	divider := s.dim.Render("  " + strings.Repeat("─", 95))
+	divider := s.dim.Render("  " + strings.Repeat("─", 75))
 	
 	var lines []string
 	for i, sal := range salaries {
@@ -440,8 +440,8 @@ func (m *model) renderSalariesMonthList(s *styles) string {
 			authorStr = s.dim.Render("[" + sal.Author + "]")
 		}
 		
-		monthLabel := fmt.Sprintf("%s - %s", sal.Month, truncate(t(m.lang, "month."+sal.Month), 6))
-		row := fmt.Sprintf("  %-13s € %-11.2f € %-11.2f € %-11.2f %-8.1f%% %-15s %s", monthLabel, gross, net, taxes, taxPct, truncate(sal.Account, 14), authorStr)
+		monthLabel := fmt.Sprintf("%s-%s", sal.Month, truncate(t(m.lang, "month."+sal.Month), 3))
+		row := fmt.Sprintf("  %-10s € %-8.0f € %-8.0f € %-8.0f %-6.1f%% %-12s %s", truncate(monthLabel, 10), gross, net, taxes, taxPct, truncate(sal.Account, 11), authorStr)
 		if i == m.salaryCursor {
 			isActive := m.finSection != fSectionMenu && m.focusContent
 			if isActive {
@@ -455,7 +455,7 @@ func (m *model) renderSalariesMonthList(s *styles) string {
 	}
 	
 	// Annual summary
-	sumDivider := s.dim.Render("  " + strings.Repeat("=", 95))
+	sumDivider := s.dim.Render("  " + strings.Repeat("=", 75))
 	
 	totalTaxes := totalGross - totalNet
 	totalTaxPct := 0.0
@@ -464,7 +464,7 @@ func (m *model) renderSalariesMonthList(s *styles) string {
 	}
 	
 	sumTitle := s.info.Render("  " + t(m.lang, "salaries.annualSum") + " " + m.salaryYearFilter)
-	sumRow := fmt.Sprintf("  %-13s € %-11.2f € %-11.2f € %-11.2f %-8.1f%%", "TOT", totalGross, totalNet, totalTaxes, totalTaxPct)
+	sumRow := fmt.Sprintf("  %-10s € %-8.0f € %-8.0f € %-8.0f %-6.1f%%", "TOT", totalGross, totalNet, totalTaxes, totalTaxPct)
 	
 	summaryBlock := sumTitle + "\n" + sumRow
 	
