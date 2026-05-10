@@ -13,6 +13,7 @@ type Goal struct {
 	Current   string    `json:"current"`
 	Deadline  time.Time `json:"deadline"`
 	CreatedAt time.Time `json:"createdAt"`
+	Account   string    `json:"account,omitempty"`
 }
 
 func goalsPath(dataDir string) string {

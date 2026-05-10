@@ -27,7 +27,11 @@ func (m *model) updateGoals(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		case "n":
 			m.finView = fViewAdd
-			m.goalForm = [4]string{}
+			defaultAcc := ""
+			if len(m.accounts) > 0 {
+				defaultAcc = m.accounts[0].Name
+			}
+			m.goalForm = [5]string{"", "", "", "", defaultAcc}
 			m.goalFormCur = 0
 		case "enter":
 			if len(m.goals) > 0 {
@@ -37,7 +41,11 @@ func (m *model) updateGoals(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				if !g.Deadline.IsZero() {
 					deadlineStr = g.Deadline.Format("02/01/2006")
 				}
-				m.goalForm = [4]string{g.Name, g.Target, g.Current, deadlineStr}
+				accName := g.Account
+				if accName == "" && len(m.accounts) > 0 {
+					accName = m.accounts[0].Name
+				}
+				m.goalForm = [5]string{g.Name, g.Target, g.Current, deadlineStr, accName}
 				m.goalFormCur = 0
 				m.goalEditIdx = m.goalCursor
 			}
@@ -52,14 +60,34 @@ func (m *model) updateGoals(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "esc":
 			m.finView = fViewList
 		case "tab", "down":
-			m.goalFormCur = (m.goalFormCur + 1) % 4
+			m.goalFormCur = (m.goalFormCur + 1) % 5
 		case "shift+tab", "up":
 			m.goalFormCur--
 			if m.goalFormCur < 0 {
-				m.goalFormCur = 3
+				m.goalFormCur = 4
+			}
+		case "left", "right":
+			if m.goalFormCur == 4 && len(m.accounts) > 0 {
+				current := m.goalForm[4]
+				idx := -1
+				for i, a := range m.accounts {
+					if a.Name == current {
+						idx = i
+						break
+					}
+				}
+				if key == "right" {
+					idx = (idx + 1) % len(m.accounts)
+				} else {
+					if idx == -1 {
+						idx = 0
+					}
+					idx = (idx - 1 + len(m.accounts)) % len(m.accounts)
+				}
+				m.goalForm[4] = m.accounts[idx].Name
 			}
 		case "enter":
-			if m.goalFormCur == 3 {
+			if m.goalFormCur == 4 {
 				deadlineStr := strings.TrimSpace(m.goalForm[3])
 				var deadline time.Time
 				if deadlineStr != "" {
@@ -74,6 +102,7 @@ func (m *model) updateGoals(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					Target:   strings.TrimSpace(m.goalForm[1]),
 					Current:  strings.TrimSpace(m.goalForm[2]),
 					Deadline: deadline,
+					Account:  m.goalForm[4],
 				}
 				if g.Name != "" {
 					if m.finView == fViewAdd {
@@ -98,9 +127,26 @@ func (m *model) updateGoals(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.goalForm[m.goalFormCur] = m.goalForm[m.goalFormCur][:len(m.goalForm[m.goalFormCur])-1]
 			}
 		case "space":
-			m.goalForm[m.goalFormCur] += " "
+			if m.goalFormCur == 4 && len(m.accounts) > 0 {
+				current := m.goalForm[4]
+				idx := -1
+				for i, a := range m.accounts {
+					if a.Name == current {
+						idx = i
+						break
+					}
+				}
+				idx = (idx + 1) % len(m.accounts)
+				m.goalForm[4] = m.accounts[idx].Name
+			} else {
+				m.goalForm[m.goalFormCur] += " "
+			}
 		default:
-			runes := []rune(key)
+			if key == "space" {
+				key = " "
+			}
+			if m.goalFormCur != 4 {
+				runes := []rune(key)
 			if len(runes) == 1 {
 				field := &m.goalForm[m.goalFormCur]
 				if m.goalFormCur == 3 {
@@ -122,6 +168,7 @@ func (m *model) updateGoals(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				} else {
 					*field += key
 				}
+			}
 			}
 		}
 
@@ -157,6 +204,7 @@ func (m *model) renderGoals(s *styles) string {
 			t(m.lang, "field.goalTarget"),
 			t(m.lang, "field.goalCurrent"),
 			t(m.lang, "field.goalDeadline"),
+			t(m.lang, "col.account"),
 		}
 
 		for i, label := range labels {
@@ -165,8 +213,16 @@ func (m *model) renderGoals(s *styles) string {
 				cursor = s.highlight.Render("> ")
 			}
 			val := m.goalForm[i]
-			if m.goalFormCur == i {
-				val += "█"
+			if i == 4 {
+				if m.goalFormCur == i {
+					val = "< " + val + " >"
+				} else {
+					val = "  " + val
+				}
+			} else {
+				if m.goalFormCur == i {
+					val += "█"
+				}
 			}
 			form += fmt.Sprintf("%s%-20s %s\n", cursor, label+":", val)
 		}
@@ -223,6 +279,9 @@ func (m *model) renderGoals(s *styles) string {
 		coloredBar := filledStr + emptyStr
 
 		nameLine := g.Name
+		if g.Account != "" {
+			nameLine += " [" + g.Account + "]"
+		}
 		if i == m.goalCursor {
 			isActive := m.finSection != fSectionMenu && m.focusContent
 			if isActive {

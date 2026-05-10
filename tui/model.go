@@ -196,7 +196,7 @@ type model struct {
 	// Installments state
 	installments  []storage.Installment
 	instCursor    int
-	instForm      [6]string // Name, Amount, TotalCount, PaidCount, Frequency, StartDate
+	instForm      [instFCount]string
 	instFormCur   int
 	instEditIdx   int
 
@@ -227,7 +227,7 @@ type model struct {
 	// Goals state
 	goals       []storage.Goal
 	goalCursor  int
-	goalForm    [4]string // Name, Target, Current, Deadline
+	goalForm    [5]string // Name, Target, Current, Deadline, Account
 	goalFormCur int
 	goalEditIdx int
 

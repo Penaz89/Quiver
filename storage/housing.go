@@ -27,6 +27,7 @@ type Housing struct {
 	Expense string `json:"expense"`
 	Cost    string `json:"cost"`
 	Type    string `json:"type"` // "type.monthly" or "type.annual"
+	Account string `json:"account,omitempty"`
 }
 
 func housingPath(dataDir string) string {

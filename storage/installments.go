@@ -15,6 +15,7 @@ type Installment struct {
 	PaidCount  int       `json:"paidCount"`  // How many times it has been paid
 	Frequency  string    `json:"frequency"`  // "monthly", "bimonthly", "quarterly", "semiannual", "annual"
 	StartDate  time.Time `json:"startDate"`
+	Account    string    `json:"account,omitempty"`
 	Author     string    `json:"author"`
 }
 

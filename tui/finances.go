@@ -51,15 +51,15 @@ const (
 	houseFExpense = iota
 	houseFType
 	houseFCost
+	houseFAccount
 	houseFCount
 )
-
-
 
 const (
 	subFService = iota
 	subFType
 	subFCost
+	subFAccount
 	subFCount
 )
 
@@ -629,7 +629,11 @@ func (m *model) updateHouseList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	case "a":
 		m.finView = fViewAdd
-		m.houseForm = [houseFCount]string{"", "type.monthly", ""}
+		defaultAcc := ""
+		if len(m.accounts) > 0 {
+			defaultAcc = m.accounts[0].Name
+		}
+		m.houseForm = [houseFCount]string{"", "type.monthly", "", defaultAcc}
 		m.houseFormCur = 0
 	case "e", "enter":
 		if len(m.housing) > 0 {
@@ -639,10 +643,15 @@ func (m *model) updateHouseList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if hType == "" {
 				hType = "type.monthly"
 			}
+			accName := m.housing[m.houseCursor].Account
+			if accName == "" && len(m.accounts) > 0 {
+				accName = m.accounts[0].Name
+			}
 			m.houseForm = [houseFCount]string{
 				m.housing[m.houseCursor].Expense,
 				hType,
 				m.housing[m.houseCursor].Cost,
+				accName,
 			}
 			m.houseFormCur = 0
 		}
@@ -678,6 +687,24 @@ func (m *model) updateHouseForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			} else {
 				m.houseForm[houseFType] = "type.monthly"
 			}
+		} else if m.houseFormCur == houseFAccount && len(m.accounts) > 0 {
+			current := m.houseForm[houseFAccount]
+			idx := -1
+			for i, a := range m.accounts {
+				if a.Name == current {
+					idx = i
+					break
+				}
+			}
+			if key == "right" {
+				idx = (idx + 1) % len(m.accounts)
+			} else {
+				if idx == -1 {
+					idx = 0
+				}
+				idx = (idx - 1 + len(m.accounts)) % len(m.accounts)
+			}
+			m.houseForm[houseFAccount] = m.accounts[idx].Name
 		}
 	case " ":
 		if m.houseFormCur == houseFType {
@@ -686,6 +713,17 @@ func (m *model) updateHouseForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			} else {
 				m.houseForm[houseFType] = "type.monthly"
 			}
+		} else if m.houseFormCur == houseFAccount && len(m.accounts) > 0 {
+			current := m.houseForm[houseFAccount]
+			idx := -1
+			for i, a := range m.accounts {
+				if a.Name == current {
+					idx = i
+					break
+				}
+			}
+			idx = (idx + 1) % len(m.accounts)
+			m.houseForm[houseFAccount] = m.accounts[idx].Name
 		} else {
 			m.houseForm[m.houseFormCur] += key
 		}
@@ -694,6 +732,7 @@ func (m *model) updateHouseForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			Expense: strings.TrimSpace(m.houseForm[houseFExpense]),
 			Type:    strings.TrimSpace(m.houseForm[houseFType]),
 			Cost:    strings.TrimSpace(m.houseForm[houseFCost]),
+			Account: m.houseForm[houseFAccount],
 		}
 		if h.Expense == "" {
 			m.finView = fViewList
@@ -709,7 +748,7 @@ func (m *model) updateHouseForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "esc":
 		m.finView = fViewList
 	case "backspace":
-		if m.houseFormCur != houseFType {
+		if m.houseFormCur != houseFType && m.houseFormCur != houseFAccount {
 			field := &m.houseForm[m.houseFormCur]
 			if len(*field) > 0 {
 				runes := []rune(*field)
@@ -720,7 +759,7 @@ func (m *model) updateHouseForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if key == "space" {
 			key = " "
 		}
-		if m.houseFormCur != houseFType {
+		if m.houseFormCur != houseFType && m.houseFormCur != houseFAccount {
 			runes := []rune(key)
 			if len(runes) == 1 {
 				field := &m.houseForm[m.houseFormCur]
@@ -776,10 +815,10 @@ func (m *model) renderHouseList(s *styles) string {
 		return title + "\n\n" + empty + help
 	}
 
-	hdr := fmt.Sprintf("  %-3s %-20s %-14s %-14s",
-		t(m.lang, "col.num"), t(m.lang, "col.expense"), t(m.lang, "col.type"), t(m.lang, "col.cost"))
+	hdr := fmt.Sprintf("  %-3s %-20s %-14s %-14s %-14s",
+		t(m.lang, "col.num"), t(m.lang, "col.expense"), t(m.lang, "col.type"), t(m.lang, "col.cost"), t(m.lang, "col.account"))
 	header := s.subtitle.Render(hdr)
-	divider := s.dim.Render("  " + strings.Repeat("─", 54))
+	divider := s.dim.Render("  " + strings.Repeat("─", 68))
 
 	var rows []string
 	for i, h := range m.housing {
@@ -796,12 +835,18 @@ func (m *model) renderHouseList(s *styles) string {
 		} else {
 			hType = "-"
 		}
+		
+		accName := h.Account
+		if accName == "" {
+			accName = "-"
+		}
 
-		row := fmt.Sprintf("  %-3d %-20s %-14s %-14s",
+		row := fmt.Sprintf("  %-3d %-20s %-14s %-14s %-14s",
 			i+1,
 			truncate(h.Expense, 19),
 			truncate(hType, 13),
 			truncate(cost, 13),
+			truncate(accName, 13),
 		)
 		if i == m.houseCursor {
 			if isActive {
@@ -829,6 +874,7 @@ func (m *model) renderHouseForm(s *styles, formTitle string) string {
 		t(m.lang, "field.expense"),
 		t(m.lang, "field.insType"),
 		t(m.lang, "field.totalCost"),
+		t(m.lang, "col.account"),
 	}
 
 	var fields []string
@@ -840,8 +886,12 @@ func (m *model) renderHouseForm(s *styles, formTitle string) string {
 		if i == m.houseFormCur {
 			cursor := s.highlight.Render("_")
 			fieldStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Background(lipgloss.Color("236"))
-			if i == houseFType {
-				rendered = label + " < " + fieldStyle.Render(t(m.lang, val)) + " >"
+			if i == houseFType || i == houseFAccount {
+				displayVal := val
+				if i == houseFType {
+					displayVal = t(m.lang, val)
+				}
+				rendered = label + " < " + fieldStyle.Render(displayVal) + " >"
 			} else if i == houseFCost {
 				if val == "" { val = s.dim.Render("0.00") }
 				rendered = label + " € " + fieldStyle.Render(val) + cursor
@@ -849,8 +899,12 @@ func (m *model) renderHouseForm(s *styles, formTitle string) string {
 				rendered = label + " " + fieldStyle.Render(val) + cursor
 			}
 		} else {
-			if i == houseFType {
-				rendered = label + " " + s.info.Render(t(m.lang, val))
+			if i == houseFType || i == houseFAccount {
+				displayVal := val
+				if i == houseFType {
+					displayVal = t(m.lang, val)
+				}
+				rendered = label + " " + s.info.Render(displayVal)
 			} else if i == houseFCost {
 				if val == "" { val = s.dim.Render("0.00") }
 				rendered = label + " € " + s.info.Render(val)
@@ -916,7 +970,11 @@ func (m *model) updateSubList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	case "a":
 		m.finView = fViewAdd
-		m.subForm = [subFCount]string{"", "type.monthly", ""}
+		defaultAcc := ""
+		if len(m.accounts) > 0 {
+			defaultAcc = m.accounts[0].Name
+		}
+		m.subForm = [subFCount]string{"", "type.monthly", "", defaultAcc}
 		m.subFormCur = 0
 	case "e", "enter":
 		if len(m.subs) > 0 {
@@ -926,10 +984,15 @@ func (m *model) updateSubList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if subType == "" {
 				subType = "type.monthly"
 			}
+			accName := m.subs[m.subCursor].Account
+			if accName == "" && len(m.accounts) > 0 {
+				accName = m.accounts[0].Name
+			}
 			m.subForm = [subFCount]string{
 				m.subs[m.subCursor].Service,
 				subType,
 				m.subs[m.subCursor].Cost,
+				accName,
 			}
 			m.subFormCur = 0
 		}
@@ -965,6 +1028,24 @@ func (m *model) updateSubForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			} else {
 				m.subForm[subFType] = "type.monthly"
 			}
+		} else if m.subFormCur == subFAccount && len(m.accounts) > 0 {
+			current := m.subForm[subFAccount]
+			idx := -1
+			for i, a := range m.accounts {
+				if a.Name == current {
+					idx = i
+					break
+				}
+			}
+			if key == "right" {
+				idx = (idx + 1) % len(m.accounts)
+			} else {
+				if idx == -1 {
+					idx = 0
+				}
+				idx = (idx - 1 + len(m.accounts)) % len(m.accounts)
+			}
+			m.subForm[subFAccount] = m.accounts[idx].Name
 		}
 	case " ":
 		if m.subFormCur == subFType {
@@ -973,6 +1054,17 @@ func (m *model) updateSubForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			} else {
 				m.subForm[subFType] = "type.monthly"
 			}
+		} else if m.subFormCur == subFAccount && len(m.accounts) > 0 {
+			current := m.subForm[subFAccount]
+			idx := -1
+			for i, a := range m.accounts {
+				if a.Name == current {
+					idx = i
+					break
+				}
+			}
+			idx = (idx + 1) % len(m.accounts)
+			m.subForm[subFAccount] = m.accounts[idx].Name
 		} else {
 			m.subForm[m.subFormCur] += key
 		}
@@ -981,6 +1073,7 @@ func (m *model) updateSubForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			Service: strings.TrimSpace(m.subForm[subFService]),
 			Type:    strings.TrimSpace(m.subForm[subFType]),
 			Cost:    strings.TrimSpace(m.subForm[subFCost]),
+			Account: m.subForm[subFAccount],
 		}
 		if sub.Service == "" {
 			m.finView = fViewList
@@ -996,7 +1089,7 @@ func (m *model) updateSubForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "esc":
 		m.finView = fViewList
 	case "backspace":
-		if m.subFormCur != subFType {
+		if m.subFormCur != subFType && m.subFormCur != subFAccount {
 			field := &m.subForm[m.subFormCur]
 			if len(*field) > 0 {
 				runes := []rune(*field)
@@ -1007,7 +1100,7 @@ func (m *model) updateSubForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if key == "space" {
 			key = " "
 		}
-		if m.subFormCur != subFType {
+		if m.subFormCur != subFType && m.subFormCur != subFAccount {
 			runes := []rune(key)
 			if len(runes) == 1 {
 				field := &m.subForm[m.subFormCur]
@@ -1063,10 +1156,10 @@ func (m *model) renderSubList(s *styles) string {
 		return title + "\n\n" + empty + help
 	}
 
-	hdr := fmt.Sprintf("  %-3s %-20s %-14s %-14s",
-		t(m.lang, "col.num"), t(m.lang, "col.service"), t(m.lang, "col.type"), t(m.lang, "col.cost"))
+	hdr := fmt.Sprintf("  %-3s %-20s %-14s %-14s %-14s",
+		t(m.lang, "col.num"), t(m.lang, "col.service"), t(m.lang, "col.type"), t(m.lang, "col.cost"), t(m.lang, "col.account"))
 	header := s.subtitle.Render(hdr)
-	divider := s.dim.Render("  " + strings.Repeat("─", 54))
+	divider := s.dim.Render("  " + strings.Repeat("─", 68))
 
 	var rows []string
 	for i, sub := range m.subs {
@@ -1083,12 +1176,18 @@ func (m *model) renderSubList(s *styles) string {
 		} else {
 			sType = "-"
 		}
+		
+		accName := sub.Account
+		if accName == "" {
+			accName = "-"
+		}
 
-		row := fmt.Sprintf("  %-3d %-20s %-14s %-14s",
+		row := fmt.Sprintf("  %-3d %-20s %-14s %-14s %-14s",
 			i+1,
 			truncate(sub.Service, 19),
 			truncate(sType, 13),
 			truncate(cost, 13),
+			truncate(accName, 13),
 		)
 		if i == m.subCursor {
 			if isActive {
@@ -1116,6 +1215,7 @@ func (m *model) renderSubForm(s *styles, formTitle string) string {
 		t(m.lang, "field.service"),
 		t(m.lang, "field.insType"),
 		t(m.lang, "field.totalCost"),
+		t(m.lang, "col.account"),
 	}
 
 	var fields []string
@@ -1127,8 +1227,12 @@ func (m *model) renderSubForm(s *styles, formTitle string) string {
 		if i == m.subFormCur {
 			cursor := s.highlight.Render("_")
 			fieldStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Background(lipgloss.Color("236"))
-			if i == subFType {
-				rendered = label + " < " + fieldStyle.Render(t(m.lang, val)) + " >"
+			if i == subFType || i == subFAccount {
+				displayVal := val
+				if i == subFType {
+					displayVal = t(m.lang, val)
+				}
+				rendered = label + " < " + fieldStyle.Render(displayVal) + " >"
 			} else if i == subFCost {
 				if val == "" { val = s.dim.Render("0.00") }
 				rendered = label + " € " + fieldStyle.Render(val) + cursor
@@ -1136,8 +1240,12 @@ func (m *model) renderSubForm(s *styles, formTitle string) string {
 				rendered = label + " " + fieldStyle.Render(val) + cursor
 			}
 		} else {
-			if i == subFType {
-				rendered = label + " " + s.info.Render(t(m.lang, val))
+			if i == subFType || i == subFAccount {
+				displayVal := val
+				if i == subFType {
+					displayVal = t(m.lang, val)
+				}
+				rendered = label + " " + s.info.Render(displayVal)
 			} else if i == subFCost {
 				if val == "" { val = s.dim.Render("0.00") }
 				rendered = label + " € " + s.info.Render(val)

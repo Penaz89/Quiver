@@ -27,6 +27,7 @@ type Subscription struct {
 	Service string `json:"service"`
 	Cost    string `json:"cost"`
 	Type    string `json:"type"` // "type.monthly" or "type.annual"
+	Account string `json:"account,omitempty"`
 }
 
 func subscriptionsPath(dataDir string) string {

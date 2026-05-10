@@ -19,6 +19,7 @@ const (
 	instFPaidCount
 	instFFrequency
 	instFStartDate
+	instFAccount
 	instFCount
 )
 
@@ -51,7 +52,11 @@ func (m *model) updateInstList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	case "a":
 		m.finView = fViewAdd
-		m.instForm = [instFCount]string{"", "", "0", "0", getInstFrequencies()[0], time.Now().Format("02/01/2006")}
+		defaultAcc := ""
+		if len(m.accounts) > 0 {
+			defaultAcc = m.accounts[0].Name
+		}
+		m.instForm = [instFCount]string{"", "", "0", "0", getInstFrequencies()[0], time.Now().Format("02/01/2006"), defaultAcc}
 		m.instFormCur = 0
 	case "e", "enter":
 		if len(m.installments) > 0 {
@@ -66,6 +71,10 @@ func (m *model) updateInstList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if freq == "" {
 				freq = getInstFrequencies()[0]
 			}
+			accName := inst.Account
+			if accName == "" && len(m.accounts) > 0 {
+				accName = m.accounts[0].Name
+			}
 			m.instForm = [instFCount]string{
 				inst.Name,
 				inst.Amount,
@@ -73,6 +82,7 @@ func (m *model) updateInstList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				fmt.Sprintf("%d", inst.PaidCount),
 				freq,
 				dateStr,
+				accName,
 			}
 			m.instFormCur = 0
 		}
@@ -87,6 +97,9 @@ func (m *model) updateInstList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if inst.TotalCount == 0 || inst.PaidCount < inst.TotalCount {
 				inst.PaidCount++
 				_ = storage.SaveInstallments(m.dataDir, m.installments)
+				if inst.Account != "" {
+					m.adjustAccountBalance(inst.Account, -parseEuro(inst.Amount))
+				}
 			}
 		}
 	case "backspace": // Undo pay
@@ -95,6 +108,9 @@ func (m *model) updateInstList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if inst.PaidCount > 0 {
 				inst.PaidCount--
 				_ = storage.SaveInstallments(m.dataDir, m.installments)
+				if inst.Account != "" {
+					m.adjustAccountBalance(inst.Account, parseEuro(inst.Amount))
+				}
 			}
 		}
 	}
@@ -126,6 +142,24 @@ func (m *model) updateInstForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				idx = (idx - 1 + len(freqs)) % len(freqs)
 			}
 			m.instForm[instFFrequency] = freqs[idx]
+		} else if m.instFormCur == instFAccount && len(m.accounts) > 0 {
+			current := m.instForm[instFAccount]
+			idx := -1
+			for i, a := range m.accounts {
+				if a.Name == current {
+					idx = i
+					break
+				}
+			}
+			if key == "right" {
+				idx = (idx + 1) % len(m.accounts)
+			} else {
+				if idx == -1 {
+					idx = 0
+				}
+				idx = (idx - 1 + len(m.accounts)) % len(m.accounts)
+			}
+			m.instForm[instFAccount] = m.accounts[idx].Name
 		}
 	case "enter":
 		if m.instForm[instFName] == "" || m.instForm[instFAmount] == "" {
@@ -156,6 +190,7 @@ func (m *model) updateInstForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			PaidCount:  paidCount,
 			Frequency:  m.instForm[instFFrequency],
 			StartDate:  parsedDate,
+			Account:    m.instForm[instFAccount],
 			Author:     m.user,
 		}
 
@@ -170,7 +205,7 @@ func (m *model) updateInstForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "esc":
 		m.finView = fViewList
 	case "backspace":
-		if m.instFormCur != instFFrequency {
+		if m.instFormCur != instFFrequency && m.instFormCur != instFAccount {
 			field := &m.instForm[m.instFormCur]
 			if len(*field) > 0 {
 				runes := []rune(*field)
@@ -189,11 +224,22 @@ func (m *model) updateInstForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			idx = (idx + 1) % len(freqs)
 			m.instForm[instFFrequency] = freqs[idx]
+		} else if m.instFormCur == instFAccount && len(m.accounts) > 0 {
+			current := m.instForm[instFAccount]
+			idx := -1
+			for i, a := range m.accounts {
+				if a.Name == current {
+					idx = i
+					break
+				}
+			}
+			idx = (idx + 1) % len(m.accounts)
+			m.instForm[instFAccount] = m.accounts[idx].Name
 		} else {
 			m.instForm[m.instFormCur] += " "
 		}
 	default:
-		if m.instFormCur != instFFrequency {
+		if m.instFormCur != instFFrequency && m.instFormCur != instFAccount {
 			runes := []rune(key)
 			if len(runes) == 1 {
 				field := &m.instForm[m.instFormCur]
@@ -290,8 +336,8 @@ func (m *model) renderInstList(s *styles) string {
 		return title + "\n\n" + empty + help
 	}
 
-	headerStr := fmt.Sprintf("  %-20s %-12s %-12s %-15s %-15s", 
-		t(m.lang, "col.description"), t(m.lang, "col.amount"), t(m.lang, "col.frequency"), t(m.lang, "col.progress"), t(m.lang, "col.nextPayment"))
+	headerStr := fmt.Sprintf("  %-20s %-12s %-12s %-15s %-15s %s", 
+		t(m.lang, "col.description"), t(m.lang, "col.amount"), t(m.lang, "col.frequency"), t(m.lang, "col.progress"), t(m.lang, "col.nextPayment"), truncate(t(m.lang, "col.account"), 10))
 	header := s.subtitle.Render(headerStr)
 	divider := s.dim.Render("  " + strings.Repeat("─", 78))
 
@@ -319,7 +365,12 @@ func (m *model) renderInstList(s *styles) string {
 			}
 		}
 
-		row := fmt.Sprintf("  %-20s € %-10.2f %-12s %-15s %-15s", truncate(inst.Name, 19), amt, freqStr, progressStr, nextDateStr)
+		accountName := inst.Account
+		if accountName == "" {
+			accountName = "-"
+		}
+
+		row := fmt.Sprintf("  %-20s € %-10.2f %-12s %-15s %-15s %s", truncate(inst.Name, 19), amt, freqStr, progressStr, nextDateStr, truncate(accountName, 10))
 		
 		if i == m.instCursor {
 			if isActive {
@@ -354,6 +405,7 @@ func (m *model) renderInstForm(s *styles, formTitle string) string {
 		"Rate Pagate",
 		t(m.lang, "col.frequency"),
 		t(m.lang, "col.date") + " Inizio",
+		t(m.lang, "col.account"),
 	}
 
 	var renderedLines []string
@@ -364,7 +416,7 @@ func (m *model) renderInstForm(s *styles, formTitle string) string {
 		}
 
 		if i == m.instFormCur {
-			if i == instFFrequency {
+			if i == instFFrequency || i == instFAccount {
 				renderedLines = append(renderedLines, s.dim.Render(fmt.Sprintf("  %-22s ", f+":"))+s.fieldBg.Render("< "+val+" >"))
 			} else {
 				renderedLines = append(renderedLines, s.dim.Render(fmt.Sprintf("  %-22s ", f+":"))+s.fieldBg.Render(val+s.highlight.Render("_")))

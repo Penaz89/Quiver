@@ -3,5 +3,10 @@
     "service": "Netflix",
     "cost": "13",
     "type": "type.monthly"
+  },
+  {
+    "service": "Spotify",
+    "cost": "16",
+    "type": "type.monthly"
   }
 ]
