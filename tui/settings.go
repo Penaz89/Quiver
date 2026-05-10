@@ -214,6 +214,21 @@ func (m *model) updateSettings(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				if m.settingsCursor < len(m.userFamilies) {
 					m.settingsCursor++
 				}
+			case "enter":
+				if m.settingsCursor == 0 {
+					if m.currentWorkspace != "Personal" {
+						m.currentWorkspace = "Personal"
+						m.dataDir = m.personalDataDir
+						m.loadUserData()
+					}
+				} else if m.settingsCursor > 0 && m.settingsCursor <= len(m.userFamilies) {
+					familyID := m.userFamilies[m.settingsCursor-1].ID
+					if m.currentWorkspace != familyID {
+						m.currentWorkspace = familyID
+						m.dataDir = storage.GetFamilyDir(m.baseDataDir, familyID)
+						m.loadUserData()
+					}
+				}
 			case "n", "a":
 				m.familyIsAdding = true
 				m.familyForm = ""
@@ -521,7 +536,7 @@ func (m *model) renderSettingsWorkspace(s *styles) string {
 	} else if m.familyIsInviting {
 		help = s.dim.Render(fmt.Sprintf("\n\nEnter: %s  Esc: %s", t(m.lang, "action.save"), t(m.lang, "help.cancel")))
 	} else {
-		help = s.dim.Render(fmt.Sprintf("\n\n↑/↓: %s  %s  ←: %s", t(m.lang, "help.navigate"), t(m.lang, "settings.workspaceHelp"), t(m.lang, "help.goBack")))
+		help = s.dim.Render(fmt.Sprintf("\n\n↑/↓: %s  %s\n%s  ←: %s", t(m.lang, "help.navigate"), t(m.lang, "settings.workspaceHelp1"), t(m.lang, "settings.workspaceHelp2"), t(m.lang, "help.goBack")))
 	}
 
 	return title + "\n" + currentInfo + "\n\n" + content + help

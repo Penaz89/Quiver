@@ -271,7 +271,8 @@ var translations = map[string]map[string]string{
 	"settings.yourWorkspaces":  {"en": "  Your Workspaces:", "it": "  I tuoi Workspace:"},
 	"settings.personal":        {"en": "● Personal", "it": "● Personale"},
 	"settings.familyLabel":     {"en": "● Family: %s (%d members)", "it": "● Famiglia: %s (%d membri)"},
-	"settings.workspaceHelp":   {"en": "n/a: New  i: Invite  Del: Leave  s: Set Default", "it": "n/a: Nuovo  i: Invita  Canc: Lascia  s: Imposta Default"},
+	"settings.workspaceHelp1":   {"en": "Enter: Switch  n/a: New  i: Invite", "it": "Invio: Entra  n/a: Nuovo  i: Invita"},
+	"settings.workspaceHelp2":   {"en": "Del: Leave  s: Set Default", "it": "Canc: Lascia  s: Default"},
 	// ── Finances extensions (Goals & Analytics) ──────────────
 	"finances.goals":       {"en": "Financial Goals", "it": "Obiettivi"},
 	"goals.noRecords":      {"en": "No financial goals set. Press 'n' to add one.", "it": "Nessun obiettivo impostato. Premi 'n' per aggiungerne uno."},
@@ -314,6 +315,9 @@ var translations = map[string]map[string]string{
 	"month.10": {"en": "OCT", "it": "OTT"},
 	"month.11": {"en": "NOV", "it": "NOV"},
 	"month.12": {"en": "DEC", "it": "DIC"},
+	"month.13": {"en": "13TH", "it": "13ES"},
+	"month.14": {"en": "14TH", "it": "14ES"},
+	"month.15": {"en": "BONUS", "it": "BONUS"},
 }
 
 // t returns the translation for the given key and language.

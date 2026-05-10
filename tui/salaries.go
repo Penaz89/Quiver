@@ -29,23 +29,23 @@ func prevYear(current string) string {
 }
 
 func nextMonth(current string) string {
-	months := []string{"01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"}
+	months := []string{"01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15"}
 	for i, m := range months {
 		if m == current {
-			return months[(i+1)%12]
+			return months[(i+1)%15]
 		}
 	}
 	return "01"
 }
 
 func prevMonth(current string) string {
-	months := []string{"01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"}
+	months := []string{"01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15"}
 	for i, m := range months {
 		if m == current {
-			return months[(i-1+12)%12]
+			return months[(i-1+15)%15]
 		}
 	}
-	return "12"
+	return "15"
 }
 
 func (m *model) updateSalaries(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
