@@ -172,7 +172,7 @@ type model struct {
 	// Daily Expenses state
 	daily       []storage.DailyExpense
 	dailyCursor int
-	dailyForm   [4]string // Date, Category, Description, Amount
+	dailyForm   [5]string // Date, Category, Description, Amount, Account
 	dailyFormCur int
 	dailyEditIdx int
 	dailyYearFilter string
@@ -180,8 +180,10 @@ type model struct {
 	
 	// Categories state
 	categories  []string
+	budgets     map[string]string
 	catCursor   int
-	catForm     string
+	catForm     [2]string
+	catFormCur  int
 	catEditIdx  int
 
 	// Subscriptions state
@@ -191,10 +193,24 @@ type model struct {
 	subFormCur int
 	subEditIdx int
 
+	// Installments state
+	installments  []storage.Installment
+	instCursor    int
+	instForm      [6]string // Name, Amount, TotalCount, PaidCount, Frequency, StartDate
+	instFormCur   int
+	instEditIdx   int
+
+	// Accounts state
+	accounts      []storage.Account
+	accCursor     int
+	accForm       [3]string // Name, Balance, Type
+	accFormCur    int
+	accEditIdx    int
+
 	// Salaries state
 	salaries         []storage.Salary
 	salaryCursor     int
-	salaryForm       [4]string // Year, Month, Gross, Net
+	salaryForm       [5]string // Year, Month, Gross, Net, Account
 	salaryFormCur    int
 	salaryEditIdx    int
 	salaryYearFilter string
@@ -460,6 +476,9 @@ func (m *model) loadUserData() {
 	m.goals, _ = storage.LoadGoals(m.dataDir)
 	m.daily, _ = storage.LoadDailyExpenses(m.dataDir)
 	m.categories, _ = storage.LoadCategories(m.dataDir)
+	m.budgets, _ = storage.LoadBudgets(m.dataDir)
+	m.installments, _ = storage.LoadInstallments(m.dataDir)
+	m.accounts, _ = storage.LoadAccounts(m.dataDir)
 
 	if m.settings.Language != "" {
 		m.lang = m.settings.Language

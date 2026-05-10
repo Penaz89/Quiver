@@ -23,9 +23,11 @@ const (
 	fSectionDaily                           // Daily Expenses (Spese Quotidiane)
 	fSectionHousing                         // Housing (Casa)
 	fSectionSubscriptions                   // Subscriptions (Abbonamenti)
+	fSectionInstallments                    // Installments (Rate/Scadenze)
 	fSectionSalaries                        // Salaries (Stipendi)
 	fSectionGoals                           // Goals (Obiettivi)
 	fSectionCategories                      // Categories (Categorie)
+	fSectionAccounts                        // Accounts (Conti)
 )
 
 const (
@@ -40,6 +42,7 @@ const (
 	dailyFCategory
 	dailyFDescription
 	dailyFAmount
+	dailyFAccount
 	dailyFCount
 )
 
@@ -67,7 +70,7 @@ func (m *model) updateFinances(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.finMenuCursor--
 			}
 		case "down", "j":
-			if m.finMenuCursor < 8-1 { // 8 items
+			if m.finMenuCursor < 10-1 { // 10 items
 				m.finMenuCursor++
 			}
 		case "enter", "right":
@@ -91,12 +94,16 @@ func (m *model) updateFinances(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.updateHousing(msg)
 	case fSectionSubscriptions:
 		return m.updateSubscriptions(msg)
+	case fSectionInstallments:
+		return m.updateInstallments(msg)
 	case fSectionSalaries:
 		return m.updateSalaries(msg)
 	case fSectionGoals:
 		return m.updateGoals(msg)
 	case fSectionCategories:
 		return m.updateCategories(msg)
+	case fSectionAccounts:
+		return m.updateAccounts(msg)
 	}
 	return m, nil
 }
@@ -128,9 +135,11 @@ func (m *model) renderFinancesView(s *styles) string {
 		t(m.lang, "finances.daily"),
 		t(m.lang, "finances.housing"),
 		t(m.lang, "finances.subscriptions"),
+		t(m.lang, "finances.installments"),
 		t(m.lang, "finances.salaries"),
 		t(m.lang, "finances.goals"),
 		t(m.lang, "finances.categories"),
+		t(m.lang, "finances.accounts"),
 	}
 	var lines []string
 	for i, l := range labels {
@@ -170,12 +179,16 @@ func (m *model) renderFinancesView(s *styles) string {
 		col3 = m.renderHousing(s)
 	case fSectionSubscriptions:
 		col3 = m.renderSubscriptions(s)
+	case fSectionInstallments:
+		col3 = m.renderInstallments(s)
 	case fSectionSalaries:
 		col3 = m.renderSalaries(s)
 	case fSectionGoals:
 		col3 = m.renderGoals(s)
 	case fSectionCategories:
 		col3 = m.renderCategories(s)
+	case fSectionAccounts:
+		col3 = m.renderAccounts(s)
 	}
 
 	if m.finSection == fSectionMenu {
@@ -394,6 +407,80 @@ func (m *model) renderFixedExpenses(s *styles) string {
 		subBlock = "\n\n" + catSubTitle + "\n" + dividerSub + "\n" + headerSub + "\n" + dividerSub + "\n" + subTable + "\n" + dividerSub + "\n" + s.highlight.Render(subSubtotalStr)
 	}
 
+	// --- CATEGORY: INSTALLMENTS ---
+	var instBlock string
+	if len(m.installments) > 0 {
+		catInstTitle := s.info.Render("  " + strings.ToUpper(t(m.lang, "finances.installments")))
+		
+		hdrInst := fmt.Sprintf("  %-31s %-14s %-14s",
+			t(m.lang, "col.description"), t(m.lang, "col.annual"), t(m.lang, "col.monthly"))
+		headerInst := s.subtitle.Render(hdrInst)
+		dividerInst := s.dim.Render("  " + strings.Repeat("─", 63))
+		
+		var instRows []string
+		var instCatAnnual float64
+		var instCatMonthly float64
+
+		for _, inst := range m.installments {
+			if inst.TotalCount > 0 && inst.PaidCount >= inst.TotalCount {
+				continue // Paid off
+			}
+			
+			var annualTotal float64
+			var monthlyTotal float64
+			cost := parseEuro(inst.Amount)
+			
+			switch inst.Frequency {
+			case "type.monthly":
+				monthlyTotal = cost
+				annualTotal = cost * 12.0
+			case "type.bimonthly":
+				monthlyTotal = cost / 2.0
+				annualTotal = cost * 6.0
+			case "type.quarterly":
+				monthlyTotal = cost / 3.0
+				annualTotal = cost * 4.0
+			case "type.semiannual":
+				monthlyTotal = cost / 6.0
+				annualTotal = cost * 2.0
+			case "type.annual":
+				monthlyTotal = cost / 12.0
+				annualTotal = cost
+			default:
+				monthlyTotal = cost
+				annualTotal = cost * 12.0
+			}
+
+			instCatAnnual += annualTotal
+			instCatMonthly += monthlyTotal
+
+			annStr := fmt.Sprintf("€ %.2f", annualTotal)
+			monStr := fmt.Sprintf("€ %.2f", monthlyTotal)
+			
+			row := fmt.Sprintf("  %-31s %-14s %-14s",
+				truncate(inst.Name, 30),
+				annStr,
+				monStr,
+			)
+			instRows = append(instRows, row)
+		}
+		
+		if len(instRows) > 0 {
+			grandTotalAnnual += instCatAnnual
+			grandTotalMonthly += instCatMonthly
+
+			instTable := strings.Join(instRows, "\n")
+			
+			instSubtotalStr := fmt.Sprintf("  %-31s %-14s %-14s",
+				t(m.lang, "finances.subtotal")+" "+t(m.lang, "finances.installments"),
+				fmt.Sprintf("€ %.2f", instCatAnnual),
+				fmt.Sprintf("€ %.2f", instCatMonthly),
+			)
+			
+			instBlock = "\n\n" + catInstTitle + "\n" + dividerInst + "\n" + headerInst + "\n" + dividerInst + "\n" + instTable + "\n" + dividerInst + "\n" + s.highlight.Render(instSubtotalStr)
+		}
+	}
+
 	// --- CATEGORY: SPESE GIORNALIERE ---
 	var dailyBlock string
 	if len(m.daily) > 0 {
@@ -505,7 +592,7 @@ func (m *model) renderFixedExpenses(s *styles) string {
 	
 	grandBlock := grandDivider + "\n" + s.title.Render(grandStr) + "\n" + grandDivider
 
-	content := vehBlock + houseBlock + subBlock + dailyBlock + goalBlock + "\n\n\n" + grandBlock
+	content := vehBlock + houseBlock + subBlock + instBlock + dailyBlock + goalBlock + "\n\n\n" + grandBlock
 	help := s.dim.Render(fmt.Sprintf("\n\n←: %s", t(m.lang, "help.goBack")))
 	
 	return title + "\n\n" + content + help

@@ -34,12 +34,15 @@ func (m *model) updateCatList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	case "a":
 		m.finView = fViewAdd
-		m.catForm = ""
+		m.catForm = [2]string{"", ""}
+		m.catFormCur = 0
 	case "e", "enter":
 		if len(m.categories) > 0 {
 			m.finView = fViewEdit
 			m.catEditIdx = m.catCursor
-			m.catForm = m.categories[m.catCursor]
+			catName := m.categories[m.catCursor]
+			m.catForm = [2]string{catName, m.budgets[catName]}
+			m.catFormCur = 0
 		}
 	case "d", "x", "del":
 		if len(m.categories) > 0 {
@@ -55,8 +58,13 @@ func (m *model) updateCatList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m *model) updateCatForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 	switch key {
+	case "tab", "down":
+		m.catFormCur = (m.catFormCur + 1) % 2
+	case "shift+tab", "up":
+		m.catFormCur = (m.catFormCur - 1 + 2) % 2
 	case "enter":
-		val := strings.TrimSpace(m.catForm)
+		val := strings.TrimSpace(m.catForm[0])
+		budgetVal := strings.TrimSpace(m.catForm[1])
 		if val == "" {
 			m.finView = fViewList
 			return m, nil
@@ -79,23 +87,42 @@ func (m *model) updateCatForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				if changed {
 					_ = storage.SaveDailyExpenses(m.dataDir, m.daily)
 				}
+				delete(m.budgets, oldCat)
+			}
+		}
+		if budgetVal != "" {
+			if m.budgets == nil {
+				m.budgets = make(map[string]string)
+			}
+			m.budgets[val] = budgetVal
+		} else {
+			if m.budgets != nil {
+				delete(m.budgets, val)
 			}
 		}
 		_ = storage.SaveCategories(m.dataDir, m.categories)
+		_ = storage.SaveBudgets(m.dataDir, m.budgets)
 		m.finView = fViewList
 	case "esc":
 		m.finView = fViewList
 	case "backspace":
-		if len(m.catForm) > 0 {
-			runes := []rune(m.catForm)
-			m.catForm = string(runes[:len(runes)-1])
+		if len(m.catForm[m.catFormCur]) > 0 {
+			runes := []rune(m.catForm[m.catFormCur])
+			m.catForm[m.catFormCur] = string(runes[:len(runes)-1])
 		}
 	case "space":
-		m.catForm += " "
+		m.catForm[m.catFormCur] += " "
 	default:
 		runes := []rune(key)
 		if len(runes) == 1 {
-			m.catForm += key
+			if m.catFormCur == 1 {
+				// Only allow numbers and decimal separators for budget
+				if strings.ContainsRune("0123456789.,", runes[0]) {
+					m.catForm[1] += key
+				}
+			} else {
+				m.catForm[0] += key
+			}
 		}
 	}
 	return m, nil
@@ -105,8 +132,13 @@ func (m *model) updateCatDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "y", "Y", "s", "S", "enter":
 		if m.catEditIdx >= 0 && m.catEditIdx < len(m.categories) {
+			catName := m.categories[m.catEditIdx]
 			m.categories = append(m.categories[:m.catEditIdx], m.categories[m.catEditIdx+1:]...)
+			if m.budgets != nil {
+				delete(m.budgets, catName)
+			}
 			_ = storage.SaveCategories(m.dataDir, m.categories)
+			_ = storage.SaveBudgets(m.dataDir, m.budgets)
 		}
 		m.finView = fViewList
 		if m.catCursor >= len(m.categories) && m.catCursor > 0 {
@@ -140,12 +172,16 @@ func (m *model) renderCatList(s *styles) string {
 		return title + "\n\n" + empty + help
 	}
 
-	header := s.subtitle.Render(fmt.Sprintf("  %-3s %-20s", t(m.lang, "col.num"), t(m.lang, "col.category")))
-	divider := s.dim.Render("  " + strings.Repeat("─", 25))
+	header := s.subtitle.Render(fmt.Sprintf("  %-3s %-20s %-10s", t(m.lang, "col.num"), t(m.lang, "col.category"), t(m.lang, "col.budget")))
+	divider := s.dim.Render("  " + strings.Repeat("─", 36))
 
 	var rows []string
 	for i, c := range m.categories {
-		row := fmt.Sprintf("  %-3d %-20s", i+1, truncate(c, 19))
+		budgStr := "-"
+		if b, ok := m.budgets[c]; ok && b != "" {
+			budgStr = "€ " + b
+		}
+		row := fmt.Sprintf("  %-3d %-20s %-10s", i+1, truncate(c, 19), budgStr)
 		if i == m.catCursor {
 			if isActive {
 				row = s.menuSelected.Width(0).Render(row)
@@ -168,11 +204,22 @@ func (m *model) renderCatList(s *styles) string {
 func (m *model) renderCatForm(s *styles, formTitle string) string {
 	title := s.title.Render(formTitle)
 
-	label := s.dim.Render(fmt.Sprintf("  %-15s", t(m.lang, "categories.name")+":"))
-	cursor := s.highlight.Render("_")
-	fieldStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Background(lipgloss.Color("236"))
-	
-	rendered := label + " " + fieldStyle.Render(m.catForm) + cursor
+	fields := []string{
+		t(m.lang, "categories.name"),
+		t(m.lang, "col.budget") + " (€)",
+	}
+
+	var renderedLines []string
+	for i, f := range fields {
+		val := m.catForm[i]
+		if i == m.catFormCur {
+			renderedLines = append(renderedLines, s.dim.Render(fmt.Sprintf("  %-20s ", f+":"))+s.fieldBg.Render(val+s.highlight.Render("_")))
+		} else {
+			renderedLines = append(renderedLines, s.dim.Render(fmt.Sprintf("  %-20s ", f+":"))+val)
+		}
+	}
+
+	rendered := strings.Join(renderedLines, "\n\n")
 
 	help := s.dim.Render(fmt.Sprintf("\n\nEnter: %s  Esc: %s", t(m.lang, "action.save"), t(m.lang, "action.cancel")))
 

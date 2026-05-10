@@ -27,8 +27,9 @@ type Salary struct {
 	Year   string `json:"year"`
 	Month  string `json:"month"`
 	Gross  string `json:"gross"`
-	Net    string `json:"net"`
-	Author string `json:"author,omitempty"`
+	Net     string `json:"net"`
+	Account string `json:"account,omitempty"`
+	Author  string `json:"author,omitempty"`
 }
 
 func salaryPath(dataDir string) string {

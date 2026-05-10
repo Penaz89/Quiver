@@ -275,7 +275,65 @@ func (m *model) renderAnalytics(s *styles) string {
 		sec3 += fmt.Sprintf(fmtRow, t(m.lang, "daily.annualTotal"), s.dim.Render(strings.Repeat(" ", barLen)), totalStr)
 	}
 
+	// ── Section 4: Budget per Categoria (Current Month) ────────
+	var sec4 string
+	currentMonth := time.Now().Month()
+	
+	budgetedCategories := make(map[string]float64)
+	
+	for cat, bStr := range m.budgets {
+		if bStr != "" {
+			b := parseEuro(bStr)
+			if b > 0 {
+				budgetedCategories[cat] = 0 // initialize
+			}
+		}
+	}
+	
+	if len(budgetedCategories) > 0 {
+		for _, exp := range m.daily {
+			if !exp.Date.IsZero() {
+				if fmt.Sprintf("%d", exp.Date.Year()) == currentYearStr && exp.Date.Month() == currentMonth {
+					if _, ok := budgetedCategories[exp.Category]; ok {
+						budgetedCategories[exp.Category] += parseEuro(exp.Amount)
+					}
+				}
+			}
+		}
+		
+		sec4Title := s.subtitle.Render("  " + t(m.lang, "analytics.budgets") + " (" + t(m.lang, fmt.Sprintf("month.%02d", currentMonth)) + ")")
+		sec4Div := s.dim.Render("  " + strings.Repeat("─", divLen))
+		sec4 = "\n\n" + sec4Title + "\n" + sec4Div + "\n\n"
+		
+		for cat, spent := range budgetedCategories {
+			budget := parseEuro(m.budgets[cat])
+			ratio := 0.0
+			if budget > 0 {
+				ratio = spent / budget
+			}
+			
+			barColor := "42" // Green
+			if ratio >= 1.0 {
+				barColor = "196" // Red (over budget)
+			} else if ratio >= 0.8 {
+				barColor = "214" // Orange (close to budget)
+			}
+			
+			bar := renderBar(ratio, barLen, barColor)
+			
+			catLabel := truncate(cat, labelW-1)
+			valStr := fmt.Sprintf("€ %.2f / € %.2f", spent, budget)
+			if ratio >= 1.0 {
+				valStr = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Render(valStr)
+			} else {
+				valStr = s.info.Render(valStr)
+			}
+			
+			sec4 += fmt.Sprintf(fmtRow, catLabel, bar, valStr)
+		}
+	}
+
 	help := s.dim.Render("\n\n←: " + t(m.lang, "help.goBack"))
 
-	return title + "\n\n" + sec1 + sec2 + sec3 + help
+	return title + "\n\n" + sec1 + sec2 + sec3 + sec4 + help
 }

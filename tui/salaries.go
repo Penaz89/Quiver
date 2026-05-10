@@ -84,8 +84,11 @@ func (m *model) updateSalaries(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		case "n", "a":
 			m.finView = fViewAdd
-			m.salaryFormCur = 0
-			m.salaryForm = [4]string{fmt.Sprintf("%d", time.Now().Year()), "01", "", ""}
+			defaultAcc := ""
+			if len(m.accounts) > 0 {
+				defaultAcc = m.accounts[0].Name
+			}
+			m.salaryForm = [5]string{fmt.Sprintf("%d", time.Now().Year()), "01", "", "", defaultAcc}
 		case "e":
 			if m.salaryYearFilter != "" {
 				salaries := m.getSalariesForYear(m.salaryYearFilter)
@@ -94,7 +97,7 @@ func (m *model) updateSalaries(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					m.salaryEditIdx = m.getGlobalSalaryIndex(salaries[m.salaryCursor])
 					sal := m.salaries[m.salaryEditIdx]
 					m.salaryFormCur = 0
-					m.salaryForm = [4]string{sal.Year, sal.Month, sal.Gross, sal.Net}
+					m.salaryForm = [5]string{sal.Year, sal.Month, sal.Gross, sal.Net, sal.Account}
 				}
 			}
 		case "d", "del":
@@ -111,22 +114,45 @@ func (m *model) updateSalaries(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "esc":
 			m.finView = fViewList
 		case "tab", "down":
-			m.salaryFormCur = (m.salaryFormCur + 1) % 4
+			m.salaryFormCur = (m.salaryFormCur + 1) % 5
 		case "shift+tab", "up":
-			m.salaryFormCur = (m.salaryFormCur - 1 + 4) % 4
+			m.salaryFormCur = (m.salaryFormCur - 1 + 5) % 5
 		case "enter":
 			if m.salaryForm[0] != "" && m.salaryForm[1] != "" && m.salaryForm[2] != "" && m.salaryForm[3] != "" {
 				newSal := storage.Salary{
-					Year:   m.salaryForm[0],
-					Month:  m.salaryForm[1],
-					Gross:  m.salaryForm[2],
-					Net:    m.salaryForm[3],
-					Author: m.user,
+					Year:    m.salaryForm[0],
+					Month:   m.salaryForm[1],
+					Gross:   m.salaryForm[2],
+					Net:     m.salaryForm[3],
+					Account: m.salaryForm[4],
+					Author:  m.user,
 				}
+				
+				netAmtEuro := parseEuro(m.salaryForm[3])
+				accName := m.salaryForm[4]
+
 				if m.finView == fViewAdd {
 					m.salaries = append(m.salaries, newSal)
+					if accName != "" {
+						m.adjustAccountBalance(accName, netAmtEuro)
+					}
 				} else {
+					oldAcc := m.salaries[m.salaryEditIdx].Account
+					oldNet := parseEuro(m.salaries[m.salaryEditIdx].Net)
 					m.salaries[m.salaryEditIdx] = newSal
+					
+					if oldAcc == accName {
+						if oldAcc != "" && oldNet != netAmtEuro {
+							m.adjustAccountBalance(accName, netAmtEuro - oldNet)
+						}
+					} else {
+						if oldAcc != "" {
+							m.adjustAccountBalance(oldAcc, -oldNet)
+						}
+						if accName != "" {
+							m.adjustAccountBalance(accName, netAmtEuro)
+						}
+					}
 				}
 				storage.SaveSalaries(m.dataDir, m.salaries)
 				m.finView = fViewList
@@ -136,25 +162,79 @@ func (m *model) updateSalaries(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.salaryForm[0] = prevYear(m.salaryForm[0])
 			} else if m.salaryFormCur == 1 {
 				m.salaryForm[1] = prevMonth(m.salaryForm[1])
+			} else if m.salaryFormCur == 4 && len(m.accounts) > 0 {
+				current := m.salaryForm[4]
+				idx := -1
+				for i, a := range m.accounts {
+					if a.Name == current {
+						idx = i
+						break
+					}
+				}
+				idx--
+				if idx < -1 {
+					idx = len(m.accounts) - 1
+				}
+				if idx == -1 {
+					m.salaryForm[4] = ""
+				} else {
+					m.salaryForm[4] = m.accounts[idx].Name
+				}
 			}
 		case "right", "l":
 			if m.salaryFormCur == 0 {
 				m.salaryForm[0] = nextYear(m.salaryForm[0])
 			} else if m.salaryFormCur == 1 {
 				m.salaryForm[1] = nextMonth(m.salaryForm[1])
+			} else if m.salaryFormCur == 4 && len(m.accounts) > 0 {
+				current := m.salaryForm[4]
+				idx := -1
+				for i, a := range m.accounts {
+					if a.Name == current {
+						idx = i
+						break
+					}
+				}
+				idx++
+				if idx >= len(m.accounts) {
+					idx = -1
+				}
+				if idx == -1 {
+					m.salaryForm[4] = ""
+				} else {
+					m.salaryForm[4] = m.accounts[idx].Name
+				}
 			}
 		case "backspace":
-			if m.salaryFormCur != 0 && m.salaryFormCur != 1 && len(m.salaryForm[m.salaryFormCur]) > 0 {
+			if m.salaryFormCur != 0 && m.salaryFormCur != 1 && m.salaryFormCur != 4 && len(m.salaryForm[m.salaryFormCur]) > 0 {
 				s := m.salaryForm[m.salaryFormCur]
 				m.salaryForm[m.salaryFormCur] = s[:len(s)-1]
 			}
 		default:
-			if m.salaryFormCur != 0 && m.salaryFormCur != 1 {
+			if m.salaryFormCur != 0 && m.salaryFormCur != 1 && m.salaryFormCur != 4 {
 				if key == "space" {
 					key = " "
 				}
 				if len(key) == 1 {
 					m.salaryForm[m.salaryFormCur] += key
+				}
+			} else if m.salaryFormCur == 4 && len(m.accounts) > 0 && key == "space" {
+				current := m.salaryForm[4]
+				idx := -1
+				for i, a := range m.accounts {
+					if a.Name == current {
+						idx = i
+						break
+					}
+				}
+				idx++
+				if idx >= len(m.accounts) {
+					idx = -1
+				}
+				if idx == -1 {
+					m.salaryForm[4] = ""
+				} else {
+					m.salaryForm[4] = m.accounts[idx].Name
 				}
 			}
 		}
@@ -162,6 +242,11 @@ func (m *model) updateSalaries(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		switch key {
 		case "y", "Y", "enter":
 			if m.salaryEditIdx >= 0 && m.salaryEditIdx < len(m.salaries) {
+				oldAcc := m.salaries[m.salaryEditIdx].Account
+				oldNet := parseEuro(m.salaries[m.salaryEditIdx].Net)
+				if oldAcc != "" {
+					m.adjustAccountBalance(oldAcc, -oldNet)
+				}
 				m.salaries = append(m.salaries[:m.salaryEditIdx], m.salaries[m.salaryEditIdx+1:]...)
 				storage.SaveSalaries(m.dataDir, m.salaries)
 			}
@@ -351,9 +436,9 @@ func (m *model) renderSalariesMonthList(s *styles) string {
 	
 	var totalGross, totalNet float64
 	
-	headerStr := fmt.Sprintf("  %-13s %-13s %-13s %-13s %-8s %s", t(m.lang, "col.month"), t(m.lang, "col.gross"), t(m.lang, "col.net"), t(m.lang, "col.deductions"), t(m.lang, "col.taxes"), "AUTORE")
+	headerStr := fmt.Sprintf("  %-13s %-13s %-13s %-13s %-8s %-15s %s", t(m.lang, "col.month"), t(m.lang, "col.gross"), t(m.lang, "col.net"), t(m.lang, "col.deductions"), t(m.lang, "col.taxes"), t(m.lang, "col.account"), "AUTORE")
 	header := s.subtitle.Render(headerStr)
-	divider := s.dim.Render("  " + strings.Repeat("─", 80))
+	divider := s.dim.Render("  " + strings.Repeat("─", 95))
 	
 	var lines []string
 	for i, sal := range salaries {
@@ -374,7 +459,7 @@ func (m *model) renderSalariesMonthList(s *styles) string {
 		}
 		
 		monthLabel := fmt.Sprintf("%s - %s", sal.Month, truncate(t(m.lang, "month."+sal.Month), 6))
-		row := fmt.Sprintf("  %-13s € %-11.2f € %-11.2f € %-11.2f %-8.1f%% %s", monthLabel, gross, net, taxes, taxPct, authorStr)
+		row := fmt.Sprintf("  %-13s € %-11.2f € %-11.2f € %-11.2f %-8.1f%% %-15s %s", monthLabel, gross, net, taxes, taxPct, truncate(sal.Account, 14), authorStr)
 		if i == m.salaryCursor {
 			isActive := m.finSection != fSectionMenu && m.focusContent
 			if isActive {
@@ -388,7 +473,7 @@ func (m *model) renderSalariesMonthList(s *styles) string {
 	}
 	
 	// Annual summary
-	sumDivider := s.dim.Render("  " + strings.Repeat("=", 80))
+	sumDivider := s.dim.Render("  " + strings.Repeat("=", 95))
 	
 	totalTaxes := totalGross - totalNet
 	totalTaxPct := 0.0
@@ -397,7 +482,7 @@ func (m *model) renderSalariesMonthList(s *styles) string {
 	}
 	
 	sumTitle := s.info.Render("  " + t(m.lang, "salaries.annualSum") + " " + m.salaryYearFilter)
-	sumRow := fmt.Sprintf("  %-13s € %-11.2f € %-11.2f € %-11.2f %.1f%%", "TOT", totalGross, totalNet, totalTaxes, totalTaxPct)
+	sumRow := fmt.Sprintf("  %-13s € %-11.2f € %-11.2f € %-11.2f %-8.1f%%", "TOT", totalGross, totalNet, totalTaxes, totalTaxPct)
 	
 	summaryBlock := sumTitle + "\n" + sumRow
 	
@@ -412,13 +497,14 @@ func (m *model) renderSalariesForm(s *styles) string {
 		t(m.lang, "field.month"),
 		t(m.lang, "field.gross"),
 		t(m.lang, "field.net"),
+		t(m.lang, "col.account"),
 	}
 
 	var lines []string
 	for i, f := range fields {
 		val := m.salaryForm[i]
 		if i == m.salaryFormCur {
-			if i == 0 || i == 1 {
+			if i == 0 || i == 1 || i == 4 {
 				val = s.fieldBg.Render("< " + val + " >")
 			} else {
 				val = s.fieldBg.Render(val + s.highlight.Render("_"))
@@ -428,15 +514,28 @@ func (m *model) renderSalariesForm(s *styles) string {
 	}
 
 	helpStr := fmt.Sprintf("enter: %s • esc: %s", t(m.lang, "action.save"), t(m.lang, "action.cancel"))
-	if m.salaryFormCur == 0 || m.salaryFormCur == 1 {
-		helpStr += " • ←/→: select"
+	if m.salaryFormCur == 0 || m.salaryFormCur == 1 || m.salaryFormCur == 4 {
+		helpStr += " • ←/→/space: select"
 	}
 	help := s.dim.Render(helpStr)
 	return strings.Join(lines, "\n\n") + "\n\n" + help
 }
 
 func (m *model) renderSalariesDelete(s *styles) string {
+	if m.salaryEditIdx < 0 || m.salaryEditIdx >= len(m.salaries) {
+		return m.renderSalariesMonthList(s)
+	}
+	sal := m.salaries[m.salaryEditIdx]
+
 	prompt := s.status.Render(t(m.lang, "delete.confirmInsurance")) // Reuse string
-	help := s.dim.Render("y: " + t(m.lang, "action.confirm") + " • n/esc: " + t(m.lang, "action.cancel"))
-	return prompt + "\n\n" + help
+	
+	info := fmt.Sprintf(
+		"\n  %s %s/%s\n  %s € %s\n  %s %s",
+		s.dim.Render(t(m.lang, "field.month")+":"), s.info.Render(sal.Month), s.info.Render(sal.Year),
+		s.dim.Render(t(m.lang, "field.net")+":"), s.info.Render(sal.Net),
+		s.dim.Render(t(m.lang, "col.account")+":"), s.info.Render(sal.Account),
+	)
+	
+	help := s.dim.Render("\n\ny: " + t(m.lang, "action.confirm") + " • n/esc: " + t(m.lang, "action.cancel"))
+	return prompt + "\n" + info + help
 }

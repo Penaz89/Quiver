@@ -113,7 +113,11 @@ func (m *model) updateDailyList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if len(m.categories) > 0 {
 			defaultCat = m.categories[0]
 		}
-		m.dailyForm = [dailyFCount]string{time.Now().Format("02/01/2006"), defaultCat, "", ""}
+		defaultAcc := ""
+		if len(m.accounts) > 0 {
+			defaultAcc = m.accounts[0].Name
+		}
+		m.dailyForm = [dailyFCount]string{time.Now().Format("02/01/2006"), defaultCat, "", "", defaultAcc}
 		m.dailyFormCur = 0
 	case "e":
 		if m.dailyYearFilter != "" && m.dailyMonthFilter != "" {
@@ -131,6 +135,7 @@ func (m *model) updateDailyList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					d.Category,
 					d.Description,
 					d.Amount,
+					d.Account,
 				}
 				m.dailyFormCur = 0
 			}
@@ -194,6 +199,31 @@ func (m *model) updateDailyForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				}
 			}
 			m.dailyForm[dailyFCategory] = m.categories[idx]
+		} else if m.dailyFormCur == dailyFAccount && len(m.accounts) > 0 {
+			current := m.dailyForm[dailyFAccount]
+			idx := -1
+			for i, a := range m.accounts {
+				if a.Name == current {
+					idx = i
+					break
+				}
+			}
+			if key == "right" {
+				idx++
+				if idx >= len(m.accounts) {
+					idx = -1
+				}
+			} else {
+				idx--
+				if idx < -1 {
+					idx = len(m.accounts) - 1
+				}
+			}
+			if idx == -1 {
+				m.dailyForm[dailyFAccount] = ""
+			} else {
+				m.dailyForm[dailyFAccount] = m.accounts[idx].Name
+			}
 		}
 	case "enter":
 		dateStr := strings.TrimSpace(m.dailyForm[dailyFDate])
@@ -211,6 +241,7 @@ func (m *model) updateDailyForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		cat := strings.TrimSpace(m.dailyForm[dailyFCategory])
 		desc := strings.TrimSpace(m.dailyForm[dailyFDescription])
 		amt := strings.TrimSpace(m.dailyForm[dailyFAmount])
+		accName := m.dailyForm[dailyFAccount]
 
 		if cat == "" || amt == "" {
 			m.finView = fViewList
@@ -222,13 +253,35 @@ func (m *model) updateDailyForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			Category:    cat,
 			Description: desc,
 			Amount:      amt,
+			Account:     accName,
 			Author:      m.user,
 		}
 
+		newAmtEuro := parseEuro(amt)
+
 		if m.finView == fViewAdd {
 			m.daily = append(m.daily, d)
+			if accName != "" {
+				m.adjustAccountBalance(accName, -newAmtEuro)
+			}
 		} else {
+			oldAcc := m.daily[m.dailyEditIdx].Account
+			oldAmtEuro := parseEuro(m.daily[m.dailyEditIdx].Amount)
+			
 			m.daily[m.dailyEditIdx] = d
+			
+			if oldAcc == accName {
+				if oldAcc != "" && oldAmtEuro != newAmtEuro {
+					m.adjustAccountBalance(accName, oldAmtEuro - newAmtEuro)
+				}
+			} else {
+				if oldAcc != "" {
+					m.adjustAccountBalance(oldAcc, oldAmtEuro)
+				}
+				if accName != "" {
+					m.adjustAccountBalance(accName, -newAmtEuro)
+				}
+			}
 		}
 
 		_ = storage.SaveDailyExpenses(m.dataDir, m.daily)
@@ -295,6 +348,11 @@ func (m *model) updateDailyDelete(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "y", "Y", "s", "S", "enter":
 		if m.dailyEditIdx >= 0 && m.dailyEditIdx < len(m.daily) {
+			oldAcc := m.daily[m.dailyEditIdx].Account
+			oldAmtEuro := parseEuro(m.daily[m.dailyEditIdx].Amount)
+			if oldAcc != "" {
+				m.adjustAccountBalance(oldAcc, oldAmtEuro)
+			}
 			m.daily = append(m.daily[:m.dailyEditIdx], m.daily[m.dailyEditIdx+1:]...)
 			_ = storage.SaveDailyExpenses(m.dataDir, m.daily)
 		}
@@ -378,9 +436,9 @@ func (m *model) renderDailyMonthList(s *styles) string {
 func (m *model) renderDailyExpenseList(s *styles) string {
 	expenses := m.getDailyForMonth(m.dailyYearFilter, m.dailyMonthFilter)
 	
-	headerStr := fmt.Sprintf("  %-12s %-15s %-20s %-10s %s", t(m.lang, "col.date"), t(m.lang, "col.category"), t(m.lang, "col.description"), t(m.lang, "col.amount"), "AUTORE")
+	headerStr := fmt.Sprintf("  %-12s %-15s %-20s %-15s %-10s %s", t(m.lang, "col.date"), t(m.lang, "col.category"), t(m.lang, "col.description"), t(m.lang, "col.account"), t(m.lang, "col.amount"), "AUTORE")
 	header := s.subtitle.Render(headerStr)
-	divider := s.dim.Render("  " + strings.Repeat("─", 80))
+	divider := s.dim.Render("  " + strings.Repeat("─", 95))
 	
 	var lines []string
 	var totalAmount float64
@@ -395,10 +453,11 @@ func (m *model) renderDailyExpenseList(s *styles) string {
 			authorStr = s.dim.Render("[" + d.Author + "]")
 		}
 		
-		row := fmt.Sprintf("  %-12s %-15s %-20s %-10s %s",
+		row := fmt.Sprintf("  %-12s %-15s %-20s %-15s %-10s %s",
 			dateStr,
 			truncate(d.Category, 14),
 			truncate(d.Description, 19),
+			truncate(d.Account, 14),
 			amtStr,
 			authorStr,
 		)
@@ -415,9 +474,9 @@ func (m *model) renderDailyExpenseList(s *styles) string {
 		}
 	}
 
-	sumDivider := s.dim.Render("  " + strings.Repeat("=", 80))
+	sumDivider := s.dim.Render("  " + strings.Repeat("=", 95))
 	sumTitle := s.info.Render("  " + t(m.lang, "finances.monthlyTotal") + " " + m.dailyMonthFilter + "/" + m.dailyYearFilter)
-	sumRow := fmt.Sprintf("  %-12s %-15s %-20s € %.2f", "TOT", "", "", totalAmount)
+	sumRow := fmt.Sprintf("  %-12s %-15s %-20s %-15s € %.2f", "TOT", "", "", "", totalAmount)
 	summaryBlock := sumTitle + "\n" + s.highlight.Render(sumRow)
 
 	help := s.dim.Render(fmt.Sprintf("a: %s  e: %s  d: %s  ←: %s",
@@ -434,6 +493,7 @@ func (m *model) renderDailyForm(s *styles, formTitle string) string {
 		t(m.lang, "field.category"),
 		t(m.lang, "field.description"),
 		t(m.lang, "field.amount"),
+		t(m.lang, "col.account"),
 	}
 
 	var fields []string
@@ -445,7 +505,7 @@ func (m *model) renderDailyForm(s *styles, formTitle string) string {
 		if i == m.dailyFormCur {
 			cursor := s.highlight.Render("_")
 			fieldStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Background(lipgloss.Color("236"))
-			if i == dailyFCategory {
+			if i == dailyFCategory || i == dailyFAccount {
 				rendered = label + " < " + fieldStyle.Render(val) + " >"
 			} else {
 				rendered = label + " " + fieldStyle.Render(val) + cursor
@@ -473,9 +533,10 @@ func (m *model) renderDailyDelete(s *styles) string {
 	warning := lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true).Render(t(m.lang, "delete.confirmInsurance"))
 
 	info := fmt.Sprintf(
-		"\n  %s %s\n  %s %s\n  %s € %s",
+		"\n  %s %s\n  %s %s\n  %s %s\n  %s € %s",
 		s.dim.Render(t(m.lang, "col.date")+":"), s.info.Render(d.Date.Format("02/01/2006")),
 		s.dim.Render(t(m.lang, "col.category")+":"), s.info.Render(d.Category),
+		s.dim.Render(t(m.lang, "col.account")+":"), s.info.Render(d.Account),
 		s.dim.Render(t(m.lang, "col.amount")+":"), s.info.Render(d.Amount),
 	)
 

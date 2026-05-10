@@ -56,6 +56,34 @@ func (m *model) calculateTotalFinances() (float64, float64) {
 		}
 	}
 
+	// Installments
+	for _, inst := range m.installments {
+		if inst.TotalCount > 0 && inst.PaidCount >= inst.TotalCount {
+			continue // Paid off
+		}
+		cost := parseEuro(inst.Amount)
+		switch inst.Frequency {
+		case "type.monthly":
+			monthly += cost
+			annual += cost * 12.0
+		case "type.bimonthly":
+			monthly += cost / 2.0
+			annual += cost * 6.0
+		case "type.quarterly":
+			monthly += cost / 3.0
+			annual += cost * 4.0
+		case "type.semiannual":
+			monthly += cost / 6.0
+			annual += cost * 2.0
+		case "type.annual":
+			monthly += cost / 12.0
+			annual += cost
+		default:
+			monthly += cost
+			annual += cost * 12.0
+		}
+	}
+
 
 	// Daily Expenses (Current Month)
 	now := time.Now()

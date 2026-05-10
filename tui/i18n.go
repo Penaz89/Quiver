@@ -88,10 +88,17 @@ var translations = map[string]map[string]string{
 	"col.expires": {"en": "EXPIRES", "it": "SCADENZA"},
 	"col.type":    {"en": "TYPE", "it": "TIPOLOGIA"},
 
-	// ── Types ────────────────────────────────────────────────
+	// ── Types & Frequencies ──────────────────────────────────
 	"type.semiannual": {"en": "Semiannual", "it": "Semestrale"},
 	"type.annual":     {"en": "Annual", "it": "Annuale"},
 	"type.monthly":    {"en": "Monthly", "it": "Mensile"},
+	"type.bimonthly":  {"en": "Bimonthly", "it": "Bimestrale"},
+	"type.quarterly":  {"en": "Quarterly", "it": "Trimestrale"},
+	"type.indefinite": {"en": "Indefinite", "it": "Indefinito"},
+	"type.bank":       {"en": "Bank", "it": "Banca"},
+	"type.cash":       {"en": "Cash", "it": "Contanti"},
+	"type.crypto":     {"en": "Crypto", "it": "Criptovalute"},
+	"type.investment": {"en": "Investment", "it": "Investimenti"},
 
 	// ── CRUD actions ─────────────────────────────────────────
 	"action.add":           {"en": "Add", "it": "Aggiungi"},
@@ -132,6 +139,8 @@ var translations = map[string]map[string]string{
 	"holidays.noRecords":       {"en": "No holiday expenses yet.", "it": "Nessuna spesa per vacanze."},
 	"finances.subscriptions":   {"en": "Subscriptions", "it": "Abbonamenti"},
 	"subscriptions.noRecords":  {"en": "No subscriptions yet.", "it": "Nessun abbonamento."},
+	"finances.installments":    {"en": "Installments", "it": "Rate/Scadenze"},
+	"installments.noRecords":   {"en": "No installments yet.", "it": "Nessuna rata o scadenza."},
 	"finances.salaryImpact":    {"en": "SALARY IMPACT", "it": "IMPATTO SULLO STIPENDIO"},
 	"finances.projectedAnnual": {"en": "Projected Annual Net", "it": "Netto Annuale Stimato"},
 	"finances.fixedAnnual":     {"en": "Total Recurring Expenses", "it": "Totale Spese Ricorrenti"},
@@ -152,7 +161,10 @@ var translations = map[string]map[string]string{
 	"categories.add":           {"en": "Add Category:", "it": "Aggiungi Categoria:"},
 	"categories.edit":          {"en": "Edit Category:", "it": "Modifica Categoria:"},
 	"categories.name":          {"en": "Category Name", "it": "Nome Categoria"},
-	"categories.confirmDelete": {"en": "Delete this category? (y/N)", "it": "Eliminare questa categoria? (s/N)"},
+	"finances.accounts":        {"en": "Accounts", "it": "Conti/Portafogli"},
+	"accounts.noRecords":       {"en": "No accounts found.", "it": "Nessun conto."},
+	"col.account":              {"en": "ACCOUNT", "it": "CONTO"},
+	"col.balance":              {"en": "BALANCE", "it": "SALDO"},
 	"col.annual":               {"en": "ANNUAL", "it": "ANNUALE"},
 	"col.goal":                 {"en": "GOAL", "it": "GOAL"},
 	"col.monthly":              {"en": "MONTHLY", "it": "MENSILE"},
@@ -163,11 +175,15 @@ var translations = map[string]map[string]string{
 	"col.accom":                {"en": "ACCOM.", "it": "ALLOGGIO"},
 	"col.year":                 {"en": "YEAR", "it": "ANNO"},
 	"col.month":                {"en": "MONTH", "it": "MESE"},
+	"col.budget":               {"en": "BUDGET", "it": "BUDGET"},
 	"col.gross":                {"en": "GROSS", "it": "LORDO"},
 	"col.net":                  {"en": "NET", "it": "NETTO"},
 	"col.deductions":           {"en": "DEDUCTIONS", "it": "TRATTENUTE"},
 	"col.taxes":                {"en": "TAXES", "it": "TASSE"},
 	"col.amount":               {"en": "AMOUNT", "it": "IMPORTO"},
+	"col.frequency":            {"en": "FREQ.", "it": "FREQ."},
+	"col.progress":             {"en": "PROGRESS", "it": "PROGRESSO"},
+	"col.nextPayment":          {"en": "NEXT", "it": "PROSSIMA"},
 	"col.date":                 {"en": "DATE", "it": "DATA"},
 	"col.category":             {"en": "CATEGORY", "it": "CATEGORIA"},
 	"col.description":          {"en": "DESCRIPTION", "it": "DESCRIZIONE"},
@@ -291,6 +307,7 @@ var translations = map[string]map[string]string{
 	"analytics.cashFlow":   {"en": "Monthly Cash Flow:", "it": "Flusso di Cassa Mensile:"},
 	"analytics.savingRate": {"en": "Saving Rate:", "it": "Tasso di Risparmio:"},
 	"analytics.ratioBar":   {"en": "Income vs Expense Ratio:", "it": "Rapporto Entrate/Uscite:"},
+	"analytics.budgets":    {"en": "Monthly Budgets", "it": "Budget Mensili"},
 
 	// ── Help bar ─────────────────────────────────────────────
 	"help.navigate":       {"en": "navigate", "it": "naviga"},
