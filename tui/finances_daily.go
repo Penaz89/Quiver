@@ -113,7 +113,7 @@ func (m *model) updateDailyList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if len(m.categories) > 0 {
 			defaultCat = m.categories[0]
 		}
-		m.dailyForm = [dailyFCount]string{"", defaultCat, "", ""}
+		m.dailyForm = [dailyFCount]string{time.Now().Format("02/01/2006"), defaultCat, "", ""}
 		m.dailyFormCur = 0
 	case "e":
 		if m.dailyYearFilter != "" && m.dailyMonthFilter != "" {
