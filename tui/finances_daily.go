@@ -109,7 +109,11 @@ func (m *model) updateDailyList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	case "a":
 		m.finView = fViewAdd
-		m.dailyForm = [dailyFCount]string{}
+		defaultCat := ""
+		if len(m.categories) > 0 {
+			defaultCat = m.categories[0]
+		}
+		m.dailyForm = [dailyFCount]string{"", defaultCat, "", ""}
 		m.dailyFormCur = 0
 	case "e":
 		if m.dailyYearFilter != "" && m.dailyMonthFilter != "" {
@@ -169,7 +173,28 @@ func (m *model) updateDailyForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.dailyFormCur = dailyFCount - 1
 		}
 	case "left", "right":
-		// No toggle fields
+		if m.dailyFormCur == dailyFCategory && len(m.categories) > 0 {
+			current := m.dailyForm[dailyFCategory]
+			idx := -1
+			for i, c := range m.categories {
+				if c == current {
+					idx = i
+					break
+				}
+			}
+			if key == "right" {
+				idx++
+				if idx >= len(m.categories) {
+					idx = 0
+				}
+			} else {
+				idx--
+				if idx < 0 {
+					idx = len(m.categories) - 1
+				}
+			}
+			m.dailyForm[dailyFCategory] = m.categories[idx]
+		}
 	case "enter":
 		dateStr := strings.TrimSpace(m.dailyForm[dailyFDate])
 		var parsedDate time.Time
@@ -211,35 +236,55 @@ func (m *model) updateDailyForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "esc":
 		m.finView = fViewList
 	case "backspace":
-		field := &m.dailyForm[m.dailyFormCur]
-		if len(*field) > 0 {
-			runes := []rune(*field)
-			*field = string(runes[:len(runes)-1])
+		if m.dailyFormCur != dailyFCategory {
+			field := &m.dailyForm[m.dailyFormCur]
+			if len(*field) > 0 {
+				runes := []rune(*field)
+				*field = string(runes[:len(runes)-1])
+			}
 		}
 	case "space":
-		m.dailyForm[m.dailyFormCur] += " "
+		if m.dailyFormCur == dailyFCategory && len(m.categories) > 0 {
+			current := m.dailyForm[dailyFCategory]
+			idx := -1
+			for i, c := range m.categories {
+				if c == current {
+					idx = i
+					break
+				}
+			}
+			idx++
+			if idx >= len(m.categories) {
+				idx = 0
+			}
+			m.dailyForm[dailyFCategory] = m.categories[idx]
+		} else if m.dailyFormCur != dailyFCategory {
+			m.dailyForm[m.dailyFormCur] += " "
+		}
 	default:
-		runes := []rune(key)
-		if len(runes) == 1 {
-			field := &m.dailyForm[m.dailyFormCur]
-			if m.dailyFormCur == dailyFDate {
-				if !strings.ContainsRune("0123456789", runes[0]) {
-					return m, nil
+		if m.dailyFormCur != dailyFCategory {
+			runes := []rune(key)
+			if len(runes) == 1 {
+				field := &m.dailyForm[m.dailyFormCur]
+				if m.dailyFormCur == dailyFDate {
+					if !strings.ContainsRune("0123456789", runes[0]) {
+						return m, nil
+					}
+					if len(*field) >= 10 {
+						return m, nil
+					}
+					*field += key
+					if len(*field) == 2 || len(*field) == 5 {
+						*field += "/"
+					}
+				} else if m.dailyFormCur == dailyFAmount {
+					if !strings.ContainsRune("0123456789.,", runes[0]) {
+						return m, nil
+					}
+					*field += key
+				} else {
+					*field += key
 				}
-				if len(*field) >= 10 {
-					return m, nil
-				}
-				*field += key
-				if len(*field) == 2 || len(*field) == 5 {
-					*field += "/"
-				}
-			} else if m.dailyFormCur == dailyFAmount {
-				if !strings.ContainsRune("0123456789.,", runes[0]) {
-					return m, nil
-				}
-				*field += key
-			} else {
-				*field += key
 			}
 		}
 	}
@@ -400,7 +445,11 @@ func (m *model) renderDailyForm(s *styles, formTitle string) string {
 		if i == m.dailyFormCur {
 			cursor := s.highlight.Render("_")
 			fieldStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Background(lipgloss.Color("236"))
-			rendered = label + " " + fieldStyle.Render(val) + cursor
+			if i == dailyFCategory {
+				rendered = label + " < " + fieldStyle.Render(val) + " >"
+			} else {
+				rendered = label + " " + fieldStyle.Render(val) + cursor
+			}
 		} else {
 			rendered = label + " " + s.info.Render(val)
 		}

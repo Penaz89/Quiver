@@ -177,6 +177,13 @@ type model struct {
 	dailyEditIdx int
 	dailyYearFilter string
 	dailyMonthFilter string
+	
+	// Categories state
+	categories  []string
+	catCursor   int
+	catForm     string
+	catEditIdx  int
+
 	// Subscriptions state
 	subs       []storage.Subscription
 	subCursor  int
@@ -452,6 +459,7 @@ func (m *model) loadUserData() {
 	m.salaries, _ = storage.LoadSalaries(m.dataDir)
 	m.goals, _ = storage.LoadGoals(m.dataDir)
 	m.daily, _ = storage.LoadDailyExpenses(m.dataDir)
+	m.categories, _ = storage.LoadCategories(m.dataDir)
 
 	if m.settings.Language != "" {
 		m.lang = m.settings.Language
