@@ -198,6 +198,7 @@ func (m *model) updateTransfers(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					*field = string(runes[:len(runes)-1])
 				}
 			}
+		default:
 			if m.trFormCur != trFFrom && m.trFormCur != trFTo && m.trFormCur != trFFrequency {
 				runes := []rune(key)
 				if len(runes) == 1 {
