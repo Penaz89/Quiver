@@ -171,15 +171,11 @@ func (m *model) updateSalaries(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 						break
 					}
 				}
-				idx--
-				if idx < -1 {
-					idx = len(m.accounts) - 1
-				}
 				if idx == -1 {
-					m.salaryForm[4] = ""
-				} else {
-					m.salaryForm[4] = m.accounts[idx].Name
+					idx = 0
 				}
+				idx = (idx - 1 + len(m.accounts)) % len(m.accounts)
+				m.salaryForm[4] = m.accounts[idx].Name
 			}
 		case "right", "l":
 			if m.salaryFormCur == 0 {
@@ -195,15 +191,8 @@ func (m *model) updateSalaries(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 						break
 					}
 				}
-				idx++
-				if idx >= len(m.accounts) {
-					idx = -1
-				}
-				if idx == -1 {
-					m.salaryForm[4] = ""
-				} else {
-					m.salaryForm[4] = m.accounts[idx].Name
-				}
+				idx = (idx + 1) % len(m.accounts)
+				m.salaryForm[4] = m.accounts[idx].Name
 			}
 		case "backspace":
 			if m.salaryFormCur != 0 && m.salaryFormCur != 1 && m.salaryFormCur != 4 && len(m.salaryForm[m.salaryFormCur]) > 0 {
@@ -227,15 +216,8 @@ func (m *model) updateSalaries(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 						break
 					}
 				}
-				idx++
-				if idx >= len(m.accounts) {
-					idx = -1
-				}
-				if idx == -1 {
-					m.salaryForm[4] = ""
-				} else {
-					m.salaryForm[4] = m.accounts[idx].Name
-				}
+				idx = (idx + 1) % len(m.accounts)
+				m.salaryForm[4] = m.accounts[idx].Name
 			}
 		}
 	case fViewDelete:

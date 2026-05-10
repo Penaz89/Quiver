@@ -1,0 +1,14 @@
+[
+  {
+    "name": "N26",
+    "balance": "1000",
+    "type": "type.bank",
+    "author": "penaz"
+  },
+  {
+    "name": "ING",
+    "balance": "2850.00",
+    "type": "type.bank",
+    "author": "penaz"
+  }
+]

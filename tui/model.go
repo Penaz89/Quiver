@@ -207,6 +207,15 @@ type model struct {
 	accFormCur    int
 	accEditIdx    int
 
+	// Transfers state
+	transfers       []storage.Transfer
+	trCursor        int
+	trForm          [6]string // Date, FromAccount, ToAccount, Amount, Description, Frequency
+	trFormCur       int
+	trEditIdx       int
+	trYearFilter    string
+	trMonthFilter   string
+
 	// Salaries state
 	salaries         []storage.Salary
 	salaryCursor     int
@@ -479,6 +488,9 @@ func (m *model) loadUserData() {
 	m.budgets, _ = storage.LoadBudgets(m.dataDir)
 	m.installments, _ = storage.LoadInstallments(m.dataDir)
 	m.accounts, _ = storage.LoadAccounts(m.dataDir)
+	m.transfers, _ = storage.LoadTransfers(m.dataDir)
+	
+	m.processRecurringTransfers()
 
 	if m.settings.Language != "" {
 		m.lang = m.settings.Language

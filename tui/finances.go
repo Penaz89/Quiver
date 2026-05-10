@@ -28,6 +28,7 @@ const (
 	fSectionGoals                           // Goals (Obiettivi)
 	fSectionCategories                      // Categories (Categorie)
 	fSectionAccounts                        // Accounts (Conti)
+	fSectionTransfers                       // Transfers (Giroconti)
 )
 
 const (
@@ -70,7 +71,7 @@ func (m *model) updateFinances(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.finMenuCursor--
 			}
 		case "down", "j":
-			if m.finMenuCursor < 10-1 { // 10 items
+			if m.finMenuCursor < 11-1 { // 11 items
 				m.finMenuCursor++
 			}
 		case "enter", "right":
@@ -104,6 +105,8 @@ func (m *model) updateFinances(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.updateCategories(msg)
 	case fSectionAccounts:
 		return m.updateAccounts(msg)
+	case fSectionTransfers:
+		return m.updateTransfers(msg)
 	}
 	return m, nil
 }
@@ -140,6 +143,7 @@ func (m *model) renderFinancesView(s *styles) string {
 		t(m.lang, "finances.goals"),
 		t(m.lang, "finances.categories"),
 		t(m.lang, "finances.accounts"),
+		t(m.lang, "finances.transfers"),
 	}
 	var lines []string
 	for i, l := range labels {
@@ -189,6 +193,8 @@ func (m *model) renderFinancesView(s *styles) string {
 		col3 = m.renderCategories(s)
 	case fSectionAccounts:
 		col3 = m.renderAccounts(s)
+	case fSectionTransfers:
+		col3 = m.renderTransfers(s)
 	}
 
 	if m.finSection == fSectionMenu {

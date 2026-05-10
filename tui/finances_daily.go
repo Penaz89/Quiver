@@ -209,21 +209,14 @@ func (m *model) updateDailyForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				}
 			}
 			if key == "right" {
-				idx++
-				if idx >= len(m.accounts) {
-					idx = -1
-				}
+				idx = (idx + 1) % len(m.accounts)
 			} else {
-				idx--
-				if idx < -1 {
-					idx = len(m.accounts) - 1
+				if idx == -1 {
+					idx = 0
 				}
+				idx = (idx - 1 + len(m.accounts)) % len(m.accounts)
 			}
-			if idx == -1 {
-				m.dailyForm[dailyFAccount] = ""
-			} else {
-				m.dailyForm[dailyFAccount] = m.accounts[idx].Name
-			}
+			m.dailyForm[dailyFAccount] = m.accounts[idx].Name
 		}
 	case "enter":
 		dateStr := strings.TrimSpace(m.dailyForm[dailyFDate])
@@ -311,11 +304,22 @@ func (m *model) updateDailyForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				idx = 0
 			}
 			m.dailyForm[dailyFCategory] = m.categories[idx]
-		} else if m.dailyFormCur != dailyFCategory {
+		} else if m.dailyFormCur == dailyFAccount && len(m.accounts) > 0 {
+			current := m.dailyForm[dailyFAccount]
+			idx := -1
+			for i, a := range m.accounts {
+				if a.Name == current {
+					idx = i
+					break
+				}
+			}
+			idx = (idx + 1) % len(m.accounts)
+			m.dailyForm[dailyFAccount] = m.accounts[idx].Name
+		} else if m.dailyFormCur != dailyFCategory && m.dailyFormCur != dailyFAccount {
 			m.dailyForm[m.dailyFormCur] += " "
 		}
 	default:
-		if m.dailyFormCur != dailyFCategory {
+		if m.dailyFormCur != dailyFCategory && m.dailyFormCur != dailyFAccount {
 			runes := []rune(key)
 			if len(runes) == 1 {
 				field := &m.dailyForm[m.dailyFormCur]
