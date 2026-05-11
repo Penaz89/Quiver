@@ -418,7 +418,19 @@ func (m *model) renderSalariesMonthList(s *styles) string {
 	
 	var totalGross, totalNet float64
 	
-	headerStr := fmt.Sprintf("  %-10s %-11s %-11s %-11s %-7s %-12s %s", t(m.lang, "col.month"), truncate(t(m.lang, "col.gross"), 10), truncate(t(m.lang, "col.net"), 10), truncate(t(m.lang, "col.deductions"), 10), truncate(t(m.lang, "col.taxes"), 6), truncate(t(m.lang, "col.account"), 11), "AUTORE")
+	center := func(s string, w int) string {
+		return lipgloss.NewStyle().Width(w).Align(lipgloss.Center).Render(s)
+	}
+
+	headerStr := fmt.Sprintf("  %s %s %s %s %s %s %s", 
+		center(t(m.lang, "col.month"), 10),
+		center(truncate(t(m.lang, "col.gross"), 10), 11),
+		center(truncate(t(m.lang, "col.net"), 10), 11),
+		center(truncate(t(m.lang, "col.deductions"), 10), 11),
+		center(truncate(t(m.lang, "col.taxes"), 6), 7),
+		center(truncate(t(m.lang, "col.account"), 11), 12),
+		center("AUTORE", 8),
+	)
 	header := s.subtitle.Render(headerStr)
 	divider := s.dim.Render("  " + strings.Repeat("─", 75))
 	
@@ -441,7 +453,15 @@ func (m *model) renderSalariesMonthList(s *styles) string {
 		}
 		
 		monthLabel := fmt.Sprintf("%s-%s", sal.Month, truncate(t(m.lang, "month."+sal.Month), 3))
-		row := fmt.Sprintf("  %-10s € %-8.0f € %-8.0f € %-8.0f %-6.1f%% %-12s %s", truncate(monthLabel, 10), gross, net, taxes, taxPct, truncate(sal.Account, 11), authorStr)
+		row := fmt.Sprintf("  %s %s %s %s %s %s %s", 
+			center(truncate(monthLabel, 10), 10),
+			center(fmt.Sprintf("€ %.0f", gross), 11),
+			center(fmt.Sprintf("€ %.0f", net), 11),
+			center(fmt.Sprintf("€ %.0f", taxes), 11),
+			center(fmt.Sprintf("%.1f %%", taxPct), 7),
+			center(truncate(sal.Account, 11), 12),
+			center(authorStr, 8),
+		)
 		if i == m.salaryCursor {
 			isActive := m.finSection != fSectionMenu && m.focusContent
 			if isActive {
@@ -464,7 +484,13 @@ func (m *model) renderSalariesMonthList(s *styles) string {
 	}
 	
 	sumTitle := s.info.Render("  " + t(m.lang, "salaries.annualSum") + " " + m.salaryYearFilter)
-	sumRow := fmt.Sprintf("  %-10s € %-8.0f € %-8.0f € %-8.0f %-6.1f%%", "TOT", totalGross, totalNet, totalTaxes, totalTaxPct)
+	sumRow := fmt.Sprintf("  %s %s %s %s %s",
+		center("TOT", 10),
+		center(fmt.Sprintf("€ %.0f", totalGross), 11),
+		center(fmt.Sprintf("€ %.0f", totalNet), 11),
+		center(fmt.Sprintf("€ %.0f", totalTaxes), 11),
+		center(fmt.Sprintf("%.1f %%", totalTaxPct), 7),
+	)
 	
 	summaryBlock := sumTitle + "\n" + sumRow
 	

@@ -99,12 +99,12 @@ func (m *model) renderAnalytics(s *styles) string {
 
 	if isCompact {
 		labelW = col3W - 4
-		barLen = col3W - 18
+		barLen = col3W - 25
 		if barLen < 8 {
 			barLen = 8
 		}
-		if barLen > 40 {
-			barLen = 40
+		if barLen > 25 {
+			barLen = 25
 		}
 		divLen = col3W - 4
 		if divLen < 1 {
@@ -113,12 +113,12 @@ func (m *model) renderAnalytics(s *styles) string {
 		fmtRow = "  %s\n  %s  %s\n"
 	} else {
 		labelW = maxLabel
-		barLen = col3W - labelW - 18
+		barLen = col3W - labelW - 35
 		if barLen < 8 {
 			barLen = 8
 		}
-		if barLen > 40 {
-			barLen = 40
+		if barLen > 25 {
+			barLen = 25
 		}
 		divLen = labelW + barLen + 16
 		if divLen < 1 {

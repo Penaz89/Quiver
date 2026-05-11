@@ -1,23 +1,9 @@
 [
   {
-    "date": "2026-10-20T00:00:00Z",
-    "category": "CASA",
-    "description": "Spesa",
-    "amount": "100",
-    "author": "penaz"
-  },
-  {
-    "date": "2026-10-14T00:00:00Z",
-    "category": "CIBO e Bevande",
-    "description": "Cena compleanno",
-    "amount": "110",
-    "author": "penaz"
-  },
-  {
-    "date": "2026-05-10T00:00:00Z",
-    "category": "CASA",
-    "description": "Spesa Martinelli",
-    "amount": "150",
+    "date": "2026-05-11T00:00:00Z",
+    "category": "Bar/Ristorante",
+    "description": "Pizza",
+    "amount": "21",
     "account": "ING",
     "author": "penaz"
   }

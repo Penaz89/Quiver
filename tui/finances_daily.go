@@ -440,7 +440,18 @@ func (m *model) renderDailyMonthList(s *styles) string {
 func (m *model) renderDailyExpenseList(s *styles) string {
 	expenses := m.getDailyForMonth(m.dailyYearFilter, m.dailyMonthFilter)
 	
-	headerStr := fmt.Sprintf("  %-10s %-12s %-15s %-12s %-9s %s", t(m.lang, "col.date"), truncate(t(m.lang, "col.category"), 11), truncate(t(m.lang, "col.description"), 14), truncate(t(m.lang, "col.account"), 11), truncate(t(m.lang, "col.amount"), 8), "AUTORE")
+	center := func(s string, w int) string {
+		return lipgloss.NewStyle().Width(w).Align(lipgloss.Center).Render(s)
+	}
+
+	headerStr := fmt.Sprintf("  %s %s %s %s %s %s", 
+		center(t(m.lang, "col.date"), 10),
+		center(truncate(t(m.lang, "col.category"), 11), 12),
+		center(truncate(t(m.lang, "col.description"), 14), 15),
+		center(truncate(t(m.lang, "col.account"), 11), 12),
+		center(truncate(t(m.lang, "col.amount"), 8), 9),
+		center("AUTORE", 8),
+	)
 	header := s.subtitle.Render(headerStr)
 	divider := s.dim.Render("  " + strings.Repeat("─", 72))
 	
@@ -457,13 +468,13 @@ func (m *model) renderDailyExpenseList(s *styles) string {
 			authorStr = s.dim.Render("[" + d.Author + "]")
 		}
 		
-		row := fmt.Sprintf("  %-10s %-12s %-15s %-12s %-9s %s",
-			dateStr[:10], // "dd/mm/yyyy" is 10 chars
-			truncate(d.Category, 11),
-			truncate(d.Description, 14),
-			truncate(d.Account, 11),
-			truncate(amtStr, 8),
-			authorStr,
+		row := fmt.Sprintf("  %s %s %s %s %s %s",
+			center(dateStr[:10], 10),
+			center(truncate(d.Category, 11), 12),
+			center(truncate(d.Description, 14), 15),
+			center(truncate(d.Account, 11), 12),
+			center(truncate(amtStr, 8), 9),
+			center(authorStr, 8),
 		)
 
 		if i == m.dailyCursor {
@@ -480,7 +491,13 @@ func (m *model) renderDailyExpenseList(s *styles) string {
 
 	sumDivider := s.dim.Render("  " + strings.Repeat("=", 72))
 	sumTitle := s.info.Render("  " + t(m.lang, "finances.monthlyTotal") + " " + m.dailyMonthFilter + "/" + m.dailyYearFilter)
-	sumRow := fmt.Sprintf("  %-10s %-12s %-15s %-12s € %.2f", "TOT", "", "", "", totalAmount)
+	sumRow := fmt.Sprintf("  %s %s %s %s %s", 
+		center("TOT", 10), 
+		center("", 12), 
+		center("", 15), 
+		center("", 12), 
+		center(fmt.Sprintf("€ %.2f", totalAmount), 9),
+	)
 	summaryBlock := sumTitle + "\n" + s.highlight.Render(sumRow)
 
 	help := s.dim.Render(fmt.Sprintf("a: %s  e: %s  d: %s  ←: %s",

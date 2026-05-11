@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -492,9 +493,13 @@ func (m *model) renderFixedExpenses(s *styles) string {
 	if len(m.daily) > 0 {
 		now := time.Now()
 		var monthlyTotal float64
+		categoryTotals := make(map[string]float64)
+		
 		for _, exp := range m.daily {
 			if !exp.Date.IsZero() && exp.Date.Year() == now.Year() && exp.Date.Month() == now.Month() {
-				monthlyTotal += parseEuro(exp.Amount)
+				amt := parseEuro(exp.Amount)
+				monthlyTotal += amt
+				categoryTotals[exp.Category] += amt
 			}
 		}
 		
@@ -510,12 +515,25 @@ func (m *model) renderFixedExpenses(s *styles) string {
 			grandTotalAnnual += annualTotal
 			grandTotalMonthly += monthlyTotal
 			
-			monthKey := fmt.Sprintf("month.%02d", now.Month())
-			row := fmt.Sprintf("  %-31s %-14s %-14s",
-				truncate(t(m.lang, monthKey) + " " + fmt.Sprintf("%d", now.Year()), 30),
-				fmt.Sprintf("€ %.2f", annualTotal),
-				fmt.Sprintf("€ %.2f", monthlyTotal),
-			)
+			var cats []string
+			for cat := range categoryTotals {
+				cats = append(cats, cat)
+			}
+			sort.Strings(cats)
+
+			var dailyRows []string
+			for _, cat := range cats {
+				catTotal := categoryTotals[cat]
+				catAnn := catTotal * 12.0
+				catRow := fmt.Sprintf("  %-31s %-14s %-14s",
+					truncate(cat, 30),
+					fmt.Sprintf("€ %.2f", catAnn),
+					fmt.Sprintf("€ %.2f", catTotal),
+				)
+				dailyRows = append(dailyRows, catRow)
+			}
+			
+			dailyTable := strings.Join(dailyRows, "\n")
 			
 			dailySubtotalStr := fmt.Sprintf("  %-31s %-14s %-14s",
 				t(m.lang, "finances.subtotal")+" "+t(m.lang, "finances.daily"),
@@ -523,7 +541,7 @@ func (m *model) renderFixedExpenses(s *styles) string {
 				fmt.Sprintf("€ %.2f", monthlyTotal),
 			)
 			
-			dailyBlock = "\n\n" + catDailyTitle + "\n" + dividerDaily + "\n" + headerDaily + "\n" + dividerDaily + "\n" + row + "\n" + dividerDaily + "\n" + s.highlight.Render(dailySubtotalStr)
+			dailyBlock = "\n\n" + catDailyTitle + "\n" + dividerDaily + "\n" + headerDaily + "\n" + dividerDaily + "\n" + dailyTable + "\n" + dividerDaily + "\n" + s.highlight.Render(dailySubtotalStr)
 		}
 	}
 
@@ -598,7 +616,12 @@ func (m *model) renderFixedExpenses(s *styles) string {
 	
 	grandBlock := grandDivider + "\n" + s.title.Render(grandStr) + "\n" + grandDivider
 
-	content := vehBlock + houseBlock + subBlock + instBlock + dailyBlock + goalBlock + "\n\n\n" + grandBlock
+	var note string
+	if dailyBlock != "" {
+		note = "\n\n  " + s.dim.Render("* " + t(m.lang, "finances.estimateNote"))
+	}
+
+	content := vehBlock + houseBlock + subBlock + instBlock + dailyBlock + goalBlock + "\n\n\n" + grandBlock + note
 	help := s.dim.Render(fmt.Sprintf("\n\n←: %s", t(m.lang, "help.goBack")))
 	
 	return title + "\n\n" + content + help

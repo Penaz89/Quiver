@@ -1,13 +1,13 @@
 [
   {
     "name": "N26",
-    "balance": "1000",
+    "balance": "3000.00",
     "type": "type.bank",
     "author": "penaz"
   },
   {
     "name": "ING",
-    "balance": "2850.00",
+    "balance": "2979.00",
     "type": "type.bank",
     "author": "penaz"
   }
